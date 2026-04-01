@@ -45,7 +45,6 @@
 - Связанные файлы кода: `dist/runtime/risk/portfolioRiskContour.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/portfolio-risk-contour.test.js`.
 - Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/RISK_AND_PROTECTION_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
 
-<<<<<<< codex/add-analytics-layer-for-trading-results
 ## 2026-04-01 (базовый слой trade analytics)
 - Изменение: добавлен боевой минимум trade analytics с персистентным журналом сделок (CSV) и восстановлением состояния открытых сделок после рестарта (`open_trades_state.json`).
 - Изменение: добавлены сводные отчёты по тикерам и режимам (winRate, avgWin, avgLoss, expectancy, усреднения, час/день недели, тип сигнала).
@@ -53,12 +52,10 @@
 - Связанные файлы кода: `dist/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`.
 - Связанные разделы docs: `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
 - Изменение: добавлены русские inline-комментарии в trade analytics расчёты (без изменения поведения).
-=======
 
-## 2026-04-01 (portfolio balance forecast / capital stress forecast engine)
-- Изменение: добавлен отдельный слой `capitalStressForecastEngine` (runtime-позиция между `capitalRegimeEngine` и entry/sizing owner-слоями) с forward-looking оценкой ближайшего портфельного стресса.
-- Изменение: добавлены сценарии `baseline_stabilization`, `adverse_margin_expansion`, `severe_drawdown_spike`, агрегированный `portfolioFragilityScore`, вероятность ухудшения режима капитала и hints для entry/sizing/protective owner-слоёв.
-- Изменение: добавлены runtime-логи `capitalStressForecast` и структурированное событие `portfolio_capital_stress_forecast` для audit trail/trade journal.
-- Связанные файлы кода: `dist/runtime/risk/capitalStressForecastEngine.js`, `dist/runtime/risk/portfolioRiskContour.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/capital-stress-forecast-engine.test.js`, `tests/regression/portfolio-risk-contour.test.js`.
-- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/RISK_AND_PROTECTION_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
->>>>>>> main
+## 2026-04-01 (trade analytics: устойчивый CSV-парсинг и расширенная статистика)
+- Изменение: улучшен CSV-парсинг в trade analytics, чтобы корректно обрабатывать JSON-поля с запятыми/кавычками (`forecastHints`, `forecastRestrictionsApplied`) без искажения отчёта.
+- Изменение: добавлена отдельная агрегация `bySetupType` и расширенная статистика по усреднениям (`averagingUsageRate`, `avgPnlWithAveraging`, `avgPnlWithoutAveraging`).
+- Изменение: в аналитической строке `marketRegime` теперь берётся из runtime-контекста (fallback сохранён на `predictType`), что улучшает точность анализа по режимам.
+- Связанные файлы кода: `dist/index.js`.
+- Связанные разделы docs: `docs/user/CONFIG_GUIDE_RU.md`.
