@@ -82,3 +82,21 @@
 - Для `LEVERAGE_MISMATCH_POSITION` allowed actions: `reduce_only_close`, `profit_close`, `protective_forced_close`, `cleanup_reconciliation`, `partial_reduce_safe`.
 - Для `LEVERAGE_MISMATCH_POSITION` blocked actions: `averaging`, `leverage_sensitive_sizing_updates`, `normal_compatibility_required_actions`.
 - Fallback: при отключении `executionContour.leverageMismatchRestrictionEnabled` поведение возвращается к legacy guard без capability-state маршрутизации.
+
+## Portfolio Risk Contour (уровень портфеля/счёта)
+- Runtime-позиция: **самый верх decision-пайплайна перед всеми entry/signal слоями**.
+- Primary control layer: контур является главным текущим контролем состояния капитала и не может быть ослаблен нижележащими слоями.
+- Порядок: `portfolioRiskContour -> portfolioForecastEngine -> entryPermissionLayer -> marketRegimeRouter -> dynamicAssetSelection -> dynamicPositionSizing`.
+- Зависимости: account/balance snapshot, агрегаты по открытым позициям, дневная статистика сделок/циклов, состояние cooldown.
+- Если часть данных недоступна, применяется безопасный fallback: сохраняется текущий режим и включается более защитная трактовка (без ослабления hard-ограничений).
+- Forecast-слой может только дополнять forward-looking оценкой и **не имеет права** ослаблять текущие ограничения risk contour.
+
+### Что вычисляет слой
+- hard-ограничения новых входов:
+  - дневной лимит убытка,
+  - лимит новых входов за день,
+  - лимит одновременно открытых позиций,
+  - лимит суммарной используемой маржи,
+  - пауза после серии плохих циклов/закрытий.
+- `balanceState.capitalRegime`: `NORMAL | CAUTION | DEFENSIVE | CAPITAL_PRESERVATION | HALT_NEW_ENTRIES`.
+- `hardVeto` типа `capital_prohibition`, если вход должен быть заблокирован на уровне портфеля.

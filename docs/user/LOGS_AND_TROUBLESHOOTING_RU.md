@@ -77,3 +77,18 @@
 Для событий `reconciliation`, `position_capability_state`, `blocked_action` теперь логируются поля:
 `expectedLeverage`, `actualLeverage`, `leverageMismatchDetected`, `positionCapabilityState`, `allowedActions`, `blockedActions`.
 Это же попадает в audit trail/cycle journal через `emitStructuredEvent` в слоях `execution_contour` и `risk_decision`.
+
+## События portfolio risk contour
+Добавлено структурированное событие `portfolio_risk_contour_decision` (layer `risk.portfolioContour`).
+
+Обязательные поля для audit trail/trade journal:
+- `cycleId`, `ticker`, `exchange`;
+- `module/layer`, `marketRegime`, `capitalRegime`, `setupType`;
+- `score/confidence`;
+- `vetoReason` (если блок), `sizingDecision`;
+- `executionAction/fallbackAction`, `finalDecision`.
+
+Практика диагностики:
+1. Если `finalDecision=block`, первым делом смотрите `vetoReason` и `payload.telemetry.limitsBreached`.
+2. Для проверок regime-transition сверяйте `payload.balanceState.previousCapitalRegime` и `payload.balanceState.regimeChanged`.
+3. При активной паузе проверяйте `payload.limits.cooldownActive` и `payload.limits.cooldownUntilMs`.

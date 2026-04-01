@@ -15,6 +15,9 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const forcedLossExit = merged.forcedLossExit || {};
   const regimeTightening = forcedLossExit.regimeTightening || {};
   const forecastInfluence = forcedLossExit.forecastInfluence || {};
+  const portfolioRiskContour = merged.portfolioRiskContour || {};
+  const cooldownAfterBadStreak = portfolioRiskContour.cooldownAfterBadStreak || {};
+  const capitalRegimeThresholds = portfolioRiskContour.capitalRegimeThresholds || {};
 
   const normalized = {
     ...merged,
@@ -47,6 +50,30 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
       },
     },
 
+
+    portfolioRiskContour: {
+      enabled: !!portfolioRiskContour.enabled,
+      dailyLossLimitPercent: Number(portfolioRiskContour.dailyLossLimitPercent || 0),
+      maxNewEntriesPerDay: Number(portfolioRiskContour.maxNewEntriesPerDay || 0),
+      maxOpenPositions: Number(portfolioRiskContour.maxOpenPositions || 0),
+      maxUsedMarginPercent: Number(portfolioRiskContour.maxUsedMarginPercent || 0),
+      cooldownAfterBadStreak: {
+        enabled: !!cooldownAfterBadStreak.enabled,
+        consecutiveBadCycles: Number(cooldownAfterBadStreak.consecutiveBadCycles || 0),
+        consecutiveLosingClosures: Number(cooldownAfterBadStreak.consecutiveLosingClosures || 0),
+        pauseMinutes: Number(cooldownAfterBadStreak.pauseMinutes || 0),
+      },
+      capitalRegimeThresholds: {
+        cautionDailyLossPercent: Number(capitalRegimeThresholds.cautionDailyLossPercent || 0),
+        defensiveDailyLossPercent: Number(capitalRegimeThresholds.defensiveDailyLossPercent || 0),
+        capitalPreservationDailyLossPercent: Number(capitalRegimeThresholds.capitalPreservationDailyLossPercent || 0),
+        haltDailyLossPercent: Number(capitalRegimeThresholds.haltDailyLossPercent || 0),
+        cautionMarginUsagePercent: Number(capitalRegimeThresholds.cautionMarginUsagePercent || 0),
+        defensiveMarginUsagePercent: Number(capitalRegimeThresholds.defensiveMarginUsagePercent || 0),
+        capitalPreservationMarginUsagePercent: Number(capitalRegimeThresholds.capitalPreservationMarginUsagePercent || 0),
+        haltMarginUsagePercent: Number(capitalRegimeThresholds.haltMarginUsagePercent || 0),
+      },
+    },
     forcedLossExit: {
       enabled: !!forcedLossExit.enabled,
       maxNegativeHoldMinutes: Number(forcedLossExit.maxNegativeHoldMinutes || 0),
