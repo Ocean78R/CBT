@@ -177,6 +177,14 @@
   "loopsLength": 12000,
   "minBalance": 100,
   "warningThresholdAboveMinBalance": 25,
+  "executionContour": {
+    "enabled": true,
+    "queueLimit": 200,
+    "retryAttempts": 3,
+    "retryBackoffMs": 350,
+    "dedupWindowMs": 120000,
+    "reconcileOnLoopStart": true
+  },
   "unloadMode": {
     "enabled": false,
     "safeEntryAssets": ["BTC", "ETH", "BNB", "XRP"],
