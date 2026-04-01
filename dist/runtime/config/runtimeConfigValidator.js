@@ -4,13 +4,33 @@
 function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const coreConfig = utilsConfig.getCoreConfig(globalConfig);
   const merged = utilsConfig.merge(coreConfig, utilsConfig.getExchangeConfig(exchangeConfig));
+  const unloadMode = merged.unloadMode || {};
+  const capitalRegime = unloadMode.capitalRegime || {};
+  const entryLimits = unloadMode.entryLimits || {};
 
   const normalized = {
     ...merged,
     enabled: !!merged.enabled,
     minBalance: Number(merged.minBalance || 0),
+    warningThresholdAboveMinBalance: Number(merged.warningThresholdAboveMinBalance || 0),
     loopsLength: Number(globalConfig.loopsLength || 0),
     intervalSeconds: Number(globalConfig.intervalSeconds || 1),
+    unloadMode: {
+      enabled: !!unloadMode.enabled,
+      safeEntryAssets: Array.isArray(unloadMode.safeEntryAssets) ? unloadMode.safeEntryAssets : [],
+      entryLimits: {
+        maxNewEntriesPerCycle: Number(entryLimits.maxNewEntriesPerCycle || 0),
+        maxNewEntriesPerDay: Number(entryLimits.maxNewEntriesPerDay || 0),
+        haltNewEntries: !!entryLimits.haltNewEntries,
+      },
+      capitalRegime: {
+        enabled: capitalRegime.enabled !== false,
+        forceHaltOnRiskSignals: !!capitalRegime.forceHaltOnRiskSignals,
+        cautionRiskSignals: Array.isArray(capitalRegime.cautionRiskSignals) ? capitalRegime.cautionRiskSignals : [],
+        defensiveRiskSignals: Array.isArray(capitalRegime.defensiveRiskSignals) ? capitalRegime.defensiveRiskSignals : [],
+        haltRiskSignals: Array.isArray(capitalRegime.haltRiskSignals) ? capitalRegime.haltRiskSignals : [],
+      },
+    },
   };
 
   return normalized;

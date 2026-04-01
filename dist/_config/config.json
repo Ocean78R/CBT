@@ -176,6 +176,24 @@
   "intervalSeconds": 120,
   "loopsLength": 12000,
   "minBalance": 100,
+  "warningThresholdAboveMinBalance": 25,
+  "unloadMode": {
+    "enabled": false,
+    "safeEntryAssets": ["BTC", "ETH", "BNB", "XRP"],
+    "entryLimits": {
+      "maxNewEntriesPerCycle": 2,
+      "maxNewEntriesPerDay": 8,
+      "haltNewEntries": false
+    },
+    "capitalRegime": {
+      "enabled": true,
+      "forceHaltOnRiskSignals": true,
+      "cautionRiskSignals": ["forecast_caution", "drawdown_caution"],
+      "defensiveRiskSignals": ["forecast_defensive", "drawdown_defensive"],
+      "haltRiskSignals": ["forecast_halt", "drawdown_halt"]
+    }
+  },
+  "riskSignals": [],
   "mirrorSetts": {
     "used": false,
     "tickers": {
