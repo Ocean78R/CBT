@@ -130,9 +130,14 @@
 - Кто главный:
   - primary: risk/entry/execution/lifecycle слои;
   - performance diagnostics: только измерение и техническая read-only оптимизация (TTL-кэш + in-flight dedup).
+- Runtime-позиция request scheduler:
+  - место: внутри `providers`, сразу перед вызовом read-only методов connector;
+  - зависимости: runtime tags (`cycleId/exchange`), read-only cache/in-flight dedup, config `performanceDiagnostics.requestScheduler.*`;
+  - scheduler управляет только чтением (`signalReadOnly`), не подменяет execution owner-layer и не отправляет ордера.
 - Что остаётся fallback:
   - при выключенном флаге `performanceDiagnostics.enabled` весь слой отключён;
   - если кэш пуст/просрочен, выполняется обычный запрос в connector.
+  - при `requestScheduler.enabled=false` read-only вызовы идут по прежнему пути без очередей/лимитов.
 - Переключение режима:
   - `performanceDiagnostics.enabled` — master-флаг;
   - `performanceDiagnostics.readOnlyCache.*` — управление safe cache;
@@ -142,6 +147,11 @@
 - signal/read-only: последовательные и повторные запросы market/account данных, избыточные дубли на один и тот же тикер;
 - execution/protection: задержки lifecycle/protective событий и нагрузка на owner-path (измеряется в observability performance);
 - analytics/reporting: стоимость ingest/flush/getReports/getAuditTrail и рост буфера событий.
+
+Декомпозиция expensive read-only источников:
+- для всех тикеров: `getTickerInfo`, `getMarkPrice` (core market data queue);
+- только для shortlist/финальных кандидатов: `getLeverage`, `getMarginMode`, `getFuturesPositionsForTicker` (derivatives context queue);
+- только для финальных кандидатов/аналитики: тяжёлые optional microstructure и analytics refresh (optional очереди, budget режется первыми).
 
 
 ### Runtime-позиция hot-state и cache tiers

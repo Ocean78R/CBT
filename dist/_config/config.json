@@ -271,6 +271,24 @@
             "indicatorsEveryCycles": 0,
             "htfStructureEveryCycles": 0
           }
+        },
+        "requestScheduler": {
+          "enabled": false,
+          "maxConcurrency": 6,
+          "maxRequestsPerWindow": 20,
+          "windowMs": 1000,
+          "backoffBaseMs": 250,
+          "backoffMaxMs": 3000,
+          "priorities": {
+            "coreMarketData": 100,
+            "optionalMicrostructure": 40,
+            "derivativesContext": 30,
+            "analyticsRefresh": 20
+          },
+          "optionalBudget": {
+            "enabled": true,
+            "maxOptionalPerCycle": 300
+          }
         }
       }
     },
