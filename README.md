@@ -123,3 +123,44 @@ npm run test:regression
 - Не покрыты интеграционные сценарии реальных биржевых ошибок сети/таймаутов.
 - Не покрыты серверные lifecycle-слои TP/SL и forced-loss protections.
 - speedFilter/averagingProtection/qualityControl в текущей кодовой базе выступают как hook/fallback-поля конфигурации и журналирования; отдельная торговая блокирующая логика для них пока не реализована.
+
+---
+
+## Поэтапный реинжиниринг `index.js` в модульную структуру (без изменения торговой логики)
+
+### Что сделано
+
+Выполнен безопасный этап реинжиниринга runtime-структуры с сохранением полного fallback-поведения текущего торгового цикла.
+
+Введены отдельные слои:
+- **модели данных** (`TickerContext`, `PositionState`, `SignalDecision`, `RiskDecision`, `ExecutionTask`, `TradeResult`, `MarketSnapshot`),
+- **движки** (`signalEngine`, `riskEngine`, `positionEngine`, `executionEngine`, `analyticsEngine`),
+- **поставщики данных** (`marketDataProvider`, `accountDataProvider`, `positionProvider`, `exchangeCapabilitiesProvider`),
+- **валидатор runtime-конфига** (merge global+exchange, нормализация числовых полей).
+
+### Runtime-позиция нового слоя
+
+Порядок вызова в пайплайне:
+1. `runtimeConfigValidator` (инициализация `Launcher`),
+2. `providers` (доступ к данным биржи/аккаунта/позиций),
+3. `engines` (маршрутизация сигналов/риска/позиции/исполнения),
+4. orchestration в `SingleStrategy` и `Launcher`.
+
+### Зависимости от более ранних слоёв
+
+Новые слои зависят от:
+- существующих connector-методов (`getTickerInfo`, `getBalance`, `getLeverage`, `getMarginMode`, `getFuturesPositionsForTicker`, `updateTickerLeverage` и др.),
+- текущих risk/entry/averaging/close методов `SingleStrategy`.
+
+Если зависимость отсутствует или даёт нестабильный ответ, сохраняется безопасный fallback:
+- пустые массивы для позиций,
+- прежние проверки `hard_veto/capital_prohibition/no_trade_regime`,
+- выполнение legacy-методов движков через адаптеры.
+
+### Кто главный и что fallback
+
+- **Главный orchestration слой**: `Launcher` + `SingleStrategy` (как и раньше).
+- **Главные точки принятия решений**: текущие legacy-методы стратегии (`open/processExisting/average/close/predict`) через engine-адаптеры.
+- **Fallback-режим**: legacy-логика остаётся источником торговых решений; новые модули выступают безопасной прослойкой и не меняют сигналы, risk-rules и execution flow.
+
+Переключение режима на новую реализацию не включалось отдельным флагом, чтобы не менять торговое поведение в этом этапе.
