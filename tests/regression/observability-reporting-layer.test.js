@@ -117,3 +117,38 @@ test('critical execution/protective события не теряются при 
   assert.equal(protective.accepted, true);
   assert.equal(protective.category, EVENT_CATEGORIES.PROTECTIVE);
 });
+
+test('observability слой ведёт performance-метрики и делит события по частям pipeline', () => {
+  let ts = 1000;
+  const layer = createObservabilityLayer({
+    enabled: true,
+    sampling: { decisionEventsRate: 1, diagnosticEventsRate: 1, alwaysKeepCritical: true },
+    storage: { enabled: false },
+  }, {
+    now: () => {
+      ts += 5;
+      return ts;
+    },
+  });
+
+  const result = layer.ingestEvent({
+    eventType: 'execution_event',
+    cycleId: 'c-4',
+    ticker: 'ADA-USDT',
+    module: 'executionManager',
+    layer: 'execution.orders',
+    finalDecision: 'allow',
+    executionAction: 'open_position',
+  });
+  assert.equal(result.pipelinePart, 'executionProtection');
+
+  const reports = layer.getReports();
+  assert.equal(reports.performance.ingestEvents.calls, 1);
+  assert.equal(reports.performance.byPipelinePart.executionProtection.events, 1);
+  assert.equal(reports.performance.analytics.getReportsCalls >= 1, true);
+
+  const trails = layer.getAuditTrail({ cycleId: 'c-4' });
+  assert.equal(Array.isArray(trails), true);
+  const reportsAfterAudit = layer.getReports();
+  assert.equal(reportsAfterAudit.performance.analytics.getAuditTrailCalls >= 1, true);
+});
