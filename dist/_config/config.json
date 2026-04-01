@@ -160,7 +160,11 @@
     }
   },
   "logger": {
-    "useFile": false
+    "useFile": false,
+    "runtime": {
+      "enabled": true,
+      "emitCycleSummary": true
+    }
   },
   "tele": {
     "enabled": false,
