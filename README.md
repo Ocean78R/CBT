@@ -189,3 +189,22 @@ npm run test:regression
 node --test tests/architecture/architecture.smoke.test.js
 ```
 
+
+---
+
+## Пользовательская документация (обязательный слой)
+
+В проекте закреплён отдельный пользовательский documentation layer для оператора бота:
+- `docs/user/README_RU.md`
+- `docs/user/RUN_AND_MODES_RU.md`
+- `docs/user/TRADING_PIPELINE_RU.md`
+- `docs/user/RISK_AND_PROTECTION_RU.md`
+- `docs/user/CONFIG_GUIDE_RU.md`
+- `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`
+
+Обязательные правила актуализации документации:
+- policy: `docs/DOCUMENTATION_UPDATE_POLICY_RU.md`
+- changelog: `docs/DOCUMENTATION_CHANGELOG_RU.md`
+- автоматическая проверка: `npm run test:docs`
+
+Если изменяется функциональность, runtime-flow, режимы или конфиг — документация обновляется в том же изменении кода.

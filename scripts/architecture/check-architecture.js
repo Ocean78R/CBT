@@ -55,8 +55,19 @@ function checkIndexSizeLimit() {
   assert(stat.size <= limitBytes, `dist/index.js превышает лимит ${limitBytes} байт`);
 }
 
+
+function checkDocumentationPolicy() {
+  const docsPolicyPath = path.join(repoRoot, 'docs', 'DOCUMENTATION_UPDATE_POLICY_RU.md');
+  const docsChangelogPath = path.join(repoRoot, 'docs', 'DOCUMENTATION_CHANGELOG_RU.md');
+
+  // Русский комментарий: архитектурный контракт закрепляет обязательность документации как часть runtime-дисциплины проекта.
+  assert(fs.existsSync(docsPolicyPath), 'Не найден docs/DOCUMENTATION_UPDATE_POLICY_RU.md');
+  assert(fs.existsSync(docsChangelogPath), 'Не найден docs/DOCUMENTATION_CHANGELOG_RU.md');
+}
+
 function runArchitectureChecks() {
   checkContractDocument();
+  checkDocumentationPolicy();
   checkRuntimeImports();
   checkIndexSizeLimit();
 }
