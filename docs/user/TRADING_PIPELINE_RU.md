@@ -194,3 +194,20 @@ Cache tiers и чтение слоями:
   - `performanceGovernor.mode` — `monitor_only | enforce`,
   - `performanceGovernor.degradation.*` — правила graceful degradation,
   - `performanceGovernor.budgets.byLayerMs.*` — per-layer budgets.
+
+## Runtime-позиция paper/shadow execution
+- Место слоя: строго в `execution ownership path` после `approved entry` и после всех risk/veto/sizing проверок.
+- Зависимости ранних слоёв:
+  - `portfolioRiskContour` + `balanceState/capitalRegime`;
+  - `portfolioForecastEngine` (если включён) и его restriction/sizing/protective hints;
+  - итоговое решение confluence/final entry.
+- Кто главный:
+  - в live: `executionEngine -> real connector`;
+  - в paper/shadow: `executionEngine -> paperExecutionEngine` (без отправки реального ордера).
+- Что остаётся fallback:
+  - при `paperTrading.enabled=false` выполняется legacy live execution без изменений.
+- Как переключается режим:
+  - config-флаг `paperTrading.enabled`;
+  - режим метки `paperTrading.mode` (`paper` или `shadow`).
+
+Важно: paper/shadow режим не ослабляет `capitalRegime` и `portfolio risk contour`; он только подменяет физическое исполнение ордера на виртуальное.

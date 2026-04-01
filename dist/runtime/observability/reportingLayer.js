@@ -286,9 +286,12 @@ function createObservabilityLayer(rawConfig = {}, deps = {}) {
     if (!config.enabled) return { accepted: false, reason: 'disabled' };
     const event = {
       timestamp: new Date().toISOString(),
-      mode: rawEvent.mode || 'paper',
+      mode: rawEvent.mode || 'live',
       ...rawEvent,
     };
+    if (event.mode === 'paper' && !config.includePaperMode) return { accepted: false, reason: 'paper_mode_filtered' };
+    if (event.mode === 'live' && !config.includeLiveMode) return { accepted: false, reason: 'live_mode_filtered' };
+
     const category = classifyEvent(event);
     const critical = isCriticalEvent(category, event);
     const sampledIn = critical || shouldSample(category);

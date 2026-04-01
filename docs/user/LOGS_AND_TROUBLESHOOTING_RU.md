@@ -178,3 +178,23 @@
 2. Проверить `budgets.byLayerMs` для самых тяжёлых слоёв.
 3. Проверить `tickerLimits` и `refreshCadence`.
 4. Проверить, что execution-critical path не деградировал.
+
+## Логи и отчётность paper/shadow режима
+Добавлены отдельные события execution-слоя paper-mode:
+- `paper_execution/virtual_entry_opened`
+- `paper_execution/virtual_position_averaged`
+- `paper_execution/virtual_position_closed`
+
+Минимальные поля в событии:
+- `cycleId`, `ticker`, `exchange`;
+- `module/layer` (`paperExecutionEngine` / `execution.paperShadow`);
+- `market regime`, `capital regime`, `setup type`;
+- `score/confidence`, `veto reason` (если есть), `sizing decision`;
+- `executionAction` и `fallbackAction`;
+- итоговое решение.
+
+Дополнительно для paper-режима логируются:
+- `current capital state`;
+- `forecast capital stress`;
+- `forecast restriction hints`;
+- `virtualBalance` и агрегированные метрики симуляции.

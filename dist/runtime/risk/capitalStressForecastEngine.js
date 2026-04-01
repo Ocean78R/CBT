@@ -280,6 +280,7 @@ function toCapitalStressForecastEvent(input = {}) {
     cycleId: context.cycleId || '',
     ticker: context.ticker || 'PORTFOLIO',
     exchange: context.exchange || '',
+    mode: context.mode || 'live',
     module: 'capitalStressForecastEngine',
     layer: 'risk.portfolioForecast',
     marketRegime: context.marketRegime || 'unknown',

@@ -29,3 +29,9 @@
 2. Запустить тесты (`npm test`).
 3. Запустить бота с мониторингом логов на первом цикле.
 4. Убедиться, что нет критических veto/ошибок коннектора.
+
+### 4) Paper/Shadow режим (без реальных ордеров)
+- Включается через `paperTrading.enabled=true`.
+- Отличие от live только на execution-слое: сигналы, risk-контуры, capitalRegime/balanceState и forecast-слои остаются теми же.
+- Реальные ордера не отправляются: вместо этого выполняется виртуальный lifecycle (open/average/close).
+- Для сравнимости с live поддерживается тот же DecisionContext и общий runtime-пайплайн до execution ownership path.

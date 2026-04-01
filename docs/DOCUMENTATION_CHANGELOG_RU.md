@@ -99,3 +99,11 @@
 - Изменение: добавлены регрессионные тесты на staged evaluation/degradation и интеграцию control plane.
 - Связанные файлы кода: `dist/runtime/performance/performanceGovernor.js`, `dist/runtime/providers/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/providers-performance-diagnostics.test.js`.
 - Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
+
+## 2026-04-01 (paper/shadow trading режим)
+- Изменение: добавлен отдельный execution-слой `paperExecutionEngine` для paper/shadow режима без отправки реальных ордеров, с сохранением общего decision/risk flow.
+- Изменение: добавлен config-блок `paperTrading` (`enabled`, `mode`, `initialBalance`, `slippageBps`, `feeBps`) и fallback на live execution при выключенном флаге.
+- Изменение: добавлены отдельные логи и structured события paper-execution с полями capital/forecast контекста и метриками виртуального баланса.
+- Изменение: observability слой получил корректную фильтрацию `includePaperMode/includeLiveMode` и дефолтный `mode=live`.
+- Связанные файлы кода: `dist/runtime/execution/paperTrading.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/runtime/observability/reportingLayer.js`, `dist/runtime/risk/portfolioRiskContour.js`, `dist/runtime/risk/forcedLossExit.js`, `dist/runtime/risk/capitalStressForecastEngine.js`, `dist/_config/config.json`, `tests/regression/paper-trading-mode.test.js`.
+- Связанные разделы docs: `docs/user/RUN_AND_MODES_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
