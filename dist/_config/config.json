@@ -243,7 +243,8 @@
     "retryAttempts": 3,
     "retryBackoffMs": 350,
     "dedupWindowMs": 120000,
-    "reconcileOnLoopStart": true
+    "reconcileOnLoopStart": true,
+    "leverageMismatchRestrictionEnabled": true
   },
   "serverTakeProfit": {
     "enabled": false,

@@ -30,6 +30,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
       retryBackoffMs: Number(executionContour.retryBackoffMs || 350),
       dedupWindowMs: Number(executionContour.dedupWindowMs || 120000),
       reconcileOnLoopStart: executionContour.reconcileOnLoopStart !== false,
+      leverageMismatchRestrictionEnabled: executionContour.leverageMismatchRestrictionEnabled !== false,
     },
     serverTakeProfit: {
       enabled: !!serverTakeProfit.enabled,

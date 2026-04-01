@@ -49,6 +49,7 @@
 - `executionContour.retryBackoffMs`: базовая пауза между попытками (линейный backoff).
 - `executionContour.dedupWindowMs`: окно защиты от дублей по dedup-ключу.
 - `executionContour.reconcileOnLoopStart`: включать технический reconciliation перед обработкой тикера.
+- `executionContour.leverageMismatchRestrictionEnabled`: включает restricted-state для позиций с несовпадением фактического и ожидаемого leverage (safe close разрешён, averaging блокируется).
 - `serverTakeProfit.enabled`: включает manager-слой серверного TP (только BingX в текущей версии).
 - `serverTakeProfit.fallbackToLocalClose`: оставляет локальный `closePositionPnl` как fallback, если серверный TP недоступен.
 - `serverTakeProfit.refreshOnAveraging`: обновлять серверный TP после усреднения позиции.

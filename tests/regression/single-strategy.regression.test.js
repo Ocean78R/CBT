@@ -191,3 +191,45 @@ test('базовый flow открытия и закрытия позиции', 
   assert.equal(connector.orders.filter((x) => x.type === 'open').length, 1);
   assert.equal(connector.orders.filter((x) => x.type === 'close').length, 1);
 });
+
+
+test('leverage mismatch переводит позицию в restricted state и блокирует усреднение', async () => {
+  const losingPosition = {
+    symbolUnified: 'BTC-USDT',
+    side: types.PositionSide.long,
+    entryPrice: 100,
+    initialMargin: 10,
+    leverage: 10,
+    unrealizedPnl: -3,
+    percentage: -30,
+    contracts: 1,
+  };
+  const connector = new MockConnector(types, { positionsByTicker: { 'BTC-USDT': [losingPosition] }, availableMargin: 1000 });
+  const strategy = makeStrategy(connector, makeConfig({
+    logger: { runtime: { enabled: true } },
+    executionContour: { leverageMismatchRestrictionEnabled: true },
+  }));
+
+  await strategy.processSingleTicker('BTC-USDT');
+
+  assert.equal(connector.orders.filter((x) => x.type === 'open').length, 0);
+});
+
+test('leverage mismatch не блокирует безопасное закрытие по профиту', async () => {
+  const profitablePosition = {
+    symbolUnified: 'BTC-USDT',
+    side: types.PositionSide.long,
+    entryPrice: 100,
+    initialMargin: 10,
+    leverage: 10,
+    unrealizedPnl: 2,
+    percentage: 20,
+    contracts: 1,
+  };
+  const connector = new MockConnector(types, { positionsByTicker: { 'BTC-USDT': [profitablePosition] }, availableMargin: 1000 });
+  const strategy = makeStrategy(connector, makeConfig({ executionContour: { leverageMismatchRestrictionEnabled: true } }));
+
+  await strategy.processSingleTicker('BTC-USDT');
+
+  assert.equal(connector.orders.filter((x) => x.type === 'close').length, 1);
+});
