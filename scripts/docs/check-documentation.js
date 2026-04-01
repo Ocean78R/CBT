@@ -38,8 +38,8 @@ function listChangedFiles() {
   const output = cp.execSync('git status --porcelain', { cwd: repoRoot, encoding: 'utf8' });
   return output
     .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
+    .filter((line) => line.trim().length > 0)
+    // Русский комментарий: не делаем trim перед slice(3), иначе теряется первый символ пути (например docs -> ocs).
     .map((line) => line.slice(3));
 }
 

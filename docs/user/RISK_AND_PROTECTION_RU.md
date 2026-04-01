@@ -31,3 +31,11 @@
 - Ownership path: только `serverStopLossManager` управляет созданием/обновлением/удалением server SL.
 - Для partial/averaging изменений позиции используется пересоздание SL через manager.
 - В `capitalRegime` (DEFENSIVE/HALT_NEW_ENTRIES) можно включить более жёсткий SL через `conservativeMode`.
+
+## ForcedLossExit / StuckPositionProtection (конфигурируемый слой)
+- Слой активируется только через `forcedLossExit.enabled`.
+- Позиция считается затянувшейся/опасной, если выполнено хотя бы одно условие: лимит времени в минусе, лимит времени после усреднения, лимит убытка по позиции, лимит числа усреднений.
+- Дополнительный gate: `requireAdverseMarketConfirmation` (подтверждение неблагоприятного рынка).
+- Реакция (`actionMode`): `warn`, `block_averaging`, `partial_reduce`, `force_close`.
+- Все действия по позиции идут через ownership path execution/lifecycle; forcedLossExit не управляет TP/SL напрямую.
+- Влияние `capitalRegime` и forecast-stress на ужесточение порогов возможно только через явный config (`regimeTightening`, `forecastInfluence`).
