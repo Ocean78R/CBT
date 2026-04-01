@@ -90,3 +90,12 @@
 - Изменение: добавлены метрики и события `cache_hit/cache_miss/cache_stale_reuse/cache_forced_refresh` для observability/audit-совместимости.
 - Связанные файлы кода: `dist/runtime/providers/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/providers-performance-diagnostics.test.js`.
 - Связанные документы: `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
+
+## 2026-04-01 (performance governor / performance control plane)
+- Изменение: добавлен отдельный runtime-слой `performanceGovernor` (`dist/runtime/performance/performanceGovernor.js`) как единый control plane производительности с per-layer budgets, staged evaluation, loop classes, лимитами по тикерам, cadence редких признаков и правилами graceful degradation.
+- Изменение: governor интегрирован в providers read-only flow без изменения ownership торговых решений и без конфликта с execution/risk слоями; legacy/fallback сохранён через `enabled=false` и `mode=monitor_only`.
+- Изменение: добавлены структурированные события и логи governor (`performance_governor_cycle_start`, `performance_governor_cycle_end`, `performance_governor_layer_skip`) совместимые с observability/audit trail.
+- Изменение: добавлен конфиг `performanceGovernor` в runtime validator и `dist/_config/config.json`.
+- Изменение: добавлены регрессионные тесты на staged evaluation/degradation и интеграцию control plane.
+- Связанные файлы кода: `dist/runtime/performance/performanceGovernor.js`, `dist/runtime/providers/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/providers-performance-diagnostics.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.

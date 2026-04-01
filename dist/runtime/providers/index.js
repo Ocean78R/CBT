@@ -1,6 +1,7 @@
 'use strict';
 
 const { createRequestScheduler, normalizeSchedulerConfig } = require('../scheduler/requestScheduler');
+const { createPerformanceGovernor } = require('../performance/performanceGovernor');
 
 function normalizePerfConfig(config = {}) {
   const readOnlyCache = config.readOnlyCache || {};
@@ -54,9 +55,14 @@ function normalizePerfConfig(config = {}) {
       slowCallMs: Number(metrics.slowCallMs || 250),
     },
     requestScheduler: normalizeSchedulerConfig(requestScheduler),
+    performanceGovernor: rawGovernorConfig(config.performanceGovernor || config.controlPlane || {}),
   };
 }
 
+
+function rawGovernorConfig(config = {}) {
+  return config && typeof config === 'object' ? config : {};
+}
 function createPerfState(perfConfig, logger, hooks = {}) {
   return {
     cache: new Map(),
@@ -91,6 +97,7 @@ function createPerfState(perfConfig, logger, hooks = {}) {
     logger,
     hooks,
     config: perfConfig,
+    governor: null,
   };
 }
 
@@ -270,6 +277,33 @@ function createInstrumentedCall(methodName, fn, perfState) {
       return perfState.inFlight.get(key);
     }
 
+    const governorLayer = resolveGovernorLayer(methodName);
+    const governorDecision = perfState.governor
+      ? perfState.governor.resolveLayerMode(governorLayer, perfState.hooks.getRuntimeTags ? perfState.hooks.getRuntimeTags() : {})
+      : { mode: 'full', reason: 'no_governor' };
+
+    if (governorDecision.mode === 'skip') {
+      emitDiagnosticEvent(perfState, {
+        type: 'performance_governor_layer_skip',
+        module: 'performanceGovernor',
+        layer: 'performance.controlPlane',
+        method: methodName,
+        ticker: args[0] || null,
+        exchange: (perfState.hooks.getRuntimeTags && perfState.hooks.getRuntimeTags().exchange) || 'unknown',
+        cycleId: (perfState.hooks.getRuntimeTags && perfState.hooks.getRuntimeTags().cycleId) || null,
+        marketRegime: (perfState.hooks.getRuntimeTags && perfState.hooks.getRuntimeTags().marketRegime) || 'unknown',
+        capitalRegime: (perfState.hooks.getRuntimeTags && perfState.hooks.getRuntimeTags().capitalRegime) || 'unknown',
+        setupType: (perfState.hooks.getRuntimeTags && perfState.hooks.getRuntimeTags().setupType) || 'unknown',
+        score: 0,
+        confidence: 0,
+        vetoReason: governorDecision.reason || 'budget_rule',
+        sizingDecision: 'not_evaluated',
+        executionAction: 'skip_by_budget',
+        finalDecision: 'skip',
+      });
+      return Promise.resolve(cached ? cached.value : null);
+    }
+
     const runLiveRequest = () => Promise.resolve().then(() => fn(...args));
     const requestPromise = (perfState.scheduler && typeof perfState.scheduler.enqueue === 'function' && canUseCache)
       ? perfState.scheduler.enqueue(runLiveRequest, {
@@ -312,6 +346,7 @@ function createInstrumentedCall(methodName, fn, perfState) {
           }
         }
         updateMethodMetrics(perfState, methodName, durationMs, 'network');
+        if (perfState.governor) perfState.governor.registerLayerExecution(governorLayer, durationMs, governorDecision.mode || 'full');
         if (
           perfState.config.loggerEnabled
           && perfState.logger
@@ -326,6 +361,13 @@ function createInstrumentedCall(methodName, fn, perfState) {
     perfState.inFlight.set(key, wrappedPromise);
     return wrappedPromise;
   };
+}
+
+function resolveGovernorLayer(methodName) {
+  if (['getTickerInfo', 'getMarkPrice', 'getKLine'].includes(methodName)) return 'regimeRouter';
+  if (['getLeverage', 'getMarginMode', 'getFuturesActivePositions', 'getFuturesPositionsForTicker'].includes(methodName)) return 'derivativesContext';
+  if (['getSymbolsByLeverage', 'getMaxLeverageForTicker'].includes(methodName)) return 'confirmations';
+  return 'analytics';
 }
 
 function resolveSchedulerQueueClass(methodName) {
@@ -450,6 +492,9 @@ function createProviders(connector, utils, options = {}) {
     onDiagnosticEvent: options.onDiagnosticEvent,
     getRuntimeTags: options.getRuntimeTags,
   });
+  perfState.governor = createPerformanceGovernor(perfConfig.performanceGovernor, {
+    onGovernorEvent: options.onDiagnosticEvent,
+  });
   perfState.scheduler = createRequestScheduler(perfConfig.requestScheduler, {
     onDiagnosticEvent: options.onDiagnosticEvent,
   });
@@ -509,6 +554,18 @@ function createProviders(connector, utils, options = {}) {
       },
       requestScheduler: perfState.scheduler ? perfState.scheduler.getDiagnostics() : { enabled: false },
     }),
+    performanceGovernor: {
+      onCycleStart: (context = {}) => perfState.governor && perfState.governor.onCycleStart(context),
+      finalizeCycle: (context = {}) => (perfState.governor ? perfState.governor.finalizeCycle(context) : null),
+      setStage: (stage) => perfState.governor && perfState.governor.setStage(stage),
+      resolveLayerMode: (layerName, context = {}) => (perfState.governor ? perfState.governor.resolveLayerMode(layerName, context) : { mode: 'full', reason: 'disabled' }),
+      allowExpensiveTicker: (layerName) => (perfState.governor ? perfState.governor.allowExpensiveTicker(layerName) : true),
+      shouldRefreshRareFeature: (featureKey, bucket, timestamp) => (perfState.governor ? perfState.governor.shouldRefreshRareFeature(featureKey, bucket, timestamp) : true),
+      shouldAllowObservabilitySync: () => (perfState.governor ? perfState.governor.shouldAllowObservabilitySync() : true),
+      trackInflight: (channel, delta) => (perfState.governor ? perfState.governor.trackInflight(channel, delta) : true),
+      getDiagnostics: () => (perfState.governor ? perfState.governor.getCycleDiagnostics() : { enabled: false }),
+      config: perfState.governor ? perfState.governor.config : {},
+    },
     getRequestSchedulerDiagnostics: () => (perfState.scheduler ? perfState.scheduler.getDiagnostics() : { enabled: false }),
   };
 }

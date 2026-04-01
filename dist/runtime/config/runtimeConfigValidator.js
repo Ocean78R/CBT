@@ -30,6 +30,19 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const perfDerivedForcedRefresh = perfDerivedFeatureCache.forcedRefresh || {};
   const perfMetrics = performanceDiagnostics.metrics || {};
   const perfRequestScheduler = performanceDiagnostics.requestScheduler || {};
+  const performanceGovernor = merged.performanceGovernor || performanceDiagnostics.performanceGovernor || {};
+  const perfGovernorCycle = performanceGovernor.cycle || {};
+  const perfGovernorBudgets = performanceGovernor.budgets || {};
+  const perfGovernorLayerBudgets = perfGovernorBudgets.byLayerMs || {};
+  const perfGovernorTickerLimits = performanceGovernor.tickerLimits || {};
+  const perfGovernorRefreshCadence = performanceGovernor.refreshCadence || {};
+  const perfGovernorObservability = performanceGovernor.observability || {};
+  const perfGovernorMemory = performanceGovernor.memory || {};
+  const perfGovernorCache = performanceGovernor.cache || {};
+  const perfGovernorLoopClasses = performanceGovernor.loopClasses || {};
+  const perfGovernorParallelism = performanceGovernor.parallelism || {};
+  const perfGovernorPriorities = performanceGovernor.priorities || {};
+  const perfGovernorDegradation = performanceGovernor.degradation || {};
   const perfSchedulerPriorities = perfRequestScheduler.priorities || {};
   const perfSchedulerOptionalBudget = perfRequestScheduler.optionalBudget || {};
   const cooldownAfterBadStreak = portfolioRiskContour.cooldownAfterBadStreak || {};
@@ -235,6 +248,88 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         },
       },
     },
+    performanceGovernor: {
+      enabled: !!performanceGovernor.enabled,
+      mode: ['monitor_only', 'enforce'].includes(performanceGovernor.mode) ? performanceGovernor.mode : 'monitor_only',
+      cycle: {
+        targetMs: Number(perfGovernorCycle.targetMs || 1200),
+        hardLimitMs: Number(perfGovernorCycle.hardLimitMs || 1600),
+      },
+      budgets: {
+        reserveForExecutionMs: Number(perfGovernorBudgets.reserveForExecutionMs || 180),
+        optionalContextShare: Number(perfGovernorBudgets.optionalContextShare || 0.35),
+        byLayerMs: {
+          regimeRouter: Number(perfGovernorLayerBudgets.regimeRouter || 35),
+          htfStructure: Number(perfGovernorLayerBudgets.htfStructure || 70),
+          zones: Number(perfGovernorLayerBudgets.zones || 65),
+          vwapProfile: Number(perfGovernorLayerBudgets.vwapProfile || 55),
+          bounceBreakdown: Number(perfGovernorLayerBudgets.bounceBreakdown || 60),
+          derivativesContext: Number(perfGovernorLayerBudgets.derivativesContext || 45),
+          confirmations: Number(perfGovernorLayerBudgets.confirmations || 75),
+          mlInference: Number(perfGovernorLayerBudgets.mlInference || 90),
+        },
+      },
+      tickerLimits: {
+        maxExpensiveTickersPerCycle: Number(perfGovernorTickerLimits.maxExpensiveTickersPerCycle || 12),
+        maxMlTickersPerCycle: Number(perfGovernorTickerLimits.maxMlTickersPerCycle || 6),
+      },
+      refreshCadence: {
+        enabled: perfGovernorRefreshCadence.enabled !== false,
+        rareFeatureMinIntervalMs: Number(perfGovernorRefreshCadence.rareFeatureMinIntervalMs || 4000),
+        derivativesContextMinIntervalMs: Number(perfGovernorRefreshCadence.derivativesContextMinIntervalMs || 2000),
+        mlMinIntervalMs: Number(perfGovernorRefreshCadence.mlMinIntervalMs || 8000),
+      },
+      observability: {
+        maxSyncEventsPerCycle: Number(perfGovernorObservability.maxSyncEventsPerCycle || 120),
+      },
+      memory: {
+        maxHotStateTickers: Number(perfGovernorMemory.maxHotStateTickers || 300),
+        maxDerivedFeatureEntries: Number(perfGovernorMemory.maxDerivedFeatureEntries || 2000),
+      },
+      cache: {
+        preferCachedModeOnBudgetPressure: perfGovernorCache.preferCachedModeOnBudgetPressure !== false,
+        degradeToCachedBeforeSkip: perfGovernorCache.degradeToCachedBeforeSkip !== false,
+      },
+      loopClasses: {
+        executionCriticalHz: Number(perfGovernorLoopClasses.executionCriticalHz || 1),
+        signalCoreHz: Number(perfGovernorLoopClasses.signalCoreHz || 1),
+        optionalContextHz: Number(perfGovernorLoopClasses.optionalContextHz || 1),
+        analyticsHz: Number(perfGovernorLoopClasses.analyticsHz || 1),
+      },
+      parallelism: {
+        maxHeavyLayerConcurrency: Number(perfGovernorParallelism.maxHeavyLayerConcurrency || 2),
+        maxAnalyticsConcurrency: Number(perfGovernorParallelism.maxAnalyticsConcurrency || 1),
+      },
+      priorities: {
+        executionCritical: Number(perfGovernorPriorities.executionCritical || 100),
+        riskProtection: Number(perfGovernorPriorities.riskProtection || 95),
+        regimeRouter: Number(perfGovernorPriorities.regimeRouter || 80),
+        cheapContext: Number(perfGovernorPriorities.cheapContext || 70),
+        expensiveConfirmations: Number(perfGovernorPriorities.expensiveConfirmations || 55),
+        mlInference: Number(perfGovernorPriorities.mlInference || 45),
+        analytics: Number(perfGovernorPriorities.analytics || 25),
+      },
+      degradation: {
+        enabled: perfGovernorDegradation.enabled !== false,
+        pressureThresholdPercent: Number(perfGovernorDegradation.pressureThresholdPercent || 0.82),
+        hardPressureThresholdPercent: Number(perfGovernorDegradation.hardPressureThresholdPercent || 0.95),
+      },
+      optionalLayers: Array.isArray(performanceGovernor.optionalLayers) ? performanceGovernor.optionalLayers : [
+        'zones',
+        'vwapProfile',
+        'bounceBreakdown',
+        'confirmations',
+        'mlInference',
+        'analytics',
+      ],
+      stagedEvaluation: {
+        enabled: !performanceGovernor.stagedEvaluation || performanceGovernor.stagedEvaluation.enabled !== false,
+        sequence: performanceGovernor.stagedEvaluation && Array.isArray(performanceGovernor.stagedEvaluation.sequence)
+          ? performanceGovernor.stagedEvaluation.sequence
+          : ['shortlist', 'cheap_context', 'expensive_confirmations', 'final_decision'],
+      },
+    },
+
     serverStopLoss: {
       enabled: !!serverStopLoss.enabled,
       provider: serverStopLoss.provider || 'bingx_reduce_only_v2',

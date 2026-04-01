@@ -177,3 +177,20 @@ Cache tiers и чтение слоями:
 Что можно брать из cache mode:
 - безопасно: indicators/regime inputs/HTF/support-resistance/VWAP-profile/analytics aggregates/derivatives snapshots (по TTL).
 - требует live refresh: execution-critical state и подтверждение действий, меняющих позицию/серверные ордера.
+
+## Runtime-позиция performance governor / performance control plane
+- Место слоя в пайплайне: между `providers(read-only/perf)` и тяжёлыми signal layers; governor не принимает торговых решений, а управляет режимом выполнения слоёв.
+- Явные зависимости от более ранних слоёв: `cycleId/exchange/marketRegime/capitalRegime`, risk-контекст, runtime tags и метрики цикла.
+- Staged evaluation зафиксирован явно: `shortlist -> cheap_context -> expensive_confirmations -> final_decision`.
+- Кто главный:
+  - `hard-risk / hard-safety / exchange constraints / unload mode` — primary;
+  - `performance governor` — только control-plane производительности;
+  - execution/lifecycle ownership path не меняется.
+- Что осталось fallback:
+  - при `performanceGovernor.enabled=false` или `mode=monitor_only` сохраняется legacy-поведение выполнения слоёв;
+  - при отсутствии части runtime-контекста governor использует безопасные `unknown/null` без остановки цикла.
+- Переключение режима:
+  - `performanceGovernor.enabled` — master-flag,
+  - `performanceGovernor.mode` — `monitor_only | enforce`,
+  - `performanceGovernor.degradation.*` — правила graceful degradation,
+  - `performanceGovernor.budgets.byLayerMs.*` — per-layer budgets.

@@ -203,3 +203,20 @@ CBT/
 - `docs/DOCUMENTATION_CHANGELOG_RU.md`.
 
 Правило автоматизировано проверкой `npm run test:docs` и относится к архитектурной дисциплине проекта наравне с ограничениями слоёв.
+
+## 14) Performance control plane (governor) и позиция в runtime
+
+- Новый слой: `dist/runtime/performance/performanceGovernor.js`.
+- Runtime-позиция: orchestration/control-plane между providers и тяжёлыми signal layers.
+- Зависимости: runtime tags (`cycleId`, `exchange`, `marketRegime`, `capitalRegime`), метрики вызовов и staged pipeline state.
+- Явная staged-последовательность: `shortlist -> cheap_context -> expensive_confirmations -> final_decision`.
+- Per-layer budgets закреплены для: `regimeRouter`, `htfStructure`, `zones`, `vwapProfile`, `bounceBreakdown`, `derivativesContext`, `confirmations`, `mlInference`.
+- Деградация по перегрузке:
+  - `full` (обычный режим),
+  - `cached` (reuse cache),
+  - `degraded` (упрощённый расчёт),
+  - `skip` (пропуск optional слоя).
+- Ownership/безопасность:
+  - governor не меняет decision ownership risk/entry/execution/lifecycle,
+  - execution-critical path имеет приоритет через reserve-budget и отдельные priorities,
+  - fallback: `enabled=false` или `mode=monitor_only`.

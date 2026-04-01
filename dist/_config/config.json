@@ -290,6 +290,90 @@
             "maxOptionalPerCycle": 300
           }
         }
+      },
+      "performanceGovernor": {
+        "enabled": false,
+        "mode": "monitor_only",
+        "cycle": {
+          "targetMs": 1200,
+          "hardLimitMs": 1600
+        },
+        "budgets": {
+          "reserveForExecutionMs": 180,
+          "optionalContextShare": 0.35,
+          "byLayerMs": {
+            "regimeRouter": 35,
+            "htfStructure": 70,
+            "zones": 65,
+            "vwapProfile": 55,
+            "bounceBreakdown": 60,
+            "derivativesContext": 45,
+            "confirmations": 75,
+            "mlInference": 90
+          }
+        },
+        "priorities": {
+          "executionCritical": 100,
+          "riskProtection": 95,
+          "regimeRouter": 80,
+          "cheapContext": 70,
+          "expensiveConfirmations": 55,
+          "mlInference": 45,
+          "analytics": 25
+        },
+        "stagedEvaluation": {
+          "enabled": true,
+          "sequence": [
+            "shortlist",
+            "cheap_context",
+            "expensive_confirmations",
+            "final_decision"
+          ]
+        },
+        "tickerLimits": {
+          "maxExpensiveTickersPerCycle": 12,
+          "maxMlTickersPerCycle": 6
+        },
+        "refreshCadence": {
+          "enabled": true,
+          "rareFeatureMinIntervalMs": 4000,
+          "derivativesContextMinIntervalMs": 2000,
+          "mlMinIntervalMs": 8000
+        },
+        "observability": {
+          "maxSyncEventsPerCycle": 120
+        },
+        "memory": {
+          "maxHotStateTickers": 300,
+          "maxDerivedFeatureEntries": 2000
+        },
+        "cache": {
+          "preferCachedModeOnBudgetPressure": true,
+          "degradeToCachedBeforeSkip": true
+        },
+        "loopClasses": {
+          "executionCriticalHz": 1,
+          "signalCoreHz": 1,
+          "optionalContextHz": 1,
+          "analyticsHz": 1
+        },
+        "parallelism": {
+          "maxHeavyLayerConcurrency": 2,
+          "maxAnalyticsConcurrency": 1
+        },
+        "degradation": {
+          "enabled": true,
+          "pressureThresholdPercent": 0.82,
+          "hardPressureThresholdPercent": 0.95
+        },
+        "optionalLayers": [
+          "zones",
+          "vwapProfile",
+          "bounceBreakdown",
+          "confirmations",
+          "mlInference",
+          "analytics"
+        ]
       }
     },
     "htx": {
