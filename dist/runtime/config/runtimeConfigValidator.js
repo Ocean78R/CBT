@@ -23,6 +23,11 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const observabilityStorage = observabilityReporting.storage || {};
   const performanceDiagnostics = merged.performanceDiagnostics || {};
   const perfReadOnlyCache = performanceDiagnostics.readOnlyCache || {};
+  const perfHotState = performanceDiagnostics.hotState || {};
+  const perfInvalidation = performanceDiagnostics.invalidation || {};
+  const perfDerivedFeatureCache = performanceDiagnostics.derivedFeatureCache || {};
+  const perfDerivedTtl = perfDerivedFeatureCache.ttl || {};
+  const perfDerivedForcedRefresh = perfDerivedFeatureCache.forcedRefresh || {};
   const perfMetrics = performanceDiagnostics.metrics || {};
   const cooldownAfterBadStreak = portfolioRiskContour.cooldownAfterBadStreak || {};
   const capitalRegimeThresholds = portfolioRiskContour.capitalRegimeThresholds || {};
@@ -175,8 +180,34 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
       readOnlyCache: {
         enabled: perfReadOnlyCache.enabled !== false,
         ttlMs: Number(perfReadOnlyCache.ttlMs || 1200),
+        markPriceTtlMs: Number(perfReadOnlyCache.markPriceTtlMs || perfReadOnlyCache.ttlMs || 1200),
+        klineTtlMs: Number(perfReadOnlyCache.klineTtlMs || perfReadOnlyCache.ttlMs || 2500),
+        accountReadTtlMs: Number(perfReadOnlyCache.accountReadTtlMs || perfReadOnlyCache.ttlMs || 900),
         maxEntries: Number(perfReadOnlyCache.maxEntries || 1000),
         methods: Array.isArray(perfReadOnlyCache.methods) ? perfReadOnlyCache.methods : [],
+      },
+      hotState: {
+        enabled: perfHotState.enabled !== false,
+        maxTickers: Number(perfHotState.maxTickers || 300),
+        staleReuseGraceMs: Number(perfHotState.staleReuseGraceMs || 350),
+      },
+      invalidation: {
+        onError: perfInvalidation.onError !== false,
+        onExecutionTickers: perfInvalidation.onExecutionTickers !== false,
+        fullFlushOnCycleStart: !!perfInvalidation.fullFlushOnCycleStart,
+      },
+      derivedFeatureCache: {
+        enabled: perfDerivedFeatureCache.enabled !== false,
+        featureVersion: perfDerivedFeatureCache.featureVersion || 'v1',
+        ttl: {
+          ultraShortMs: Number(perfDerivedTtl.ultraShortMs || 800),
+          perCycleMs: Number(perfDerivedTtl.perCycleMs || 4500),
+          contextMs: Number(perfDerivedTtl.contextMs || 25000),
+        },
+        forcedRefresh: {
+          indicatorsEveryCycles: Number(perfDerivedForcedRefresh.indicatorsEveryCycles || 0),
+          htfStructureEveryCycles: Number(perfDerivedForcedRefresh.htfStructureEveryCycles || 0),
+        },
       },
       metrics: {
         enabled: perfMetrics.enabled !== false,
