@@ -19,6 +19,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const cooldownAfterBadStreak = portfolioRiskContour.cooldownAfterBadStreak || {};
   const capitalRegimeThresholds = portfolioRiskContour.capitalRegimeThresholds || {};
   const capitalRegimeEngine = portfolioRiskContour.capitalRegimeEngine || {};
+  const portfolioForecastEngine = portfolioRiskContour.portfolioForecastEngine || {};
 
   const normalized = {
     ...merged,
@@ -81,6 +82,25 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         defensiveBalanceDrawdownPercent: Number(capitalRegimeEngine.defensiveBalanceDrawdownPercent || 0),
         capitalPreservationBalanceDrawdownPercent: Number(capitalRegimeEngine.capitalPreservationBalanceDrawdownPercent || 0),
         haltBalanceDrawdownPercent: Number(capitalRegimeEngine.haltBalanceDrawdownPercent || 0),
+      },
+      portfolioForecastEngine: {
+        enabled: !!portfolioForecastEngine.enabled,
+        minConfidenceForSignals: Number(portfolioForecastEngine.minConfidenceForSignals || 0.45),
+        scenarioWeights: typeof portfolioForecastEngine.scenarioWeights === 'object' && portfolioForecastEngine.scenarioWeights
+          ? portfolioForecastEngine.scenarioWeights
+          : {},
+        thresholds: typeof portfolioForecastEngine.thresholds === 'object' && portfolioForecastEngine.thresholds
+          ? portfolioForecastEngine.thresholds
+          : {},
+        restrictions: typeof portfolioForecastEngine.restrictions === 'object' && portfolioForecastEngine.restrictions
+          ? portfolioForecastEngine.restrictions
+          : {},
+        protectiveTightening: typeof portfolioForecastEngine.protectiveTightening === 'object' && portfolioForecastEngine.protectiveTightening
+          ? portfolioForecastEngine.protectiveTightening
+          : {},
+        sizingHints: typeof portfolioForecastEngine.sizingHints === 'object' && portfolioForecastEngine.sizingHints
+          ? portfolioForecastEngine.sizingHints
+          : {},
       },
     },
     forcedLossExit: {

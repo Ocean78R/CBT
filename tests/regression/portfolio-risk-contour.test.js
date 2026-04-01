@@ -30,6 +30,37 @@ function makeConfig(overrides = {}) {
       capitalPreservationMarginUsagePercent: 70,
       haltMarginUsagePercent: 85,
     },
+    portfolioForecastEngine: {
+      enabled: false,
+      minConfidenceForSignals: 0.45,
+      scenarioWeights: { baseline: 0.4, adverse: 0.4, severe: 0.2 },
+      thresholds: {
+        elevatedFragility: 0.45,
+        highFragility: 0.65,
+        criticalFragility: 0.8,
+        elevatedRegimeDeteriorationProbability: 0.35,
+        criticalRegimeDeteriorationProbability: 0.65,
+      },
+      restrictions: {
+        enableRestrictionHints: true,
+        enableHardRestrictionHints: true,
+        applyHardRestrictionHintsAsVeto: false,
+        hardRestrictionScenario: 'severe_drawdown_spike',
+      },
+      protectiveTightening: {
+        enabled: true,
+        triggerFromFragility: 0.6,
+        triggerFromRegimeProbability: 0.45,
+        forcedLossExitHintMode: 'tighten',
+      },
+      sizingHints: {
+        enabled: true,
+        normalMultiplier: 1,
+        elevatedMultiplier: 0.85,
+        highMultiplier: 0.65,
+        criticalMultiplier: 0.4,
+      },
+    },
   };
   return {
     ...base,
@@ -41,6 +72,30 @@ function makeConfig(overrides = {}) {
     capitalRegimeThresholds: {
       ...base.capitalRegimeThresholds,
       ...(overrides.capitalRegimeThresholds || {}),
+    },
+    portfolioForecastEngine: {
+      ...base.portfolioForecastEngine,
+      ...(overrides.portfolioForecastEngine || {}),
+      scenarioWeights: {
+        ...base.portfolioForecastEngine.scenarioWeights,
+        ...((overrides.portfolioForecastEngine || {}).scenarioWeights || {}),
+      },
+      thresholds: {
+        ...base.portfolioForecastEngine.thresholds,
+        ...((overrides.portfolioForecastEngine || {}).thresholds || {}),
+      },
+      restrictions: {
+        ...base.portfolioForecastEngine.restrictions,
+        ...((overrides.portfolioForecastEngine || {}).restrictions || {}),
+      },
+      protectiveTightening: {
+        ...base.portfolioForecastEngine.protectiveTightening,
+        ...((overrides.portfolioForecastEngine || {}).protectiveTightening || {}),
+      },
+      sizingHints: {
+        ...base.portfolioForecastEngine.sizingHints,
+        ...((overrides.portfolioForecastEngine || {}).sizingHints || {}),
+      },
     },
   };
 }
@@ -147,4 +202,33 @@ test('контекст капитала передаётся во все downstr
   assert.equal(downstream.confluenceEntry.forecastRegimeShiftRisk, 'elevated');
   assert.deepEqual(downstream.mlMetaController.forecastSignals, ['forecast_defensive']);
   assert.equal(decision.balanceState.forecastRegimeShiftRisk, 'elevated');
+});
+
+
+test('forecast-слой встраивается между capitalRegime и entry-слоями через telemetry и hints', () => {
+  const decision = evaluatePortfolioRiskContour({
+    context: {
+      cycleId: 'c-forecast-router',
+      ticker: 'SOL-USDT',
+      exchange: 'bingx',
+      marketRegime: 'trend',
+      previousCapitalRegime: CAPITAL_REGIMES.CAUTION,
+    },
+    stats: {
+      dayPnlPercent: -2.5,
+      usedMarginPercent: 62,
+      balanceDrawdownPercent: 10,
+      openPositionsCount: 4,
+      freeBalance: 230,
+      totalEquity: 1000,
+      newEntriesToday: 1,
+    },
+  }, makeConfig({ portfolioForecastEngine: { enabled: true } }));
+
+  assert.equal(decision.telemetry.routerOrder[0], 'risk_contour');
+  assert.equal(decision.telemetry.routerOrder[1], 'portfolio_forecast_engine');
+  assert.equal(decision.telemetry.forecast.layerName, 'capitalStressForecastEngine');
+  assert.ok('outputHints' in decision.telemetry.forecast);
+  assert.equal(decision.balanceState.forecastRegimeShiftRisk !== null, true);
+  assert.ok(Array.isArray(decision.telemetry.downstreamContext.dynamicPositionSizing.forecastSignals));
 });

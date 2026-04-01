@@ -102,3 +102,15 @@
   - пауза после серии плохих циклов/закрытий.
 - `balanceState.capitalRegime`: `NORMAL | CAUTION | DEFENSIVE | CAPITAL_PRESERVATION | HALT_NEW_ENTRIES`.
 - `hardVeto` типа `capital_prohibition`, если вход должен быть заблокирован на уровне портфеля.
+
+
+## Portfolio Forecast Engine / Capital Stress Forecast (forward-looking слой)
+- Runtime-позиция: **после** `portfolioRiskContour/capitalRegimeEngine` и **до** `entryPermissionLayer`, `marketRegimeRouter`, `dynamicAssetSelection`, `finalEntryDecision`, `dynamicPositionSizing`.
+- Зависимости от ранних слоёв: текущий `capitalRegime`, account/portfolio stats (`freeBalance`, `totalEquity`, `usedMarginPercent`, `dayPnlPercent`, `balanceDrawdownPercent`, `openPositionsCount`).
+- Fallback: при `portfolioRiskContour.portfolioForecastEngine.enabled=false` слой полностью выключен; legacy-flow не меняется.
+- Важное ограничение: слой не открывает/закрывает сделки и не управляет server TP/SL напрямую — отдаёт только hints в общий DecisionContext/telemetry.
+- Интерпретация hints выполняется owner-слоями:
+  - `entryPermissionLayer/finalEntryDecisionEngine` — ограничения новых входов;
+  - `dynamicPositionSizing` — снижение размера позиции по `sizingHints`;
+  - `forcedLossExit/lifecycle/protection` — protective tightening hints.
+- Слой не может ослабить `hard-risk`, `capitalRegime`, `unload mode`, `hard veto`.

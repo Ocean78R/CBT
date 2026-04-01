@@ -44,3 +44,11 @@
 - Изменение: добавлен полноценный риск-контур уровня портфеля/счёта с лимитами дневного убытка, новых входов за день, одновременно открытых позиций, суммарной маржи и cooldown после плохой серии; добавлены режимы `NORMAL/CAUTION/DEFENSIVE/CAPITAL_PRESERVATION/HALT_NEW_ENTRIES` и структурированное событие `portfolio_risk_contour_decision`.
 - Связанные файлы кода: `dist/runtime/risk/portfolioRiskContour.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/portfolio-risk-contour.test.js`.
 - Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/RISK_AND_PROTECTION_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
+
+
+## 2026-04-01 (portfolio balance forecast / capital stress forecast engine)
+- Изменение: добавлен отдельный слой `capitalStressForecastEngine` (runtime-позиция между `capitalRegimeEngine` и entry/sizing owner-слоями) с forward-looking оценкой ближайшего портфельного стресса.
+- Изменение: добавлены сценарии `baseline_stabilization`, `adverse_margin_expansion`, `severe_drawdown_spike`, агрегированный `portfolioFragilityScore`, вероятность ухудшения режима капитала и hints для entry/sizing/protective owner-слоёв.
+- Изменение: добавлены runtime-логи `capitalStressForecast` и структурированное событие `portfolio_capital_stress_forecast` для audit trail/trade journal.
+- Связанные файлы кода: `dist/runtime/risk/capitalStressForecastEngine.js`, `dist/runtime/risk/portfolioRiskContour.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/capital-stress-forecast-engine.test.js`, `tests/regression/portfolio-risk-contour.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/RISK_AND_PROTECTION_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
