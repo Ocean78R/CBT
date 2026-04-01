@@ -6,6 +6,7 @@
   "scripts": {
     "test:regression": "node --test tests/regression/*.test.js",
     "test:architecture": "node --test tests/architecture/*.test.js",
-    "test": "npm run test:architecture && npm run test:regression"
+    "test": "npm run test:architecture && npm run test:docs && npm run test:regression",
+    "test:docs": "node --test tests/docs/*.test.js"
   }
 }
