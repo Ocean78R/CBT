@@ -73,3 +73,12 @@
 - Ownership: модуль только формирует `ownershipAction` (`position_reduce_request` / `position_force_close_request`), а фактическое действие делает `execution_lifecycle_manager` + reconciliation.
 - Fallback: если слой выключен (`forcedLossExit.enabled=false`) или нет достаточных данных, поведение остаётся legacy (без неявного закрытия).
 - Приоритет: выше averaging, но не заменяет primary server stop-loss.
+
+
+## Special position states в execution/reconciliation
+- Runtime-позиция слоя: внутри `execution contour` на шаге reconciliation до entry/position processing.
+- Зависимости: `positionProvider` (фактическая позиция), `marketDataProvider.getMarginMode` (mode), runtime leverage из config.
+- Поддерживаемые состояния: `NORMAL_POSITION`, `LEVERAGE_MISMATCH_POSITION`, `LEGACY_RESTRICTED_POSITION`.
+- Для `LEVERAGE_MISMATCH_POSITION` allowed actions: `reduce_only_close`, `profit_close`, `protective_forced_close`, `cleanup_reconciliation`, `partial_reduce_safe`.
+- Для `LEVERAGE_MISMATCH_POSITION` blocked actions: `averaging`, `leverage_sensitive_sizing_updates`, `normal_compatibility_required_actions`.
+- Fallback: при отключении `executionContour.leverageMismatchRestrictionEnabled` поведение возвращается к legacy guard без capability-state маршрутизации.

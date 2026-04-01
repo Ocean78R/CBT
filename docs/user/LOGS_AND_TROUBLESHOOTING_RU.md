@@ -71,3 +71,9 @@
 1. Проверяйте, что при `actionMode=warn` событие есть, но `executionAction=none`.
 2. Для `block_averaging|partial_reduce|force_close` смотрите `sizingDecision/executionAction` и дальнейшие lifecycle события owner-layer.
 3. Если включён `forecastInfluence.requireStressSignal`, отсутствие stress-signal должно давать `finalDecision=no_action`.
+
+
+## Логи restricted-state по leverage mismatch
+Для событий `reconciliation`, `position_capability_state`, `blocked_action` теперь логируются поля:
+`expectedLeverage`, `actualLeverage`, `leverageMismatchDetected`, `positionCapabilityState`, `allowedActions`, `blockedActions`.
+Это же попадает в audit trail/cycle journal через `emitStructuredEvent` в слоях `execution_contour` и `risk_decision`.
