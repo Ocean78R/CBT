@@ -49,5 +49,10 @@
 - `executionContour.retryBackoffMs`: базовая пауза между попытками (линейный backoff).
 - `executionContour.dedupWindowMs`: окно защиты от дублей по dedup-ключу.
 - `executionContour.reconcileOnLoopStart`: включать технический reconciliation перед обработкой тикера.
+- `serverTakeProfit.enabled`: включает manager-слой серверного TP (только BingX в текущей версии).
+- `serverTakeProfit.fallbackToLocalClose`: оставляет локальный `closePositionPnl` как fallback, если серверный TP недоступен.
+- `serverTakeProfit.refreshOnAveraging`: обновлять серверный TP после усреднения позиции.
+- `serverTakeProfit.reconcileOnLoop`: очищать сиротские серверные TP при отсутствии позиции.
+- `serverTakeProfit.conservativeMode.*`: опционально снижает цель фиксации прибыли в защитных capital regime (строго через config).
 
 Fallback-режим: если `executionContour.enabled=false`, исполнение идёт по прежней legacy-схеме без очереди.

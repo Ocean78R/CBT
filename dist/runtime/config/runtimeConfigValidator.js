@@ -8,6 +8,8 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const capitalRegime = unloadMode.capitalRegime || {};
   const entryLimits = unloadMode.entryLimits || {};
   const executionContour = merged.executionContour || {};
+  const serverTakeProfit = merged.serverTakeProfit || {};
+  const tpConservativeMode = serverTakeProfit.conservativeMode || {};
 
   const normalized = {
     ...merged,
@@ -23,6 +25,20 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
       retryBackoffMs: Number(executionContour.retryBackoffMs || 350),
       dedupWindowMs: Number(executionContour.dedupWindowMs || 120000),
       reconcileOnLoopStart: executionContour.reconcileOnLoopStart !== false,
+    },
+    serverTakeProfit: {
+      enabled: !!serverTakeProfit.enabled,
+      provider: serverTakeProfit.provider || 'bingx_reduce_only_v2',
+      fallbackToLocalClose: serverTakeProfit.fallbackToLocalClose !== false,
+      refreshOnAveraging: serverTakeProfit.refreshOnAveraging !== false,
+      reconcileOnLoop: serverTakeProfit.reconcileOnLoop !== false,
+      conservativeMode: {
+        enabled: !!tpConservativeMode.enabled,
+        onlyForCapitalRegimes: Array.isArray(tpConservativeMode.onlyForCapitalRegimes)
+          ? tpConservativeMode.onlyForCapitalRegimes
+          : ['DEFENSIVE', 'HALT_NEW_ENTRIES'],
+        pnlMultiplier: Number(tpConservativeMode.pnlMultiplier || 0.85),
+      },
     },
     unloadMode: {
       enabled: !!unloadMode.enabled,

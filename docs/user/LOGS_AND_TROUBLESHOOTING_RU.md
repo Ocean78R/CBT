@@ -10,6 +10,12 @@
 
 При включённом `logger.runtime` отслеживайте корреляцию по `cycleId`, `ticker`, `positionId`, `orderId`.
 
+### Server Take-Profit (BingX) события
+- `protection/server_tp_upsert`: серверный TP (reduce-only) установлен или обновлён.
+- `protection/server_tp_cleanup`: сиротский TP удалён через manager ownership path.
+- `protection/server_tp_skip`: TP пропущен (legacy mismatch, неподдерживаемый коннектор или недостаток данных).
+- `protection/server_tp_after_open_error`, `protection/server_tp_after_averaging_error`: fallback на локальный `closePositionPnl`.
+
 ## Типовые сбои и действия оператора
 ### 1) Ошибки коннектора / неполные данные биржи
 - Признак: `undefined/null` в рыночных полях, пропуски в ответах.
