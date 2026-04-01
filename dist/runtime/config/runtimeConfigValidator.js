@@ -7,6 +7,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const unloadMode = merged.unloadMode || {};
   const capitalRegime = unloadMode.capitalRegime || {};
   const entryLimits = unloadMode.entryLimits || {};
+  const executionContour = merged.executionContour || {};
 
   const normalized = {
     ...merged,
@@ -15,6 +16,14 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
     warningThresholdAboveMinBalance: Number(merged.warningThresholdAboveMinBalance || 0),
     loopsLength: Number(globalConfig.loopsLength || 0),
     intervalSeconds: Number(globalConfig.intervalSeconds || 1),
+    executionContour: {
+      enabled: executionContour.enabled !== false,
+      queueLimit: Number(executionContour.queueLimit || 200),
+      retryAttempts: Number(executionContour.retryAttempts || 3),
+      retryBackoffMs: Number(executionContour.retryBackoffMs || 350),
+      dedupWindowMs: Number(executionContour.dedupWindowMs || 120000),
+      reconcileOnLoopStart: executionContour.reconcileOnLoopStart !== false,
+    },
     unloadMode: {
       enabled: !!unloadMode.enabled,
       safeEntryAssets: Array.isArray(unloadMode.safeEntryAssets) ? unloadMode.safeEntryAssets : [],

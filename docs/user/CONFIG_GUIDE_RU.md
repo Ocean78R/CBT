@@ -39,3 +39,15 @@
 - он должен быть явно включаемым через config,
 - старое поведение должно оставаться fallback,
 - документация и changelog должны быть обновлены в том же изменении.
+
+## Execution contour (устойчивый контур исполнения)
+Новый слой **не меняет decision/risk/entry логику** и включается только через config:
+
+- `executionContour.enabled`: включает очередь/ретраи/dedup/reconciliation в execution owner-path.
+- `executionContour.queueLimit`: лимит отложенных заявок в памяти.
+- `executionContour.retryAttempts`: число попыток для временных API-ошибок.
+- `executionContour.retryBackoffMs`: базовая пауза между попытками (линейный backoff).
+- `executionContour.dedupWindowMs`: окно защиты от дублей по dedup-ключу.
+- `executionContour.reconcileOnLoopStart`: включать технический reconciliation перед обработкой тикера.
+
+Fallback-режим: если `executionContour.enabled=false`, исполнение идёт по прежней legacy-схеме без очереди.
