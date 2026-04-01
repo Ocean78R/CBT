@@ -93,18 +93,14 @@
 2. Для проверок regime-transition сверяйте `payload.balanceState.previousCapitalRegime` и `payload.balanceState.regimeChanged`.
 3. При активной паузе проверяйте `payload.limits.cooldownActive` и `payload.limits.cooldownUntilMs`.
 
+## События trade analytics и журнал сделок
+Добавлены структурированные события:
+- `analytics/trade_open_registered`
+- `analytics/trade_averaging_registered`
+- `analytics/trade_close_registered`
+- `analytics/trade_report`
 
-## События portfolio forecast / capital stress
-Добавлено структурированное событие `portfolio_capital_stress_forecast` (layer `risk.portfolioForecast`).
+Минимальные поля audit trail для нового слоя:
+`cycleId`, `ticker`, `exchange`, `module/layer`, `marketRegime`, `capitalRegime`, `setupType`, `score`, `confidence`, `vetoReason`, `sizingDecision`, `executionAction`, `fallbackAction`, `finalDecision`.
 
-Минимальные поля:
-- `cycleId`, `ticker`, `exchange`;
-- `module/layer`, `marketRegime`, `capitalRegime`, `setupType`;
-- `score`, `confidence`, `vetoReason` (если есть кандидат), `sizingDecision`;
-- `executionAction` (всегда `none`, т.к. слой не владеет исполнением);
-- `payload.dataQualityState`, `payload.aggregate`, `payload.outputHints`.
-
-Runtime-лог `capitalStressForecast` показывает отдельно:
-- текущее состояние капитала (`capitalRegime`),
-- прогнозный стресс (`forecastRisk`, `score/confidence`),
-- restriction/protective/sizing hints.
+Журнал сделок сохраняется в CSV и используется для метрик: `winRate`, `avgWin`, `avgLoss`, `expectancy`, статистика усреднений, распределение по времени суток, дню недели и типу сигнала.

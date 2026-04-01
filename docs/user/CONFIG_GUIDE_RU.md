@@ -104,6 +104,19 @@ Fallback-режим: если `executionContour.enabled=false`, исполнен
 
 Важно: слой `portfolioForecastEngine` должен подключаться только **после** `portfolioRiskContour` и не может ослаблять его hard-ограничения.
 
+<<<<<<< codex/add-analytics-layer-for-trading-results
+## Базовый слой trade analytics
+Новый слой аналитики не меняет торговые решения и включается через config:
+
+- `tradeAnalytics.enabled`: включает запись журнала сделок и отчётов.
+- `tradeAnalytics.storage`: тип хранилища (`csv` в текущем боевом минимуме).
+- `tradeAnalytics.dataDir`: папка с файлами аналитики (по умолчанию `./data/analytics`).
+- `tradeAnalytics.tradesCsv`: CSV-журнал закрытых сделок.
+- `tradeAnalytics.openStateJson`: состояние открытых сделок/усреднений для восстановления после рестарта.
+- `tradeAnalytics.reportOnCycleEnd`: включать сводный отчёт в конце цикла.
+
+Fallback: если `tradeAnalytics.enabled=false`, торговый flow полностью legacy, слой аналитики отключён.
+=======
 
 ## Конфиг portfolioForecastEngine / capitalStressForecastEngine
 Блок находится в `portfolioRiskContour.portfolioForecastEngine` и включается только через config.
@@ -119,3 +132,4 @@ Fallback-режим: если `executionContour.enabled=false`, исполнен
 - `sizingHints.*`: рекомендуемые множители для dynamic sizing после approved entry.
 
 Безопасность: по умолчанию блок не ослабляет текущий risk contour и не ломает legacy поведение.
+>>>>>>> main
