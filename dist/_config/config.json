@@ -91,6 +91,19 @@
           "onlyForCapitalRegimes": ["DEFENSIVE", "HALT_NEW_ENTRIES"],
           "pnlMultiplier": 0.85
         }
+      },
+      "serverStopLoss": {
+        "enabled": true,
+        "provider": "bingx_reduce_only_v2",
+        "fallbackToForcedLossExit": true,
+        "refreshOnAveraging": true,
+        "reconcileOnLoop": true,
+        "triggerBy": "MARK_PRICE",
+        "conservativeMode": {
+          "enabled": false,
+          "onlyForCapitalRegimes": ["DEFENSIVE", "HALT_NEW_ENTRIES"],
+          "lossMultiplier": 0.85
+        }
       }
     },
     "htx": {
@@ -207,6 +220,19 @@
       "enabled": false,
       "onlyForCapitalRegimes": ["DEFENSIVE", "HALT_NEW_ENTRIES"],
       "pnlMultiplier": 0.85
+    }
+  },
+  "serverStopLoss": {
+    "enabled": false,
+    "provider": "bingx_reduce_only_v2",
+    "fallbackToForcedLossExit": true,
+    "refreshOnAveraging": true,
+    "reconcileOnLoop": true,
+    "triggerBy": "MARK_PRICE",
+    "conservativeMode": {
+      "enabled": false,
+      "onlyForCapitalRegimes": ["DEFENSIVE", "HALT_NEW_ENTRIES"],
+      "lossMultiplier": 0.85
     }
   },
   "unloadMode": {

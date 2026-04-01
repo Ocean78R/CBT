@@ -58,3 +58,11 @@
 - Fallback: при `executionContour.enabled=false` используется прежний flow исполнения.
 
 Важно: execution contour — это технический слой надёжности (queue/retry/dedup/reconciliation), а не decision-layer.
+
+## Server stop-loss manager (BingX)
+- Runtime-позиция слоя: `execution -> serverStopLossManager -> serverTakeProfitManager -> lifecycle`.
+- Зависимости: активная позиция из `positionProvider`, результат execution owner-path, `capitalRegime` из unload mode.
+- После `openNewPosition` manager создаёт серверный `STOP_MARKET` ордер с reduce-only/close-only семантикой.
+- После averaging manager пересоздаёт SL для whole-position (v1), чтобы объём защиты соответствовал новой позиции.
+- При закрытии позиции и при `position_absent_reconcile` выполняется cleanup сиротских SL только через manager-слой.
+- Fallback: если BingX server SL недоступен, остаются forcedLossExit/local polling close (без изменения legacy логики).

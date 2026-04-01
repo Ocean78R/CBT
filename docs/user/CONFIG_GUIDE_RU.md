@@ -56,3 +56,14 @@
 - `serverTakeProfit.conservativeMode.*`: опционально снижает цель фиксации прибыли в защитных capital regime (строго через config).
 
 Fallback-режим: если `executionContour.enabled=false`, исполнение идёт по прежней legacy-схеме без очереди.
+
+## Конфиг server stop-loss (BingX)
+- `serverStopLoss.enabled`: включает manager серверного SL.
+- `serverStopLoss.provider`: провайдер API (по умолчанию `bingx_reduce_only_v2`).
+- `serverStopLoss.fallbackToForcedLossExit`: оставляет forcedLossExit как secondary protection, если server SL не выставлен.
+- `serverStopLoss.refreshOnAveraging`: обновлять SL после усреднения.
+- `serverStopLoss.reconcileOnLoop`: включать cleanup/reconciliation сиротских SL в цикле.
+- `serverStopLoss.triggerBy`: тип цены триггера (`MARK_PRICE`).
+- `serverStopLoss.conservativeMode.enabled`: ужесточение SL в защитных режимах капитала.
+- `serverStopLoss.conservativeMode.onlyForCapitalRegimes`: для каких режимов капитала применять ужесточение.
+- `serverStopLoss.conservativeMode.lossMultiplier`: множитель дистанции SL в защитном режиме.
