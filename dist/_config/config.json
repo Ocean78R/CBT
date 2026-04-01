@@ -79,6 +79,18 @@
           "disableOnNegativeExpectation": true,
           "logTopTickers": 10
         }
+      },
+      "serverTakeProfit": {
+        "enabled": true,
+        "provider": "bingx_reduce_only_v2",
+        "fallbackToLocalClose": true,
+        "refreshOnAveraging": true,
+        "reconcileOnLoop": true,
+        "conservativeMode": {
+          "enabled": false,
+          "onlyForCapitalRegimes": ["DEFENSIVE", "HALT_NEW_ENTRIES"],
+          "pnlMultiplier": 0.85
+        }
       }
     },
     "htx": {
@@ -184,6 +196,18 @@
     "retryBackoffMs": 350,
     "dedupWindowMs": 120000,
     "reconcileOnLoopStart": true
+  },
+  "serverTakeProfit": {
+    "enabled": false,
+    "provider": "bingx_reduce_only_v2",
+    "fallbackToLocalClose": true,
+    "refreshOnAveraging": true,
+    "reconcileOnLoop": true,
+    "conservativeMode": {
+      "enabled": false,
+      "onlyForCapitalRegimes": ["DEFENSIVE", "HALT_NEW_ENTRIES"],
+      "pnlMultiplier": 0.85
+    }
   },
   "unloadMode": {
     "enabled": false,

@@ -50,6 +50,11 @@
 - Место в пайплайне: **после approved entry/sizing и до прямого вызова connector**.
 - Зависимости: готовое решение от risk/entry/sizing слоёв; сам execution contour не принимает торговых решений.
 - Ownership path: `openNewPosition/averagePosition/closePosition -> executeOrderIntent -> enqueueExecutionIntent/runExecutionIntent -> connector`.
+- Для BingX server TP теперь обслуживается отдельным manager-слоем `serverTakeProfitManager` внутри lifecycle-контура:
+  - создание после открытия позиции,
+  - обновление после averaging,
+  - cleanup при закрытии и при reconciliation без активной позиции.
+- Локальный `closePositionPnl` остаётся fallback и не конкурирует с manager-слоем server TP.
 - Fallback: при `executionContour.enabled=false` используется прежний flow исполнения.
 
 Важно: execution contour — это технический слой надёжности (queue/retry/dedup/reconciliation), а не decision-layer.
