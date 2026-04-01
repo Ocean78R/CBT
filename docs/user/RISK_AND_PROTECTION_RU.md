@@ -53,3 +53,16 @@
 3. Лимит одновременно открытых позиций.
 4. Лимит суммарной используемой маржи.
 5. Пауза (cooldown) после серии плохих циклов или убыточных закрытий.
+
+
+## Portfolio balance forecast / capital stress forecast engine
+- Это дополнительный forward-looking слой, который дополняет current-state `portfolioRiskContour` и `capitalRegimeEngine`, но не заменяет их.
+- Сценарии прогноза: `baseline_stabilization`, `adverse_margin_expansion`, `severe_drawdown_spike`.
+- Для каждого сценария рассчитываются:
+  - `expectedFreeBalancePressure`,
+  - `expectedMarginPressure`,
+  - `expectedDrawdownPressure`,
+  - `probabilityOfRegimeDeterioration`,
+  - `portfolioFragilityScore`.
+- Выходы: `restrictionHints`, `protectiveTighteningHints`, `sizingHints`, `forecastSignals`, `vetoCandidates` (только как hints по контракту).
+- Если данных недостаточно, слой помечает `dataQualityState=degraded/insufficient`, снижает `confidence` и не выдаёт ложную уверенность.

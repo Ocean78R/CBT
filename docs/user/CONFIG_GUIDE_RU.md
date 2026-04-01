@@ -104,6 +104,7 @@ Fallback-режим: если `executionContour.enabled=false`, исполнен
 
 Важно: слой `portfolioForecastEngine` должен подключаться только **после** `portfolioRiskContour` и не может ослаблять его hard-ограничения.
 
+<<<<<<< codex/add-analytics-layer-for-trading-results
 ## Базовый слой trade analytics
 Новый слой аналитики не меняет торговые решения и включается через config:
 
@@ -115,3 +116,20 @@ Fallback-режим: если `executionContour.enabled=false`, исполнен
 - `tradeAnalytics.reportOnCycleEnd`: включать сводный отчёт в конце цикла.
 
 Fallback: если `tradeAnalytics.enabled=false`, торговый flow полностью legacy, слой аналитики отключён.
+=======
+
+## Конфиг portfolioForecastEngine / capitalStressForecastEngine
+Блок находится в `portfolioRiskContour.portfolioForecastEngine` и включается только через config.
+
+- `enabled`: включает forward-looking прогноз риска портфеля.
+- `minConfidenceForSignals`: минимальная уверенность прогноза для передачи restriction hints.
+- `scenarioWeights.baseline/adverse/severe`: веса сценариев агрегированного прогноза.
+- `thresholds.*`: пороги fragility и вероятности ухудшения режима капитала.
+- `restrictions.enableRestrictionHints`: поставлять soft/hard restriction hints в entry owner-слои.
+- `restrictions.enableHardRestrictionHints`: формировать кандидаты `capital_prohibition` через совместимый veto-contract.
+- `restrictions.applyHardRestrictionHintsAsVeto`: (опционально) применить hard candidate как veto в risk contour.
+- `protectiveTightening.*`: подсказки на ужесточение сопровождения (forcedLossExit/TP-SL conservative policy) без прямого управления ордерами.
+- `sizingHints.*`: рекомендуемые множители для dynamic sizing после approved entry.
+
+Безопасность: по умолчанию блок не ослабляет текущий risk contour и не ломает legacy поведение.
+>>>>>>> main

@@ -24,6 +24,8 @@
 
 Зависимости более поздних слоёв от ранних обязательны; обход запрещён.
 
+- Новый слой `capitalStressForecastEngine` подключается строго между `risk_contour/capitalRegimeEngine` и `entryPermission/finalEntry/sizing`, отдаёт только compatible hints/vetoCandidates и не владеет execution/lifecycle side-effects.
+
 ## 3) Единый контракт решений: DecisionContext
 
 `DecisionContext` — единый формат для всех entry-решений и risk-gates.

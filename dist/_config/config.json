@@ -461,6 +461,41 @@
       "defensiveBalanceDrawdownPercent": 10,
       "capitalPreservationBalanceDrawdownPercent": 14,
       "haltBalanceDrawdownPercent": 18
+    },
+    "portfolioForecastEngine": {
+      "enabled": false,
+      "minConfidenceForSignals": 0.45,
+      "scenarioWeights": {
+        "baseline": 0.4,
+        "adverse": 0.4,
+        "severe": 0.2
+      },
+      "thresholds": {
+        "elevatedFragility": 0.45,
+        "highFragility": 0.65,
+        "criticalFragility": 0.8,
+        "elevatedRegimeDeteriorationProbability": 0.35,
+        "criticalRegimeDeteriorationProbability": 0.65
+      },
+      "restrictions": {
+        "enableRestrictionHints": true,
+        "enableHardRestrictionHints": false,
+        "applyHardRestrictionHintsAsVeto": false,
+        "hardRestrictionScenario": "severe_drawdown_spike"
+      },
+      "protectiveTightening": {
+        "enabled": true,
+        "triggerFromFragility": 0.6,
+        "triggerFromRegimeProbability": 0.45,
+        "forcedLossExitHintMode": "tighten"
+      },
+      "sizingHints": {
+        "enabled": true,
+        "normalMultiplier": 1,
+        "elevatedMultiplier": 0.85,
+        "highMultiplier": 0.65,
+        "criticalMultiplier": 0.4
+      }
     }
   },
   "unloadMode": {
