@@ -107,3 +107,10 @@
 - Изменение: observability слой получил корректную фильтрацию `includePaperMode/includeLiveMode` и дефолтный `mode=live`.
 - Связанные файлы кода: `dist/runtime/execution/paperTrading.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/runtime/observability/reportingLayer.js`, `dist/runtime/risk/portfolioRiskContour.js`, `dist/runtime/risk/forcedLossExit.js`, `dist/runtime/risk/capitalStressForecastEngine.js`, `dist/_config/config.json`, `tests/regression/paper-trading-mode.test.js`.
 - Связанные разделы docs: `docs/user/RUN_AND_MODES_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
+
+## 2026-04-01 (ML dataset builder для обучения качества входа)
+- Изменение: добавлен отдельный слой `mlDatasetBuilder` для сбора обучающего датасета без изменения торговой логики; слой пишет features в момент потенциального/фактического входа и labels при завершении сделки.
+- Изменение: добавлен конфиг `mlDatasetBuilder` с master-флагом, storage-путями, режимами capture и схемой label generation.
+- Изменение: добавлена интеграция с logging/observability (`ml_dataset_feature_captured`, `ml_dataset_label_resolved`) и персистентное `pendingState` для устойчивости к рестартам.
+- Связанные файлы кода: `dist/runtime/analytics/mlDatasetBuilder.js`, `dist/runtime/engines/index.js`, `dist/runtime/execution/paperTrading.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/ml-dataset-builder.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.

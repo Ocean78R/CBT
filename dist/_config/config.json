@@ -209,6 +209,27 @@
         "openStateJson": "open_trades_state.json",
         "reportOnCycleEnd": true
       },
+      "mlDatasetBuilder": {
+        "enabled": false,
+        "storage": "csv",
+        "dataDir": "./data/ml_dataset",
+        "featuresCsv": "entry_features.csv",
+        "labelsCsv": "entry_labels.csv",
+        "pendingStateJson": "entry_pending_state.json",
+        "flushIntervalMs": 1200,
+        "includePaperMode": true,
+        "includeLiveMode": true,
+        "capture": {
+          "potentialEntries": true,
+          "actualEntries": true
+        },
+        "labeling": {
+          "defaultHoldTimeoutMinutes": 180,
+          "positivePnlPercent": 0.2,
+          "negativePnlPercent": -0.2,
+          "neutralBandAbsPercent": 0.2
+        }
+      },
       "observabilityReporting": {
         "enabled": false,
         "flushIntervalMs": 1500,

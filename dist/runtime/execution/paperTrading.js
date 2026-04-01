@@ -47,6 +47,51 @@ function createPaperTradingExecutor(strategy, runtimeConfig = {}) {
     });
   }
 
+
+  function captureDatasetEntry(ticker, payload = {}) {
+    if (!strategy.mlDatasetBuilder || typeof strategy.mlDatasetBuilder.captureExecutedEntry !== 'function') return null;
+    const runtimeContext = strategy.currentRuntimeContext || {};
+    // Русский комментарий: интеграция dataset-слоя идёт только через execution ownership path, без изменения решения о входе.
+    return strategy.mlDatasetBuilder.captureExecutedEntry({
+      mode: 'paper',
+      ticker,
+      exchange: runtimeContext.exchange || 'paper_exchange',
+      marketRegime: runtimeContext.marketRegime || runtimeContext.regime || 'unknown',
+      setupType: runtimeContext.setupType || 'unknown',
+      decision: runtimeContext.finalDecision || 'executed_entry',
+      decisionContext: runtimeContext.decisionContext || {
+        cycleId: runtimeContext.cycleId,
+        ticker,
+        score: runtimeContext.score,
+        confidence: runtimeContext.confidence,
+        regime: runtimeContext.marketRegime || runtimeContext.regime,
+        capitalRegime: runtimeContext.capitalRegime,
+        balanceState: runtimeContext.balanceState || null,
+        forecastRegimeShiftRisk: runtimeContext.forecastRegimeShiftRisk || null,
+        veto: runtimeContext.veto || null,
+        penalties: runtimeContext.penalties || [],
+        metadata: runtimeContext.metadata || {},
+      },
+      executionAction: payload.executionAction || 'paper_open_position',
+      fallbackAction: 'no_real_order',
+      sizingDecision: runtimeContext.sizingDecision || 'not_evaluated',
+      positionId: payload.positionId || null,
+    });
+  }
+
+  function resolveDatasetLabel(sampleId, payload = {}) {
+    if (!sampleId || !strategy.mlDatasetBuilder || typeof strategy.mlDatasetBuilder.resolveLabel !== 'function') return;
+    strategy.mlDatasetBuilder.resolveLabel({
+      sampleId,
+      positionId: payload.positionId || null,
+      status: 'closed',
+      realizedPnlUsdt: payload.realizedPnlUsdt,
+      realizedPnlPercent: payload.realizedPnlPercent,
+      holdMinutes: payload.holdMinutes,
+      closeReason: payload.closeReason || 'paper_close',
+    });
+  }
+
   // Русский комментарий: paper/shadow слой живёт на месте execution ownership path и не пересчитывает signal/risk pipeline.
   async function openNewPosition(ticker, liveExecutor) {
     if (!config.enabled) return liveExecutor(ticker);
@@ -55,6 +100,7 @@ function createPaperTradingExecutor(strategy, runtimeConfig = {}) {
       ? await strategy.getCurrentMarkPriceForSimulation(ticker)
       : null;
     const positionId = `paper:${ticker}:${Date.now()}`;
+    const sampleId = captureDatasetEntry(ticker, { positionId, executionAction: 'paper_open_position' });
     state.positions.set(ticker, {
       positionId,
       ticker,
@@ -62,6 +108,7 @@ function createPaperTradingExecutor(strategy, runtimeConfig = {}) {
       openedAt: Date.now(),
       entryPrice,
       averages: 0,
+      sampleId: sampleId || null,
     });
     state.metrics.virtualEntries += 1;
 
@@ -76,7 +123,7 @@ function createPaperTradingExecutor(strategy, runtimeConfig = {}) {
       strategy.log(`[paperExecution] cycle=${rc.cycleId || 'n/a'} ticker=${ticker} exchange=${rc.exchange || 'n/a'} module=paperExecutionEngine layer=execution.paperShadow regime=${rc.marketRegime || 'unknown'} capital=${rc.capitalRegime || 'NORMAL'} setup=${rc.setupType || 'unknown'} score=${Number.isFinite(rc.score) ? rc.score : 0} confidence=${Number.isFinite(rc.confidence) ? rc.confidence : 0} veto=${rc.vetoReason || 'none'} sizing=${rc.sizingDecision || 'not_evaluated'} execution=paper_open_position fallback=no_real_order final=paper_open`);
     }
 
-    return { simulated: true, mode: config.mode, positionId, entryPrice };
+    return { simulated: true, mode: config.mode, positionId, entryPrice, sampleId: sampleId || null };
   }
 
   async function averagePosition(ticker, activePosition, amountUsdt, liveExecutor) {
@@ -108,9 +155,16 @@ function createPaperTradingExecutor(strategy, runtimeConfig = {}) {
     const existing = state.positions.get(ticker);
     if (existing) state.positions.delete(ticker);
     const realizedPnl = Number.isFinite(profit) ? Number(profit) : 0;
+    const realizedPnlPercent = existing && Number.isFinite(existing.entryPrice) && existing.entryPrice !== 0
+      ? (realizedPnl / Math.abs(existing.entryPrice)) * 100
+      : null;
     state.virtualBalance += realizedPnl;
     state.metrics.realizedPnl += realizedPnl;
     state.metrics.virtualCloses += 1;
+
+    const holdMinutes = existing && Number.isFinite(existing.openedAt)
+      ? (Date.now() - existing.openedAt) / (60 * 1000)
+      : null;
 
     emitPaperEvent(ticker, 'virtual_position_closed', {
       executionAction: 'paper_close_position',
@@ -122,11 +176,23 @@ function createPaperTradingExecutor(strategy, runtimeConfig = {}) {
       },
     });
 
+    if (existing && existing.sampleId) {
+      resolveDatasetLabel(existing.sampleId, {
+        positionId: existing.positionId,
+        realizedPnlUsdt: realizedPnl,
+        realizedPnlPercent,
+        holdMinutes,
+        closeReason: 'paper_close',
+      });
+    }
+
     return {
       simulated: true,
       mode: config.mode,
       positionId: existing ? existing.positionId : null,
       realizedPnl,
+      realizedPnlPercent,
+      holdMinutes,
       virtualBalance: state.virtualBalance,
     };
   }

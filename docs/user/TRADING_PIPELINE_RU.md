@@ -211,3 +211,19 @@ Cache tiers и чтение слоями:
   - режим метки `paperTrading.mode` (`paper` или `shadow`).
 
 Важно: paper/shadow режим не ослабляет `capitalRegime` и `portfolio risk contour`; он только подменяет физическое исполнение ордера на виртуальное.
+
+## Runtime-позиция слоя ML dataset builder (feature logging)
+- Место нового слоя в runtime-пайплайне: **после decision/risk и в execution ownership path как пассивный сборщик**.
+- Зависимости от более ранних слоёв:
+  - `DecisionContext` (score/confidence/veto/penalties/dataQuality),
+  - `balanceState/capitalRegime`,
+  - downstream block outputs из `telemetry.downstreamContext`,
+  - forecast-контекст (`portfolioForecastState`, `capitalStressForecastScore`, `forecastRegimeShiftRisk`, `portfolioFragilityScore`, restriction/protective hints).
+- Кто главный:
+  - primary остаются hard-risk/unload/regime/confluence/sizing/execution;
+  - `mlDatasetBuilder` только пишет признаки/метки и не влияет на допуск входа.
+- Fallback:
+  - при `mlDatasetBuilder.enabled=false` слой полностью выключен;
+  - при частично отсутствующих данных пишет безопасные `null/unknown` и не блокирует цикл;
+  - при ошибке записи сборщик деградирует в best-effort режим, торговля продолжается.
+- Переключение режима: `mlDatasetBuilder.enabled`, а также `includePaperMode/includeLiveMode`.
