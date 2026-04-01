@@ -66,3 +66,10 @@
 - Изменение: добавлен конфиг `observabilityReporting` и интеграция с существующими structured events risk-слоёв без изменения legacy торгового поведения (слой выключен по умолчанию).
 - Связанные файлы кода: `dist/runtime/observability/reportingLayer.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/observability-reporting-layer.test.js`.
 - Связанные разделы docs: `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
+
+## 2026-04-01 (performance audit: профилирование и безопасные read-only оптимизации)
+- Изменение: добавлен конфигурируемый слой `performanceDiagnostics` для аудита производительности провайдеров (latency/cache/in-flight метрики) без изменения торговой логики и ownership path.
+- Изменение: в observability reporting добавлены performance-метрики `ingest/flush/analytics` и разделение потока событий на `signalReadOnly`, `executionProtection`, `analyticsReporting`.
+- Изменение: внедрены минимально рискованные оптимизации read-only части: дедупликация in-flight одинаковых запросов и TTL-кэш в пределах короткого окна.
+- Связанные файлы кода: `dist/runtime/providers/index.js`, `dist/runtime/observability/reportingLayer.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/providers-performance-diagnostics.test.js`, `tests/regression/observability-reporting-layer.test.js`.
+- Связанные разделы docs: `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/TRADING_PIPELINE_RU.md`.

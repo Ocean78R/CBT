@@ -94,6 +94,7 @@ function increment(map, key, add = 1) {
 function createObservabilityLayer(rawConfig = {}, deps = {}) {
   const config = normalizeConfig(rawConfig);
   const writer = deps.writer || fs.promises;
+  const now = deps.now || (() => Date.now());
   let flushTimer = null;
   let tickCounter = 0;
   const buffer = [];
@@ -110,6 +111,17 @@ function createObservabilityLayer(rawConfig = {}, deps = {}) {
     regimeChanges: {},
     mlDecisions: {},
     modeSplit: { paper: 0, live: 0 },
+    performance: {
+      ingestEvents: { calls: 0, totalMs: 0, avgMs: 0, maxMs: 0 },
+      flush: { calls: 0, totalMs: 0, avgMs: 0, maxMs: 0, errors: 0 },
+      analytics: { getReportsCalls: 0, getAuditTrailCalls: 0 },
+      byPipelinePart: {
+        signalReadOnly: { events: 0 },
+        executionProtection: { events: 0 },
+        analyticsReporting: { events: 0 },
+      },
+      bufferHighWatermark: 0,
+    },
   };
   const auditTrail = new Map();
 
@@ -120,11 +132,31 @@ function createObservabilityLayer(rawConfig = {}, deps = {}) {
 
   async function flushBuffer() {
     if (!config.enabled || !config.storage.enabled || buffer.length === 0) return;
+    const startedAt = now();
     const dataDir = path.resolve(config.storage.dataDir);
     const filePath = path.join(dataDir, config.storage.eventsFile);
     const payload = `${buffer.splice(0, buffer.length).map((e) => JSON.stringify(e)).join('\n')}\n`;
-    await writer.mkdir(dataDir, { recursive: true });
-    await writer.appendFile(filePath, payload, 'utf8');
+    try {
+      await writer.mkdir(dataDir, { recursive: true });
+      await writer.appendFile(filePath, payload, 'utf8');
+    } catch (error) {
+      reports.performance.flush.errors += 1;
+      throw error;
+    } finally {
+      const duration = now() - startedAt;
+      reports.performance.flush.calls += 1;
+      reports.performance.flush.totalMs += duration;
+      reports.performance.flush.avgMs = reports.performance.flush.calls > 0
+        ? reports.performance.flush.totalMs / reports.performance.flush.calls
+        : 0;
+      reports.performance.flush.maxMs = Math.max(reports.performance.flush.maxMs, duration);
+    }
+  }
+
+  function classifyPipelinePart(event = {}, category) {
+    if (category === EVENT_CATEGORIES.EXECUTION || category === EVENT_CATEGORIES.PROTECTIVE || category === EVENT_CATEGORIES.LIFECYCLE) return 'executionProtection';
+    if (String(event.module || '').toLowerCase().includes('analytics') || String(event.layer || '').toLowerCase().includes('reporting')) return 'analyticsReporting';
+    return 'signalReadOnly';
   }
 
   function scheduleFlush() {
@@ -250,6 +282,7 @@ function createObservabilityLayer(rawConfig = {}, deps = {}) {
   }
 
   function ingestEvent(rawEvent = {}) {
+    const startedAt = now();
     if (!config.enabled) return { accepted: false, reason: 'disabled' };
     const event = {
       timestamp: new Date().toISOString(),
@@ -262,9 +295,12 @@ function createObservabilityLayer(rawConfig = {}, deps = {}) {
     if (!sampledIn && !critical) return { accepted: false, reason: 'sampled_out', category };
 
     updateReports(event, category);
+    const pipelinePart = classifyPipelinePart(event, category);
+    reports.performance.byPipelinePart[pipelinePart].events += 1;
     updateAuditTrail(event, category);
     if (config.storage.enabled && (critical || config.sampling.alwaysKeepCritical || shouldSample(category))) {
       buffer.push({ ...event, category, critical });
+      reports.performance.bufferHighWatermark = Math.max(reports.performance.bufferHighWatermark, buffer.length);
       if (buffer.length >= config.maxBufferSize) {
         flushBuffer().catch(() => {});
       } else {
@@ -281,10 +317,19 @@ function createObservabilityLayer(rawConfig = {}, deps = {}) {
       }
     }
 
-    return { accepted: true, category, critical };
+    const duration = now() - startedAt;
+    reports.performance.ingestEvents.calls += 1;
+    reports.performance.ingestEvents.totalMs += duration;
+    reports.performance.ingestEvents.avgMs = reports.performance.ingestEvents.calls > 0
+      ? reports.performance.ingestEvents.totalMs / reports.performance.ingestEvents.calls
+      : 0;
+    reports.performance.ingestEvents.maxMs = Math.max(reports.performance.ingestEvents.maxMs, duration);
+
+    return { accepted: true, category, critical, pipelinePart };
   }
 
   function getReports() {
+    reports.performance.analytics.getReportsCalls += 1;
     return {
       byCycle: Object.fromEntries(reports.byCycle),
       byTicker: Object.fromEntries(reports.byTicker),
@@ -297,10 +342,18 @@ function createObservabilityLayer(rawConfig = {}, deps = {}) {
       regimeChanges: { ...reports.regimeChanges },
       mlDecisions: { ...reports.mlDecisions },
       modeSplit: { ...reports.modeSplit },
+      performance: {
+        ingestEvents: { ...reports.performance.ingestEvents },
+        flush: { ...reports.performance.flush },
+        analytics: { ...reports.performance.analytics },
+        byPipelinePart: { ...reports.performance.byPipelinePart },
+        bufferHighWatermark: reports.performance.bufferHighWatermark,
+      },
     };
   }
 
   function getAuditTrail(filters = {}) {
+    reports.performance.analytics.getAuditTrailCalls += 1;
     const values = Array.from(auditTrail.values()).filter((item) => {
       if (filters.cycleId && item.cycleId !== filters.cycleId) return false;
       if (filters.ticker && item.ticker !== filters.ticker) return false;

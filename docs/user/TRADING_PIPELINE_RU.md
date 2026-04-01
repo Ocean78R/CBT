@@ -123,3 +123,22 @@
   - запись в отчёты буферизирована и отложена (`flushIntervalMs`, `maxBufferSize`);
   - high-volume decision events поддерживают sampling;
   - critical execution/protective/lifecycle события сохраняются полностью без sampling-потерь.
+
+## Runtime-позиция performance diagnostics (без изменения торговой логики)
+- Место в пайплайне: `connector -> providers(performanceDiagnostics) -> signal/read-only layers`.
+- Зависимости: exchange connector, runtime config, существующий flow получения market/account/position данных.
+- Кто главный:
+  - primary: risk/entry/execution/lifecycle слои;
+  - performance diagnostics: только измерение и техническая read-only оптимизация (TTL-кэш + in-flight dedup).
+- Что остаётся fallback:
+  - при выключенном флаге `performanceDiagnostics.enabled` весь слой отключён;
+  - если кэш пуст/просрочен, выполняется обычный запрос в connector.
+- Переключение режима:
+  - `performanceDiagnostics.enabled` — master-флаг;
+  - `performanceDiagnostics.readOnlyCache.*` — управление safe cache;
+  - `performanceDiagnostics.metrics.*` — параметры метрик.
+
+Разделение узких мест:
+- signal/read-only: последовательные и повторные запросы market/account данных, избыточные дубли на один и тот же тикер;
+- execution/protection: задержки lifecycle/protective событий и нагрузка на owner-path (измеряется в observability performance);
+- analytics/reporting: стоимость ingest/flush/getReports/getAuditTrail и рост буфера событий.

@@ -21,6 +21,9 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const observabilitySampling = observabilityReporting.sampling || {};
   const observabilityAuditTrail = observabilityReporting.auditTrail || {};
   const observabilityStorage = observabilityReporting.storage || {};
+  const performanceDiagnostics = merged.performanceDiagnostics || {};
+  const perfReadOnlyCache = performanceDiagnostics.readOnlyCache || {};
+  const perfMetrics = performanceDiagnostics.metrics || {};
   const cooldownAfterBadStreak = portfolioRiskContour.cooldownAfterBadStreak || {};
   const capitalRegimeThresholds = portfolioRiskContour.capitalRegimeThresholds || {};
   const capitalRegimeEngine = portfolioRiskContour.capitalRegimeEngine || {};
@@ -163,6 +166,21 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         enabled: !!observabilityStorage.enabled,
         dataDir: observabilityStorage.dataDir || './data/analytics',
         eventsFile: observabilityStorage.eventsFile || 'observability_events.ndjson',
+      },
+    },
+    performanceDiagnostics: {
+      enabled: !!performanceDiagnostics.enabled,
+      loggerEnabled: !!performanceDiagnostics.loggerEnabled,
+      logEveryNCalls: Number(performanceDiagnostics.logEveryNCalls || 200),
+      readOnlyCache: {
+        enabled: perfReadOnlyCache.enabled !== false,
+        ttlMs: Number(perfReadOnlyCache.ttlMs || 1200),
+        maxEntries: Number(perfReadOnlyCache.maxEntries || 1000),
+        methods: Array.isArray(perfReadOnlyCache.methods) ? perfReadOnlyCache.methods : [],
+      },
+      metrics: {
+        enabled: perfMetrics.enabled !== false,
+        slowCallMs: Number(perfMetrics.slowCallMs || 250),
       },
     },
     serverStopLoss: {

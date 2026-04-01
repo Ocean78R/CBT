@@ -224,6 +224,28 @@
           "dataDir": "./data/analytics",
           "eventsFile": "observability_events.ndjson"
         }
+      },
+      "performanceDiagnostics": {
+        "enabled": false,
+        "loggerEnabled": false,
+        "logEveryNCalls": 200,
+        "readOnlyCache": {
+          "enabled": true,
+          "ttlMs": 1200,
+          "maxEntries": 1000,
+          "methods": [
+            "getTickerInfo",
+            "getMarkPrice",
+            "getKLine",
+            "getLeverage",
+            "getMarginMode",
+            "getBalance"
+          ]
+        },
+        "metrics": {
+          "enabled": true,
+          "slowCallMs": 250
+        }
       }
     },
     "htx": {
