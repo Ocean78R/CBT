@@ -73,3 +73,12 @@
 - Изменение: внедрены минимально рискованные оптимизации read-only части: дедупликация in-flight одинаковых запросов и TTL-кэш в пределах короткого окна.
 - Связанные файлы кода: `dist/runtime/providers/index.js`, `dist/runtime/observability/reportingLayer.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/providers-performance-diagnostics.test.js`, `tests/regression/observability-reporting-layer.test.js`.
 - Связанные разделы docs: `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/TRADING_PIPELINE_RU.md`.
+
+
+## 2026-04-01 (safe cache + in-memory hot-state для market read-only)
+- Изменение: расширен `performanceDiagnostics` безопасным read-only кэшированием `markPrice` и `kline` с отдельными TTL, плюс hot-state по тикерам в оперативной памяти.
+- Изменение: добавлены TTL tiers для derived features (ultra-short / per-cycle / context) и ключи `ticker+timeframe+featureVersion+cycleContext` для reuse между сигнальными слоями.
+- Изменение: добавлены безопасные механизмы инвалидизации (`onError`, `onExecutionTickers`, `forceRefreshReadOnly`, per-cycle clear) без изменения execution ownership.
+- Изменение: добавлены метрики и события `cache_hit/cache_miss/cache_stale_reuse/cache_forced_refresh` для observability/audit-совместимости.
+- Связанные файлы кода: `dist/runtime/providers/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/providers-performance-diagnostics.test.js`.
+- Связанные документы: `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.

@@ -132,3 +132,26 @@
    `capital -> forecast -> universe -> regime -> confluence -> veto -> sizing -> execution -> lifecycle`.
 3. Для стресс-сценариев проверяйте связку:
    `capital state -> forecast stress -> entry restriction / sizing adjustment / protective tightening`.
+
+
+## Диагностика cache/hot-state
+Новая read-only оптимизация пишет технические события и метрики без влияния на ownership торговых решений.
+
+Минимальные события cache-слоя:
+- `cache_hit`,
+- `cache_miss`,
+- `cache_stale_reuse`,
+- `cache_forced_refresh`.
+
+Рекомендуемые поля audit trail для cache-диагностики:
+- `cycleId`, `ticker`, `exchange`,
+- `module` (`providers.read_only_cache` / `providers.derived_feature_cache`),
+- `layer` (`signalReadOnly`),
+- `method`,
+- итог cache-решения (`hit/miss/stale/forced_refresh`).
+
+Как измерять эффективность:
+- hit ratio: `cacheHits / (cacheHits + cacheMisses)`;
+- stale reuse ratio: `staleReuseHits / totalCalls`;
+- in-flight dedup ratio: `inFlightHits / totalCalls`;
+- latency-эффект: сравнение slow-calls до/после (`slowCalls`, `byMethod.*.avgMs`).

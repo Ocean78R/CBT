@@ -142,3 +142,28 @@
 - signal/read-only: последовательные и повторные запросы market/account данных, избыточные дубли на один и тот же тикер;
 - execution/protection: задержки lifecycle/protective событий и нагрузка на owner-path (измеряется в observability performance);
 - analytics/reporting: стоимость ingest/flush/getReports/getAuditTrail и рост буфера событий.
+
+
+### Runtime-позиция hot-state и cache tiers
+- Место в пайплайне: `connector -> providers(readOnlyCache + hotState + derivedFeatureCache) -> signal/read-only layers -> risk/entry -> execution`.
+- Зависимости ранних слоёв:
+  - exchange connector (источник live данных),
+  - cycle context (`cycleId`) для per-cycle invalidation,
+  - runtime config `performanceDiagnostics.*`.
+- Кто главный / fallback:
+  - главный: risk + execution lifecycle + protection owner-path;
+  - fallback: при `performanceDiagnostics.enabled=false` используется legacy live-flow без кэша;
+  - при miss/stale-limit-exceeded выполняется live refresh из connector.
+
+Cache tiers и чтение слоями:
+- **ultra-short TTL**: markPrice, regime inputs, быстрые indicators.
+- **per-cycle cache**: HTF structure, support/resistance, VWAP/profile контекст внутри одного цикла.
+- **slower-refresh context cache**: ticker analytics aggregates и derivatives context snapshots.
+
+Ключи derived feature cache:
+- формат: `ticker + timeframe + featureVersion + featureType + cycleContext`.
+- это позволяет безопасно переиспользовать признаки между несколькими сигнальными слоями в рамках цикла.
+
+Что можно брать из cache mode:
+- безопасно: indicators/regime inputs/HTF/support-resistance/VWAP-profile/analytics aggregates/derivatives snapshots (по TTL).
+- требует live refresh: execution-critical state и подтверждение действий, меняющих позицию/серверные ордера.

@@ -240,11 +240,37 @@
             "getLeverage",
             "getMarginMode",
             "getBalance"
-          ]
+          ],
+          "markPriceTtlMs": 1200,
+          "klineTtlMs": 2500,
+          "accountReadTtlMs": 900
         },
         "metrics": {
           "enabled": true,
           "slowCallMs": 250
+        },
+        "hotState": {
+          "enabled": true,
+          "maxTickers": 300,
+          "staleReuseGraceMs": 350
+        },
+        "invalidation": {
+          "onError": true,
+          "onExecutionTickers": true,
+          "fullFlushOnCycleStart": false
+        },
+        "derivedFeatureCache": {
+          "enabled": true,
+          "featureVersion": "v1",
+          "ttl": {
+            "ultraShortMs": 800,
+            "perCycleMs": 4500,
+            "contextMs": 25000
+          },
+          "forcedRefresh": {
+            "indicatorsEveryCycles": 0,
+            "htfStructureEveryCycles": 0
+          }
         }
       }
     },
