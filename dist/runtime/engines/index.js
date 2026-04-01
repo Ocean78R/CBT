@@ -3,9 +3,14 @@
 const { evaluateForcedLossExit, toForcedLossExitEvent } = require('../risk/forcedLossExit');
 const { evaluatePortfolioRiskContour, toPortfolioRiskContourEvent } = require('../risk/portfolioRiskContour');
 const { toCapitalStressForecastEvent } = require('../risk/capitalStressForecastEngine');
+const { createUnifiedObservabilityLayer } = require('../observability/unifiedObservability');
 
 // Русский комментарий: движки пока выступают как адаптеры к существующим методам стратегии (fallback без изменения поведения).
 function createEngines(strategy) {
+  const runtimeConfig = strategy && strategy.runtimeConfig ? strategy.runtimeConfig : {};
+  // Русский комментарий: observability-слой подключается как неблокирующий адаптер над существующими логами/structured events.
+  const observability = createUnifiedObservabilityLayer(runtimeConfig.observability || {});
+
   return {
     signalEngine: {
       predictPriceDirection: (ticker) => strategy.predictPriceDirectionLegacy(ticker),
@@ -102,8 +107,28 @@ function createEngines(strategy) {
       closePosition: (ticker, activePosition, profit) => strategy.closePositionLegacy(ticker, activePosition, profit),
     },
     analyticsEngine: {
-      emitStructuredEvent: (...args) => strategy.emitStructuredEvent(...args),
-      emitCycleSummary: () => strategy.emitCycleSummary(),
+      emitStructuredEvent: (...args) => {
+        const event = args && args[0] ? args[0] : null;
+        if (event) {
+          observability.captureStructuredEvent(event);
+        }
+        return strategy.emitStructuredEvent(...args);
+      },
+      emitDecisionSnapshot: (context, decision) => {
+        observability.captureDecisionSnapshot({ context, decision });
+      },
+      emitMlDecision: (input) => {
+        observability.captureMlDecision(input || {});
+      },
+      emitCycleSummary: (cycleId) => {
+        const localSummary = observability.emitCycleSummary(cycleId || '');
+        const legacySummary = strategy.emitCycleSummary();
+        return {
+          localSummary,
+          legacySummary,
+        };
+      },
+      getObservabilityReports: () => observability.getReports(),
     },
   };
 }

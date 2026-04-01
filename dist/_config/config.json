@@ -490,6 +490,22 @@
       }
     }
   },
+  "observability": {
+    "enabled": true,
+    "captureAuditTrail": true,
+    "includeMlDecisions": true,
+    "flushBatchSize": 200,
+    "maxBufferSize": 5000,
+    "sampling": {
+      "decisionEventsRate": 1,
+      "diagnosticEventsRate": 0.35,
+      "mlEventsRate": 1
+    },
+    "aggregation": {
+      "enabled": true,
+      "windowMs": 30000
+    }
+  },
   "unloadMode": {
     "enabled": false,
     "safeEntryAssets": [

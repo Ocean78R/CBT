@@ -20,6 +20,9 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const capitalRegimeThresholds = portfolioRiskContour.capitalRegimeThresholds || {};
   const capitalRegimeEngine = portfolioRiskContour.capitalRegimeEngine || {};
   const portfolioForecastEngine = portfolioRiskContour.portfolioForecastEngine || {};
+  const observability = merged.observability || {};
+  const observabilitySampling = observability.sampling || {};
+  const observabilityAggregation = observability.aggregation || {};
 
   const normalized = {
     ...merged,
@@ -101,6 +104,23 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         sizingHints: typeof portfolioForecastEngine.sizingHints === 'object' && portfolioForecastEngine.sizingHints
           ? portfolioForecastEngine.sizingHints
           : {},
+      },
+    },
+
+    observability: {
+      enabled: !!observability.enabled,
+      captureAuditTrail: observability.captureAuditTrail !== false,
+      includeMlDecisions: observability.includeMlDecisions !== false,
+      flushBatchSize: Number(observability.flushBatchSize || 200),
+      maxBufferSize: Number(observability.maxBufferSize || 5000),
+      sampling: {
+        decisionEventsRate: Number(observabilitySampling.decisionEventsRate || 1),
+        diagnosticEventsRate: Number(observabilitySampling.diagnosticEventsRate || 0.4),
+        mlEventsRate: Number(observabilitySampling.mlEventsRate || 1),
+      },
+      aggregation: {
+        enabled: observabilityAggregation.enabled !== false,
+        windowMs: Number(observabilityAggregation.windowMs || 30000),
       },
     },
     forcedLossExit: {

@@ -52,3 +52,11 @@
 - Изменение: добавлены runtime-логи `capitalStressForecast` и структурированное событие `portfolio_capital_stress_forecast` для audit trail/trade journal.
 - Связанные файлы кода: `dist/runtime/risk/capitalStressForecastEngine.js`, `dist/runtime/risk/portfolioRiskContour.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/capital-stress-forecast-engine.test.js`, `tests/regression/portfolio-risk-contour.test.js`.
 - Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/RISK_AND_PROTECTION_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
+
+
+## 2026-04-01 (unified observability/reporting + audit trail)
+- Изменение: добавлен единый слой `unifiedObservability` с buffered ingestion, deferred aggregation, sampling для high-volume diagnostics и полным сохранением critical execution/protective/regime/lifecycle событий.
+- Изменение: добавлены агрегированные отчёты по циклам/тикерам/позициям/дням/типам решений/причинам отказа, а также forecast-категории `forecast_events`, `forecast_restrictions`, `forecast_protective_hints`.
+- Изменение: добавлен audit trail восстановления цепочки `universe -> regime -> confluence -> veto -> sizing -> execution -> lifecycle` и связки `capital state -> forecast stress -> entry restriction/sizing adjustment/protective tightening`.
+- Связанные файлы кода: `dist/runtime/observability/unifiedObservability.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/unified-observability.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`, `docs/ARCHITECTURE_CONTRACT_RU.md`.

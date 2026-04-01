@@ -203,3 +203,13 @@ CBT/
 - `docs/DOCUMENTATION_CHANGELOG_RU.md`.
 
 Правило автоматизировано проверкой `npm run test:docs` и относится к архитектурной дисциплине проекта наравне с ограничениями слоёв.
+
+
+## Unified observability contract (reports + audit trail)
+- Слой наблюдаемости работает через единый runtime-контракт, а не через парсинг только сырых строк логов.
+- Базовый вход: `DecisionContext + score + veto + execution + finalDecision`.
+- Категории событий фиксированы: `decision_events`, `execution_events`, `protective_events`, `regime_events`, `lifecycle_events`, `forecast_events`, `forecast_restrictions`, `forecast_protective_hints`.
+- Для high-volume потока используется configurable sampling + deferred aggregation; critical execution/protection/regime/lifecycle события пишутся полно.
+- Audit trail обязан восстанавливать путь:
+  `universe -> regime -> confluence -> veto -> sizing -> execution -> lifecycle`,
+  а также связку `capital state -> forecast stress -> entry restriction/sizing adjustment/protective tightening`.

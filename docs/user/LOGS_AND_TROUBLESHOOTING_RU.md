@@ -108,3 +108,20 @@ Runtime-лог `capitalStressForecast` показывает отдельно:
 - текущее состояние капитала (`capitalRegime`),
 - прогнозный стресс (`forecastRisk`, `score/confidence`),
 - restriction/protective/sizing hints.
+
+
+## Единые отчёты observability и audit trail
+Теперь поверх сырых логов доступны агрегированные отчёты:
+- по торговому циклу,
+- по тикеру,
+- по позиции,
+- по дню,
+- по типу решения и причинам отказа,
+- по execution/protective/lifecycle/regime событиям,
+- по forecast (`forecast_events`, `forecast_restrictions`, `forecast_protective_hints`),
+- по ML решениям (если включено `observability.includeMlDecisions`).
+
+В audit trail можно восстановить цепочку:
+`capital state -> forecast stress -> entry restriction/sizing adjustment/protective tightening -> execution -> lifecycle`.
+
+Если отчёты кажутся «редкими», проверьте `observability.sampling.*` и `observability.aggregation.*`.

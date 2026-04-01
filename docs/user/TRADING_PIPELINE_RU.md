@@ -114,3 +114,16 @@
   - `dynamicPositionSizing` — снижение размера позиции по `sizingHints`;
   - `forcedLossExit/lifecycle/protection` — protective tightening hints.
 - Слой не может ослабить `hard-risk`, `capitalRegime`, `unload mode`, `hard veto`.
+
+
+## Unified observability/reporting layer (audit + отчёты)
+- Runtime-позиция: слой вызывается в `analyticsEngine` **после** формирования структурированного события от risk/entry/execution/lifecycle owner-слоёв.
+- Зависимости: `DecisionContext`, `score`, `veto`, `executionAction`, `finalDecision`, а также события risk-контуров (`portfolioRiskContour`, `capitalStressForecast`, `forcedLossExit`).
+- Порядок интеграции в пайплайне аудита:
+  1. `capital state` от `portfolioRiskContour/capitalRegimeEngine`.
+  2. `forecast stress` от `capitalStressForecastEngine`.
+  3. ограничения входа (`entry restriction`) и/или коррекция размера (`sizing adjustment`).
+  4. protective tightening hints.
+  5. execution/lifecycle события.
+- Fallback: при `observability.enabled=false` торговый runtime не меняется, остаются legacy-логи/журналы.
+- Слой разделяет категории событий: `decision`, `execution`, `protective`, `regime`, `lifecycle`, `forecast_events`, `forecast_restrictions`, `forecast_protective_hints`.

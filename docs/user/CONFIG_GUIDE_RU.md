@@ -119,3 +119,20 @@ Fallback-режим: если `executionContour.enabled=false`, исполнен
 - `sizingHints.*`: рекомендуемые множители для dynamic sizing после approved entry.
 
 Безопасность: по умолчанию блок не ослабляет текущий risk contour и не ломает legacy поведение.
+
+
+## Конфиг unified observability/reporting
+Блок `observability` управляет единым слоем отчётности и audit trail без изменения торговой логики.
+
+- `observability.enabled`: включает единый слой отчётов и audit trail.
+- `observability.captureAuditTrail`: сохранять восстановимую цепочку `universe -> regime -> confluence -> veto -> sizing -> execution -> lifecycle`.
+- `observability.includeMlDecisions`: включать отдельные ML decision events в отчёты.
+- `observability.flushBatchSize`: размер батча buffered ingestion перед агрегацией.
+- `observability.maxBufferSize`: верхняя граница in-memory буфера событий (защита от переполнения).
+- `observability.sampling.decisionEventsRate`: sampling для массовых decision events.
+- `observability.sampling.diagnosticEventsRate`: sampling/aggregation для diagnostic потока.
+- `observability.sampling.mlEventsRate`: sampling для ML decision событий.
+- `observability.aggregation.enabled`: включить deferred aggregation high-volume diagnostics.
+- `observability.aggregation.windowMs`: окно агрегирования диагностических событий.
+
+Важно: critical execution/protection/regime/lifecycle события сохраняются полностью и не теряются из-за sampling.
