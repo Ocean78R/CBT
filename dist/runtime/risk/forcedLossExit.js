@@ -147,6 +147,7 @@ function toForcedLossExitEvent(input = {}) {
     cycleId: context.cycleId || '',
     ticker: context.ticker || '',
     exchange: context.exchange || '',
+    mode: context.mode || 'live',
     module: 'forcedLossExit',
     layer: 'risk.positionProtection',
     marketRegime: context.marketRegime || 'unknown',

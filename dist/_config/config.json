@@ -194,6 +194,13 @@
           "holdMinutesMultiplierOnStress": 0.75
         }
       },
+      "paperTrading": {
+        "enabled": false,
+        "mode": "paper",
+        "initialBalance": 10000,
+        "slippageBps": 0,
+        "feeBps": 0
+      },
       "tradeAnalytics": {
         "enabled": true,
         "storage": "csv",
@@ -527,6 +534,13 @@
   "loopsLength": 12000,
   "minBalance": 100,
   "warningThresholdAboveMinBalance": 25,
+  "paperTrading": {
+    "enabled": false,
+    "mode": "paper",
+    "initialBalance": 10000,
+    "slippageBps": 0,
+    "feeBps": 0
+  },
   "executionContour": {
     "enabled": true,
     "queueLimit": 200,

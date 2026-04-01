@@ -237,6 +237,7 @@ function toPortfolioRiskContourEvent(input = {}) {
     cycleId: context.cycleId || '',
     ticker: context.ticker || 'PORTFOLIO',
     exchange: context.exchange || '',
+    mode: context.mode || 'live',
     module: 'portfolioRiskContour',
     layer: 'risk.portfolioContour',
     marketRegime: context.marketRegime || 'unknown',

@@ -4,6 +4,7 @@ const { evaluateForcedLossExit, toForcedLossExitEvent } = require('../risk/force
 const { evaluatePortfolioRiskContour, toPortfolioRiskContourEvent } = require('../risk/portfolioRiskContour');
 const { toCapitalStressForecastEvent } = require('../risk/capitalStressForecastEngine');
 const { createObservabilityLayer } = require('../observability/reportingLayer');
+const { createPaperTradingExecutor } = require('../execution/paperTrading');
 
 function emitObservabilityEvent(strategy, event) {
   const layer = strategy && strategy.observabilityLayer;
@@ -14,6 +15,8 @@ function emitObservabilityEvent(strategy, event) {
 
 // Русский комментарий: движки пока выступают как адаптеры к существующим методам стратегии (fallback без изменения поведения).
 function createEngines(strategy) {
+  const paperExecutor = createPaperTradingExecutor(strategy, strategy && strategy.config ? strategy.config : {});
+
   return {
     signalEngine: {
       predictPriceDirection: (ticker) => strategy.predictPriceDirectionLegacy(ticker),
@@ -115,9 +118,12 @@ function createEngines(strategy) {
       closePosition: (ticker, activePosition, profit) => strategy.closePositionLegacy(ticker, activePosition, profit),
     },
     executionEngine: {
-      openNewPosition: (ticker) => strategy.openNewPositionLegacy(ticker),
-      averagePosition: (ticker, activePosition, amountUsdt) => strategy.averagePositionLegacy(ticker, activePosition, amountUsdt),
-      closePosition: (ticker, activePosition, profit) => strategy.closePositionLegacy(ticker, activePosition, profit),
+      // Русский комментарий: execution ownership path общий; в paper/shadow режиме меняется только исполнение, а не decision/risk flow.
+      openNewPosition: (ticker) => paperExecutor.openNewPosition(ticker, (argTicker) => strategy.openNewPositionLegacy(argTicker)),
+      averagePosition: (ticker, activePosition, amountUsdt) => paperExecutor.averagePosition(ticker, activePosition, amountUsdt, (argTicker, argPosition, argAmount) => strategy.averagePositionLegacy(argTicker, argPosition, argAmount)),
+      closePosition: (ticker, activePosition, profit) => paperExecutor.closePosition(ticker, activePosition, profit, (argTicker, argPosition, argProfit) => strategy.closePositionLegacy(argTicker, argPosition, argProfit)),
+      getPaperReport: () => paperExecutor.getReport(),
+      isPaperMode: () => paperExecutor.isEnabled(),
     },
     analyticsEngine: {
       emitStructuredEvent: (...args) => strategy.emitStructuredEvent(...args),

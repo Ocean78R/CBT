@@ -243,3 +243,17 @@ Fallback и безопасность:
 Безопасность по умолчанию:
 - default: `enabled=false`, `mode=monitor_only`;
 - старое поведение остаётся fallback до явного включения.
+
+## Конфиг paper/shadow trading
+Новый слой включается через config и не ломает legacy/live fallback.
+
+- `paperTrading.enabled`: включает paper/shadow execution-режим.
+- `paperTrading.mode`: `paper` или `shadow` (метка режима в логах/событиях).
+- `paperTrading.initialBalance`: стартовый виртуальный баланс для отчётов paper-режима.
+- `paperTrading.slippageBps`: параметр для будущей модели проскальзывания (без влияния на live).
+- `paperTrading.feeBps`: параметр для будущей модели комиссий (без влияния на live).
+
+Runtime-позиция слоя:
+- Новый слой вызывается в execution ownership path после approved entry/exit решений.
+- Зависимости ранних слоёв: `portfolioRiskContour`, `capitalRegimeEngine`, `portfolioForecastEngine` (если включён), veto/sizing решения.
+- При отсутствии некоторых данных fallback безопасный: сохраняется виртуальное событие и не ломается торговый цикл.

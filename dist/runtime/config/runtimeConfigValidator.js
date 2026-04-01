@@ -17,6 +17,8 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const forecastInfluence = forcedLossExit.forecastInfluence || {};
   const portfolioRiskContour = merged.portfolioRiskContour || {};
   const tradeAnalytics = merged.tradeAnalytics || {};
+  const paperTrading = merged.paperTrading || {};
+
   const observabilityReporting = merged.observabilityReporting || {};
   const observabilitySampling = observabilityReporting.sampling || {};
   const observabilityAuditTrail = observabilityReporting.auditTrail || {};
@@ -157,6 +159,14 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         lossMultiplierOnStress: Number(forecastInfluence.lossMultiplierOnStress || 1),
         holdMinutesMultiplierOnStress: Number(forecastInfluence.holdMinutesMultiplierOnStress || 1),
       },
+    },
+
+    paperTrading: {
+      enabled: !!paperTrading.enabled,
+      mode: paperTrading.mode === 'shadow' ? 'shadow' : 'paper',
+      initialBalance: Number(paperTrading.initialBalance || 10000),
+      slippageBps: Number(paperTrading.slippageBps || 0),
+      feeBps: Number(paperTrading.feeBps || 0),
     },
     tradeAnalytics: {
       enabled: tradeAnalytics.enabled !== false,
