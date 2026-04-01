@@ -1,16 +1,17 @@
 'use strict';
 
-const CAPITAL_REGIMES = {
-  NORMAL: 'NORMAL',
-  CAUTION: 'CAUTION',
-  DEFENSIVE: 'DEFENSIVE',
-  CAPITAL_PRESERVATION: 'CAPITAL_PRESERVATION',
-  HALT_NEW_ENTRIES: 'HALT_NEW_ENTRIES',
-};
+const {
+  CAPITAL_REGIMES,
+  evaluateCapitalRegime,
+  buildCapitalRegimeDownstreamContext,
+  normalizeCapitalRegimeEngineConfig,
+  getMaxRegime,
+} = require('./capitalRegimeEngine');
 
 function normalizePortfolioRiskContourConfig(config = {}) {
   const cooldown = config.cooldownAfterBadStreak || {};
   const thresholds = config.capitalRegimeThresholds || {};
+  const capitalRegimeEngine = config.capitalRegimeEngine || {};
 
   return {
     enabled: !!config.enabled,
@@ -34,26 +35,25 @@ function normalizePortfolioRiskContourConfig(config = {}) {
       capitalPreservationMarginUsagePercent: Number(thresholds.capitalPreservationMarginUsagePercent || 0),
       haltMarginUsagePercent: Number(thresholds.haltMarginUsagePercent || 0),
     },
+    capitalRegimeEngine: normalizeCapitalRegimeEngineConfig({
+      enabled: capitalRegimeEngine.enabled,
+      escalationOnly: capitalRegimeEngine.escalationOnly,
+      thresholds: {
+        cautionDailyLossPercent: Number(thresholds.cautionDailyLossPercent || 0),
+        defensiveDailyLossPercent: Number(thresholds.defensiveDailyLossPercent || 0),
+        capitalPreservationDailyLossPercent: Number(thresholds.capitalPreservationDailyLossPercent || 0),
+        haltDailyLossPercent: Number(thresholds.haltDailyLossPercent || 0),
+        cautionMarginUsagePercent: Number(thresholds.cautionMarginUsagePercent || 0),
+        defensiveMarginUsagePercent: Number(thresholds.defensiveMarginUsagePercent || 0),
+        capitalPreservationMarginUsagePercent: Number(thresholds.capitalPreservationMarginUsagePercent || 0),
+        haltMarginUsagePercent: Number(thresholds.haltMarginUsagePercent || 0),
+        cautionBalanceDrawdownPercent: Number(capitalRegimeEngine.cautionBalanceDrawdownPercent || 0),
+        defensiveBalanceDrawdownPercent: Number(capitalRegimeEngine.defensiveBalanceDrawdownPercent || 0),
+        capitalPreservationBalanceDrawdownPercent: Number(capitalRegimeEngine.capitalPreservationBalanceDrawdownPercent || 0),
+        haltBalanceDrawdownPercent: Number(capitalRegimeEngine.haltBalanceDrawdownPercent || 0),
+      },
+    }),
   };
-}
-
-function getMaxRegime(left, right) {
-  const order = [
-    CAPITAL_REGIMES.NORMAL,
-    CAPITAL_REGIMES.CAUTION,
-    CAPITAL_REGIMES.DEFENSIVE,
-    CAPITAL_REGIMES.CAPITAL_PRESERVATION,
-    CAPITAL_REGIMES.HALT_NEW_ENTRIES,
-  ];
-  return order[Math.max(order.indexOf(left), order.indexOf(right))] || CAPITAL_REGIMES.NORMAL;
-}
-
-function pickRegimeByThresholds(value, caution, defensive, preservation, halt) {
-  if (halt > 0 && value >= halt) return CAPITAL_REGIMES.HALT_NEW_ENTRIES;
-  if (preservation > 0 && value >= preservation) return CAPITAL_REGIMES.CAPITAL_PRESERVATION;
-  if (defensive > 0 && value >= defensive) return CAPITAL_REGIMES.DEFENSIVE;
-  if (caution > 0 && value >= caution) return CAPITAL_REGIMES.CAUTION;
-  return CAPITAL_REGIMES.NORMAL;
 }
 
 function evaluatePortfolioRiskContour(input = {}, rawConfig = {}) {
@@ -81,25 +81,12 @@ function evaluatePortfolioRiskContour(input = {}, rawConfig = {}) {
   const losingClosuresStreak = Number(stats.losingClosuresStreak || 0);
   const cooldownUntilMs = Number(stats.cooldownUntilMs || 0);
 
-  const regimeByLoss = pickRegimeByThresholds(
-    dayPnlPercent,
-    config.capitalRegimeThresholds.cautionDailyLossPercent,
-    config.capitalRegimeThresholds.defensiveDailyLossPercent,
-    config.capitalRegimeThresholds.capitalPreservationDailyLossPercent,
-    config.capitalRegimeThresholds.haltDailyLossPercent,
-  );
-  const regimeByMargin = pickRegimeByThresholds(
-    usedMarginPercent,
-    config.capitalRegimeThresholds.cautionMarginUsagePercent,
-    config.capitalRegimeThresholds.defensiveMarginUsagePercent,
-    config.capitalRegimeThresholds.capitalPreservationMarginUsagePercent,
-    config.capitalRegimeThresholds.haltMarginUsagePercent,
-  );
-
-  let capitalRegime = getMaxRegime(regimeByLoss, regimeByMargin);
-  const reasons = [];
-  if (regimeByLoss !== CAPITAL_REGIMES.NORMAL) reasons.push(`loss_regime:${regimeByLoss}`);
-  if (regimeByMargin !== CAPITAL_REGIMES.NORMAL) reasons.push(`margin_regime:${regimeByMargin}`);
+  const regimeDecision = evaluateCapitalRegime({
+    context,
+    stats,
+  }, config.capitalRegimeEngine);
+  let capitalRegime = regimeDecision.capitalRegime;
+  const reasons = Array.isArray(regimeDecision.reasons) ? [...regimeDecision.reasons] : [];
 
   const limitsBreached = [];
   if (config.dailyLossLimitPercent > 0 && dayPnlPercent >= config.dailyLossLimitPercent) {
@@ -153,6 +140,7 @@ function evaluatePortfolioRiskContour(input = {}, rawConfig = {}) {
       reasons,
       previousCapitalRegime: context.previousCapitalRegime || CAPITAL_REGIMES.NORMAL,
       regimeChanged: (context.previousCapitalRegime || CAPITAL_REGIMES.NORMAL) !== capitalRegime,
+      forecastRegimeShiftRisk: context.forecastRegimeShiftRisk || null,
     },
     hardVeto,
     limits: {
@@ -165,10 +153,21 @@ function evaluatePortfolioRiskContour(input = {}, rawConfig = {}) {
       badCyclesStreak,
       losingClosuresStreak,
     },
-    telemetry: {
-      limitsBreached,
-      regimeByLoss,
-      regimeByMargin,
+      telemetry: {
+        limitsBreached,
+      regimeByLoss: regimeDecision.telemetry.regimeByLoss,
+      regimeByMargin: regimeDecision.telemetry.regimeByMargin,
+      regimeByDrawdown: regimeDecision.telemetry.regimeByDrawdown,
+      // Русский комментарий: отдельная передача capitalRegime в downstream-слои без обхода risk-gates.
+      downstreamContext: buildCapitalRegimeDownstreamContext({
+        cycleId: context.cycleId,
+        ticker: context.ticker,
+        exchange: context.exchange,
+        marketRegime: context.marketRegime,
+        capitalRegime,
+        forecastRegimeShiftRisk: context.forecastRegimeShiftRisk,
+        forecastSignals: context.forecastSignals,
+      }),
       routerOrder: [
         'risk_contour',
         'portfolio_forecast_engine',
@@ -194,6 +193,7 @@ function toPortfolioRiskContourEvent(input = {}) {
     layer: 'risk.portfolioContour',
     marketRegime: context.marketRegime || 'unknown',
     capitalRegime: decision.balanceState && decision.balanceState.capitalRegime ? decision.balanceState.capitalRegime : 'NORMAL',
+    forecastRegimeShiftRisk: decision.balanceState ? (decision.balanceState.forecastRegimeShiftRisk || null) : null,
     setupType: context.setupType || 'portfolio',
     score: Number.isFinite(context.score) ? context.score : 0,
     confidence: Number.isFinite(context.confidence) ? context.confidence : 0,

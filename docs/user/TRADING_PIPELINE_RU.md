@@ -3,7 +3,7 @@
 ## Runtime-позиция слоёв (операторское представление)
 Порядок принятия решений в системе:
 1. Hard-risk / hard-safety / биржевые ограничения.
-2. Unload mode + capitalRegime (ограничения новых входов, safe basket, лимиты).
+2. CapitalRegimeEngine + unload mode (ограничения новых входов, safe basket, лимиты).
 3. Universe filters и отбор активов.
 4. Market regime router (разрешённые сетапы).
 5. Confluence/final entry logic (full/weak/no entry).
@@ -21,7 +21,8 @@
 ## Антикризисный режим разгрузки (unload mode)
 - `unloadMode` — операционный слой, который включается **до entry decision и до sizing**.
 - Сопровождение уже открытых позиций не отключается: ограничения касаются только **новых входов**.
-- `capitalRegime` вычисляется в режимах: `NORMAL`, `CAUTION`, `DEFENSIVE`, `HALT_NEW_ENTRIES`.
+- `capitalRegimeEngine` является primary current-state layer и вычисляет режимы: `NORMAL`, `CAUTION`, `DEFENSIVE`, `CAPITAL_PRESERVATION`, `HALT_NEW_ENTRIES`.
+- `portfolioForecastEngine` может добавлять `forecastRegimeShiftRisk`, но не имеет права ослаблять текущий `capitalRegime`.
 - `safeEntryAssets` ограничивает список тикеров для новых входов, но не мешает сопровождать старые позиции в любых тикерах.
 
 ## Как работает открытие позиции
@@ -87,6 +88,7 @@
 - Runtime-позиция: **самый верх decision-пайплайна перед всеми entry/signal слоями**.
 - Primary control layer: контур является главным текущим контролем состояния капитала и не может быть ослаблен нижележащими слоями.
 - Порядок: `portfolioRiskContour -> portfolioForecastEngine -> entryPermissionLayer -> marketRegimeRouter -> dynamicAssetSelection -> dynamicPositionSizing`.
+- Передача контекста: `telemetry.downstreamContext` включает `unloadMode`, `dynamicAssetSelection`, `marketRegimeRouter`, `confluenceEntry`, `finalEntryDecision`, `dynamicPositionSizing`, `mlFeatureContext`, `mlMetaController`.
 - Зависимости: account/balance snapshot, агрегаты по открытым позициям, дневная статистика сделок/циклов, состояние cooldown.
 - Если часть данных недоступна, применяется безопасный fallback: сохраняется текущий режим и включается более защитная трактовка (без ослабления hard-ограничений).
 - Forecast-слой может только дополнять forward-looking оценкой и **не имеет права** ослаблять текущие ограничения risk contour.
