@@ -15,6 +15,18 @@
 - риск-лимиты в согласованных границах,
 - флаги наблюдаемости/отчётности.
 
+## Новый блок антикризисного режима разгрузки
+Пример в `dist/_config/config.json`:
+
+- `warningThresholdAboveMinBalance`: буфер над `minBalance`; при попадании в буфер бот переходит в `CAUTION`.
+- `unloadMode.enabled`: включает ограничения новых входов без отключения сопровождения.
+- `unloadMode.safeEntryAssets`: разрешённые активы для **новых** сделок.
+- `unloadMode.entryLimits.maxNewEntriesPerCycle`: лимит новых входов за цикл.
+- `unloadMode.entryLimits.maxNewEntriesPerDay`: лимит новых входов за сутки (UTC).
+- `unloadMode.entryLimits.haltNewEntries`: полный запрет новых входов (старые позиции продолжают сопровождаться).
+- `unloadMode.capitalRegime.*RiskSignals`: группы risk-signal подсказок (например, от forecast слоя) для ужесточения режима.
+- `riskSignals`: текущие внешние risk-signal hints в runtime-контексте.
+
 ## Какие параметры опасно менять без понимания логики
 - hard-risk/hard-safety ограничения,
 - параметры stop-loss/forced-exit политики,
