@@ -18,11 +18,14 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const portfolioRiskContour = merged.portfolioRiskContour || {};
   const tradeAnalytics = merged.tradeAnalytics || {};
   const paperTrading = merged.paperTrading || {};
+  const mlDatasetBuilder = merged.mlDatasetBuilder || {};
 
   const observabilityReporting = merged.observabilityReporting || {};
   const observabilitySampling = observabilityReporting.sampling || {};
   const observabilityAuditTrail = observabilityReporting.auditTrail || {};
   const observabilityStorage = observabilityReporting.storage || {};
+  const datasetCapture = mlDatasetBuilder.capture || {};
+  const datasetLabeling = mlDatasetBuilder.labeling || {};
   const performanceDiagnostics = merged.performanceDiagnostics || {};
   const perfReadOnlyCache = performanceDiagnostics.readOnlyCache || {};
   const perfHotState = performanceDiagnostics.hotState || {};
@@ -175,6 +178,27 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
       tradesCsv: tradeAnalytics.tradesCsv || 'trades_journal.csv',
       openStateJson: tradeAnalytics.openStateJson || 'open_trades_state.json',
       reportOnCycleEnd: tradeAnalytics.reportOnCycleEnd !== false,
+    },
+    mlDatasetBuilder: {
+      enabled: !!mlDatasetBuilder.enabled,
+      storage: mlDatasetBuilder.storage === 'sqlite' ? 'sqlite' : 'csv',
+      dataDir: mlDatasetBuilder.dataDir || './data/ml_dataset',
+      featuresCsv: mlDatasetBuilder.featuresCsv || 'entry_features.csv',
+      labelsCsv: mlDatasetBuilder.labelsCsv || 'entry_labels.csv',
+      pendingStateJson: mlDatasetBuilder.pendingStateJson || 'entry_pending_state.json',
+      flushIntervalMs: Number(mlDatasetBuilder.flushIntervalMs || 1200),
+      includePaperMode: mlDatasetBuilder.includePaperMode !== false,
+      includeLiveMode: mlDatasetBuilder.includeLiveMode !== false,
+      capture: {
+        potentialEntries: datasetCapture.potentialEntries !== false,
+        actualEntries: datasetCapture.actualEntries !== false,
+      },
+      labeling: {
+        defaultHoldTimeoutMinutes: Number(datasetLabeling.defaultHoldTimeoutMinutes || 180),
+        positivePnlPercent: Number(datasetLabeling.positivePnlPercent || 0.2),
+        negativePnlPercent: Number(datasetLabeling.negativePnlPercent || -0.2),
+        neutralBandAbsPercent: Number(datasetLabeling.neutralBandAbsPercent || 0.2),
+      },
     },
     observabilityReporting: {
       enabled: !!observabilityReporting.enabled,

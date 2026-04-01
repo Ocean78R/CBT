@@ -198,3 +198,25 @@
 - `forecast capital stress`;
 - `forecast restriction hints`;
 - `virtualBalance` и агрегированные метрики симуляции.
+
+## Логи и журналирование ML dataset builder
+Новые runtime-логи:
+- `[mlDatasetBuilder] ... final=feature_captured sampleId=...`
+- `[mlDatasetBuilder] ... final=POSITIVE|NEGATIVE|NEUTRAL|TIMEOUT|NO_TRADE sampleId=...`
+
+Новые структурированные события для observability/audit trail:
+- `ml_dataset_feature_captured`
+- `ml_dataset_label_resolved`
+
+Минимальные поля в событиях:
+- `cycleId`, `ticker`, `exchange`, `module/layer`;
+- `marketRegime`, `capitalRegime`, `setupType`;
+- `score`, `confidence`, `vetoReason`;
+- `sizingDecision`, `executionAction`, `fallbackAction`;
+- итоговое решение (`decision` для feature, `label` для outcome).
+
+Диагностика:
+1. Проверить `mlDatasetBuilder.enabled=true`.
+2. Проверить появление файлов `entry_features.csv`, `entry_labels.csv`, `entry_pending_state.json`.
+3. Проверить, что при закрытии paper-позиции создаётся запись label.
+4. Проверить, что при рестарте pending-состояние поднимается из `entry_pending_state.json`.

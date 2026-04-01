@@ -257,3 +257,41 @@ Runtime-позиция слоя:
 - Новый слой вызывается в execution ownership path после approved entry/exit решений.
 - Зависимости ранних слоёв: `portfolioRiskContour`, `capitalRegimeEngine`, `portfolioForecastEngine` (если включён), veto/sizing решения.
 - При отсутствии некоторых данных fallback безопасный: сохраняется виртуальное событие и не ломается торговый цикл.
+
+## ML dataset builder (сбор датасета для обучения модели входа)
+Новый слой не меняет торговые решения и включается отдельно.
+
+```json
+"mlDatasetBuilder": {
+  "enabled": false,
+  "storage": "csv",
+  "dataDir": "./data/ml_dataset",
+  "featuresCsv": "entry_features.csv",
+  "labelsCsv": "entry_labels.csv",
+  "pendingStateJson": "entry_pending_state.json",
+  "flushIntervalMs": 1200,
+  "includePaperMode": true,
+  "includeLiveMode": true,
+  "capture": {
+    "potentialEntries": true,
+    "actualEntries": true
+  },
+  "labeling": {
+    "defaultHoldTimeoutMinutes": 180,
+    "positivePnlPercent": 0.2,
+    "negativePnlPercent": -0.2,
+    "neutralBandAbsPercent": 0.2
+  }
+}
+```
+
+Пояснения:
+- `enabled`: master-флаг слоя сбора датасета.
+- `storage`: сейчас боевой лёгкий режим `csv`; значение `sqlite` зарезервировано для следующего этапа без смены контракта.
+- `dataDir`: корневая папка датасета.
+- `featuresCsv`: файл признаков на момент решения.
+- `labelsCsv`: файл меток исхода сделки.
+- `pendingStateJson`: персистентное состояние незавершённых примеров, чтобы переживать рестарты.
+- `capture.potentialEntries`: писать потенциальные входы (включая отклонённые/неисполненные).
+- `capture.actualEntries`: писать фактически исполненные входы.
+- `labeling.*`: пороги генерации label на основе итога.

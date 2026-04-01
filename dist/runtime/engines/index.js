@@ -5,6 +5,7 @@ const { evaluatePortfolioRiskContour, toPortfolioRiskContourEvent } = require('.
 const { toCapitalStressForecastEvent } = require('../risk/capitalStressForecastEngine');
 const { createObservabilityLayer } = require('../observability/reportingLayer');
 const { createPaperTradingExecutor } = require('../execution/paperTrading');
+const { createMlDatasetBuilder } = require('../analytics/mlDatasetBuilder');
 
 function emitObservabilityEvent(strategy, event) {
   const layer = strategy && strategy.observabilityLayer;
@@ -134,6 +135,22 @@ function createEngines(strategy) {
         strategy.observabilityLayer = createObservabilityLayer(observabilityConfig);
         return strategy.observabilityLayer;
       },
+      // Русский комментарий: dataset-builder включается как пассивный analytics-слой после decision/risk и не меняет execution decisions.
+      initMlDatasetBuilder: (runtimeConfig) => {
+        const datasetConfig = runtimeConfig && runtimeConfig.mlDatasetBuilder ? runtimeConfig.mlDatasetBuilder : {};
+        strategy.mlDatasetBuilder = createMlDatasetBuilder({ mlDatasetBuilder: datasetConfig }, {
+          log: (message) => {
+            if (typeof strategy.log === 'function') strategy.log(message);
+          },
+          emitStructuredEvent: (event) => {
+            if (typeof strategy.emitStructuredEvent === 'function') strategy.emitStructuredEvent(event);
+          },
+          ingestObservabilityEvent: (event) => {
+            emitObservabilityEvent(strategy, event);
+          },
+        });
+        return strategy.mlDatasetBuilder;
+      },
       ingestObservabilityEvent: (event) => {
         emitObservabilityEvent(strategy, event);
       },
@@ -143,6 +160,19 @@ function createEngines(strategy) {
       getObservabilityAuditTrail: (filters) => (strategy.observabilityLayer && strategy.observabilityLayer.getAuditTrail
         ? strategy.observabilityLayer.getAuditTrail(filters)
         : []),
+
+      getMlDatasetStatus: () => (strategy.mlDatasetBuilder && strategy.mlDatasetBuilder.getStatus
+        ? strategy.mlDatasetBuilder.getStatus()
+        : { enabled: false }),
+      captureMlDatasetEntry: (entry) => (strategy.mlDatasetBuilder && strategy.mlDatasetBuilder.capturePotentialEntry
+        ? strategy.mlDatasetBuilder.capturePotentialEntry(entry)
+        : null),
+      resolveMlDatasetLabel: (label) => (strategy.mlDatasetBuilder && strategy.mlDatasetBuilder.resolveLabel
+        ? strategy.mlDatasetBuilder.resolveLabel(label)
+        : null),
+      flushMlDataset: () => {
+        if (strategy.mlDatasetBuilder && strategy.mlDatasetBuilder.flush) strategy.mlDatasetBuilder.flush();
+      },
     },
   };
 }
