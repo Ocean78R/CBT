@@ -1,6 +1,7 @@
 'use strict';
 
 const { evaluateForcedLossExit, toForcedLossExitEvent } = require('../risk/forcedLossExit');
+const { evaluatePortfolioRiskContour, toPortfolioRiskContourEvent } = require('../risk/portfolioRiskContour');
 
 // Русский комментарий: движки пока выступают как адаптеры к существующим методам стратегии (fallback без изменения поведения).
 function createEngines(strategy) {
@@ -10,6 +11,26 @@ function createEngines(strategy) {
     },
     riskEngine: {
       processExistingPosition: (ticker, freeBalance, activePosition, checkLeverage) => strategy.processExistingPositionLegacy(ticker, freeBalance, activePosition, checkLeverage),
+
+      // Русский комментарий: риск-контур портфеля является primary current-state control layer выше entry/signal слоёв.
+      evaluatePortfolioRiskContour: (input, runtimeConfig) => {
+        const contourConfig = runtimeConfig && runtimeConfig.portfolioRiskContour ? runtimeConfig.portfolioRiskContour : {};
+        const decision = evaluatePortfolioRiskContour(input, contourConfig);
+        if (strategy.emitStructuredEvent) {
+          strategy.emitStructuredEvent(toPortfolioRiskContourEvent({
+            context: input && input.context ? input.context : {},
+            decision,
+          }));
+        }
+        if (strategy.log && typeof strategy.log === 'function') {
+          const ctx = input && input.context ? input.context : {};
+          const limitsBreached = decision.telemetry && Array.isArray(decision.telemetry.limitsBreached)
+            ? decision.telemetry.limitsBreached.join(',')
+            : 'none';
+          strategy.log(`[portfolioRiskContour] cycle=${ctx.cycleId || 'n/a'} ticker=${ctx.ticker || 'PORTFOLIO'} exchange=${ctx.exchange || 'n/a'} regime=${ctx.marketRegime || 'unknown'} capital=${decision.balanceState ? decision.balanceState.capitalRegime : 'NORMAL'} allowNewEntries=${decision.allowNewEntries} veto=${decision.hardVeto ? decision.hardVeto.reason : 'none'} breaches=${limitsBreached}`);
+        }
+        return decision;
+      },
       // Русский комментарий: forcedLossExit живёт после server SL и до averaging; действие отдаётся только через ownership path.
       evaluateForcedLossExit: (input, runtimeConfig) => {
         const decision = evaluateForcedLossExit(input, runtimeConfig && runtimeConfig.forcedLossExit ? runtimeConfig.forcedLossExit : {});
@@ -29,6 +50,26 @@ function createEngines(strategy) {
     positionEngine: {
       getActiveTickers: () => strategy.getActiveTickersLegacy(),
       processExistingPosition: (ticker, freeBalance, activePosition, checkLeverage) => strategy.processExistingPositionLegacy(ticker, freeBalance, activePosition, checkLeverage),
+
+      // Русский комментарий: риск-контур портфеля является primary current-state control layer выше entry/signal слоёв.
+      evaluatePortfolioRiskContour: (input, runtimeConfig) => {
+        const contourConfig = runtimeConfig && runtimeConfig.portfolioRiskContour ? runtimeConfig.portfolioRiskContour : {};
+        const decision = evaluatePortfolioRiskContour(input, contourConfig);
+        if (strategy.emitStructuredEvent) {
+          strategy.emitStructuredEvent(toPortfolioRiskContourEvent({
+            context: input && input.context ? input.context : {},
+            decision,
+          }));
+        }
+        if (strategy.log && typeof strategy.log === 'function') {
+          const ctx = input && input.context ? input.context : {};
+          const limitsBreached = decision.telemetry && Array.isArray(decision.telemetry.limitsBreached)
+            ? decision.telemetry.limitsBreached.join(',')
+            : 'none';
+          strategy.log(`[portfolioRiskContour] cycle=${ctx.cycleId || 'n/a'} ticker=${ctx.ticker || 'PORTFOLIO'} exchange=${ctx.exchange || 'n/a'} regime=${ctx.marketRegime || 'unknown'} capital=${decision.balanceState ? decision.balanceState.capitalRegime : 'NORMAL'} allowNewEntries=${decision.allowNewEntries} veto=${decision.hardVeto ? decision.hardVeto.reason : 'none'} breaches=${limitsBreached}`);
+        }
+        return decision;
+      },
       averagePosition: (ticker, activePosition, amountUsdt) => strategy.averagePositionLegacy(ticker, activePosition, amountUsdt),
       closePosition: (ticker, activePosition, profit) => strategy.closePositionLegacy(ticker, activePosition, profit),
     },

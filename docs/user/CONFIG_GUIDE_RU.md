@@ -84,3 +84,19 @@ Fallback-режим: если `executionContour.enabled=false`, исполнен
 - `forcedLossExit.forecastInfluence.*`: отдельный вход influence от forecast-слоя (без прямого закрытия позиций forecast-слоем).
 
 Важно: старый flow остаётся fallback, пока `forcedLossExit.enabled=false`.
+
+## Конфиг portfolio risk contour
+Новый слой включается **только через config**; при `enabled=false` сохраняется legacy-fallback поведения по входам.
+
+- `portfolioRiskContour.enabled`: включает верхнеуровневый риск-контур портфеля.
+- `portfolioRiskContour.dailyLossLimitPercent`: дневной лимит убытка в процентах от дневной базы.
+- `portfolioRiskContour.maxNewEntriesPerDay`: лимит новых входов за сутки (UTC).
+- `portfolioRiskContour.maxOpenPositions`: максимум одновременно открытых позиций.
+- `portfolioRiskContour.maxUsedMarginPercent`: потолок суммарно используемой маржи.
+- `portfolioRiskContour.cooldownAfterBadStreak.enabled`: включает паузу после плохих серий.
+- `portfolioRiskContour.cooldownAfterBadStreak.consecutiveBadCycles`: число подряд плохих циклов для паузы.
+- `portfolioRiskContour.cooldownAfterBadStreak.consecutiveLosingClosures`: число подряд убыточных закрытий для паузы.
+- `portfolioRiskContour.cooldownAfterBadStreak.pauseMinutes`: длительность паузы.
+- `portfolioRiskContour.capitalRegimeThresholds.*`: пороги переходов в `CAUTION/DEFENSIVE/CAPITAL_PRESERVATION/HALT_NEW_ENTRIES` по loss/margin.
+
+Важно: слой `portfolioForecastEngine` должен подключаться только **после** `portfolioRiskContour` и не может ослаблять его hard-ограничения.

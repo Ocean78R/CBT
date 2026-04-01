@@ -39,3 +39,17 @@
 - Реакция (`actionMode`): `warn`, `block_averaging`, `partial_reduce`, `force_close`.
 - Все действия по позиции идут через ownership path execution/lifecycle; forcedLossExit не управляет TP/SL напрямую.
 - Влияние `capitalRegime` и forecast-stress на ужесточение порогов возможно только через явный config (`regimeTightening`, `forecastInfluence`).
+
+## Portfolio risk contour (уровень счёта)
+- Это верхний hard-risk слой для **новых входов**, работающий до всех signal/entry модулей.
+- Слой вычисляет `balanceState/capitalRegime` и транслирует его вниз по цепочке: entryPermissionLayer, marketRegimeRouter, dynamicAssetSelection, dynamicPositionSizing.
+- Поддерживаемые режимы: `NORMAL`, `CAUTION`, `DEFENSIVE`, `CAPITAL_PRESERVATION`, `HALT_NEW_ENTRIES`.
+- Переходы между режимами логируются и попадают в structured event `portfolio_risk_contour_decision`.
+- Ни один forecast-based слой не может ослабить решения risk contour; допускается только дополнительное ужесточение или предупреждение.
+
+### Ограничения, которые контролируются слоем
+1. Дневной лимит убытка (блок новых входов).
+2. Лимит новых входов за день.
+3. Лимит одновременно открытых позиций.
+4. Лимит суммарной используемой маржи.
+5. Пауза (cooldown) после серии плохих циклов или убыточных закрытий.

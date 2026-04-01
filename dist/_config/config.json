@@ -306,6 +306,29 @@
       "holdMinutesMultiplierOnStress": 0.75
     }
   },
+  "portfolioRiskContour": {
+    "enabled": false,
+    "dailyLossLimitPercent": 6,
+    "maxNewEntriesPerDay": 8,
+    "maxOpenPositions": 6,
+    "maxUsedMarginPercent": 70,
+    "cooldownAfterBadStreak": {
+      "enabled": true,
+      "consecutiveBadCycles": 3,
+      "consecutiveLosingClosures": 2,
+      "pauseMinutes": 45
+    },
+    "capitalRegimeThresholds": {
+      "cautionDailyLossPercent": 2,
+      "defensiveDailyLossPercent": 3.5,
+      "capitalPreservationDailyLossPercent": 5,
+      "haltDailyLossPercent": 6,
+      "cautionMarginUsagePercent": 45,
+      "defensiveMarginUsagePercent": 60,
+      "capitalPreservationMarginUsagePercent": 70,
+      "haltMarginUsagePercent": 85
+    }
+  },
   "unloadMode": {
     "enabled": false,
     "safeEntryAssets": ["BTC", "ETH", "BNB", "XRP"],
