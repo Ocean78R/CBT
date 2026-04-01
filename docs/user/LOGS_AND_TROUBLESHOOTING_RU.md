@@ -104,3 +104,31 @@
 `cycleId`, `ticker`, `exchange`, `module/layer`, `marketRegime`, `capitalRegime`, `setupType`, `score`, `confidence`, `vetoReason`, `sizingDecision`, `executionAction`, `fallbackAction`, `finalDecision`.
 
 Журнал сделок сохраняется в CSV и используется для метрик: `winRate`, `avgWin`, `avgLoss`, `expectancy`, статистика усреднений, распределение по времени суток, дню недели и типу сигнала.
+
+## Единый observability/reporting и audit trail
+Добавлен единый слой агрегированных отчётов и audit trail поверх структурированных событий runtime-контрактов.
+
+Доступные типы сводок:
+- по торговому циклу (`byCycle`);
+- по тикеру (`byTicker`);
+- по позиции (`byPosition`);
+- по дню (`byDay`);
+- по типу итогового решения (`byDecisionType`);
+- по причинам отказа входа (`vetoReasons`);
+- по execution событиям (`executionEvents`);
+- по protective событиям (`protectiveEvents`);
+- по сменам режимов (`regimeChanges`);
+- по ML-решениям (`mlDecisions`, если модуль отмечен как ML);
+- по режимам paper/live (`modeSplit`).
+
+Отдельные forecast-категории:
+- `forecast_events`,
+- `forecast_restrictions`,
+- `forecast_protective_hints`.
+
+Как читать audit trail:
+1. Берите ключ `cycleId + ticker (+ positionId, если есть)`.
+2. Проверяйте обязательный путь:
+   `capital -> forecast -> universe -> regime -> confluence -> veto -> sizing -> execution -> lifecycle`.
+3. Для стресс-сценариев проверяйте связку:
+   `capital state -> forecast stress -> entry restriction / sizing adjustment / protective tightening`.

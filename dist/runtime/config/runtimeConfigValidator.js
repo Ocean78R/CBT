@@ -17,6 +17,10 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const forecastInfluence = forcedLossExit.forecastInfluence || {};
   const portfolioRiskContour = merged.portfolioRiskContour || {};
   const tradeAnalytics = merged.tradeAnalytics || {};
+  const observabilityReporting = merged.observabilityReporting || {};
+  const observabilitySampling = observabilityReporting.sampling || {};
+  const observabilityAuditTrail = observabilityReporting.auditTrail || {};
+  const observabilityStorage = observabilityReporting.storage || {};
   const cooldownAfterBadStreak = portfolioRiskContour.cooldownAfterBadStreak || {};
   const capitalRegimeThresholds = portfolioRiskContour.capitalRegimeThresholds || {};
   const capitalRegimeEngine = portfolioRiskContour.capitalRegimeEngine || {};
@@ -137,6 +141,29 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
       tradesCsv: tradeAnalytics.tradesCsv || 'trades_journal.csv',
       openStateJson: tradeAnalytics.openStateJson || 'open_trades_state.json',
       reportOnCycleEnd: tradeAnalytics.reportOnCycleEnd !== false,
+    },
+    observabilityReporting: {
+      enabled: !!observabilityReporting.enabled,
+      flushIntervalMs: Number(observabilityReporting.flushIntervalMs || 1500),
+      maxBufferSize: Number(observabilityReporting.maxBufferSize || 250),
+      aggregateWindowCycles: Number(observabilityReporting.aggregateWindowCycles || 200),
+      includePaperMode: observabilityReporting.includePaperMode !== false,
+      includeLiveMode: observabilityReporting.includeLiveMode !== false,
+      sampling: {
+        decisionEventsRate: Number(observabilitySampling.decisionEventsRate || 1),
+        diagnosticEventsRate: Number(observabilitySampling.diagnosticEventsRate || 0.25),
+        alwaysKeepCritical: observabilitySampling.alwaysKeepCritical !== false,
+      },
+      auditTrail: {
+        enabled: observabilityAuditTrail.enabled !== false,
+        keepPayload: observabilityAuditTrail.keepPayload !== false,
+        maxEntries: Number(observabilityAuditTrail.maxEntries || 3000),
+      },
+      storage: {
+        enabled: !!observabilityStorage.enabled,
+        dataDir: observabilityStorage.dataDir || './data/analytics',
+        eventsFile: observabilityStorage.eventsFile || 'observability_events.ndjson',
+      },
     },
     serverStopLoss: {
       enabled: !!serverStopLoss.enabled,

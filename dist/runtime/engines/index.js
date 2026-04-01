@@ -3,6 +3,14 @@
 const { evaluateForcedLossExit, toForcedLossExitEvent } = require('../risk/forcedLossExit');
 const { evaluatePortfolioRiskContour, toPortfolioRiskContourEvent } = require('../risk/portfolioRiskContour');
 const { toCapitalStressForecastEvent } = require('../risk/capitalStressForecastEngine');
+const { createObservabilityLayer } = require('../observability/reportingLayer');
+
+function emitObservabilityEvent(strategy, event) {
+  const layer = strategy && strategy.observabilityLayer;
+  if (layer && typeof layer.ingestEvent === 'function') {
+    layer.ingestEvent(event);
+  }
+}
 
 // Русский комментарий: движки пока выступают как адаптеры к существующим методам стратегии (fallback без изменения поведения).
 function createEngines(strategy) {
@@ -19,17 +27,21 @@ function createEngines(strategy) {
         const decision = evaluatePortfolioRiskContour(input, contourConfig);
         if (strategy.emitStructuredEvent) {
           const eventContext = input && input.context ? input.context : {};
-          strategy.emitStructuredEvent(toPortfolioRiskContourEvent({
+          const contourEvent = toPortfolioRiskContourEvent({
             context: eventContext,
             decision,
-          }));
-          strategy.emitStructuredEvent(toCapitalStressForecastEvent({
+          });
+          strategy.emitStructuredEvent(contourEvent);
+          emitObservabilityEvent(strategy, contourEvent);
+          const forecastEvent = toCapitalStressForecastEvent({
             context: {
               ...eventContext,
               capitalRegime: decision && decision.balanceState ? decision.balanceState.capitalRegime : 'NORMAL',
             },
             decision: decision && decision.telemetry ? (decision.telemetry.forecast || {}) : {},
-          }));
+          });
+          strategy.emitStructuredEvent(forecastEvent);
+          emitObservabilityEvent(strategy, forecastEvent);
         }
         if (strategy.log && typeof strategy.log === 'function') {
           const ctx = input && input.context ? input.context : {};
@@ -47,10 +59,12 @@ function createEngines(strategy) {
       evaluateForcedLossExit: (input, runtimeConfig) => {
         const decision = evaluateForcedLossExit(input, runtimeConfig && runtimeConfig.forcedLossExit ? runtimeConfig.forcedLossExit : {});
         if (strategy.emitStructuredEvent) {
-          strategy.emitStructuredEvent(toForcedLossExitEvent({
+          const forcedLossEvent = toForcedLossExitEvent({
             context: input && input.context ? input.context : {},
             decision,
-          }));
+          });
+          strategy.emitStructuredEvent(forcedLossEvent);
+          emitObservabilityEvent(strategy, forcedLossEvent);
         }
         if (strategy.log && typeof strategy.log === 'function') {
           const ctx = input && input.context ? input.context : {};
@@ -69,17 +83,21 @@ function createEngines(strategy) {
         const decision = evaluatePortfolioRiskContour(input, contourConfig);
         if (strategy.emitStructuredEvent) {
           const eventContext = input && input.context ? input.context : {};
-          strategy.emitStructuredEvent(toPortfolioRiskContourEvent({
+          const contourEvent = toPortfolioRiskContourEvent({
             context: eventContext,
             decision,
-          }));
-          strategy.emitStructuredEvent(toCapitalStressForecastEvent({
+          });
+          strategy.emitStructuredEvent(contourEvent);
+          emitObservabilityEvent(strategy, contourEvent);
+          const forecastEvent = toCapitalStressForecastEvent({
             context: {
               ...eventContext,
               capitalRegime: decision && decision.balanceState ? decision.balanceState.capitalRegime : 'NORMAL',
             },
             decision: decision && decision.telemetry ? (decision.telemetry.forecast || {}) : {},
-          }));
+          });
+          strategy.emitStructuredEvent(forecastEvent);
+          emitObservabilityEvent(strategy, forecastEvent);
         }
         if (strategy.log && typeof strategy.log === 'function') {
           const ctx = input && input.context ? input.context : {};
@@ -104,6 +122,21 @@ function createEngines(strategy) {
     analyticsEngine: {
       emitStructuredEvent: (...args) => strategy.emitStructuredEvent(...args),
       emitCycleSummary: () => strategy.emitCycleSummary(),
+      // Русский комментарий: observability-слой инициализируется отдельно и работает как неблокирующий слушатель событий.
+      initObservabilityLayer: (runtimeConfig) => {
+        const observabilityConfig = runtimeConfig && runtimeConfig.observabilityReporting ? runtimeConfig.observabilityReporting : {};
+        strategy.observabilityLayer = createObservabilityLayer(observabilityConfig);
+        return strategy.observabilityLayer;
+      },
+      ingestObservabilityEvent: (event) => {
+        emitObservabilityEvent(strategy, event);
+      },
+      getObservabilityReports: () => (strategy.observabilityLayer && strategy.observabilityLayer.getReports
+        ? strategy.observabilityLayer.getReports()
+        : {}),
+      getObservabilityAuditTrail: (filters) => (strategy.observabilityLayer && strategy.observabilityLayer.getAuditTrail
+        ? strategy.observabilityLayer.getAuditTrail(filters)
+        : []),
     },
   };
 }
