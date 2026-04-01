@@ -1,0 +1,275 @@
+{
+  "exploreMode": false,
+  "exchanges": {
+    "binance": {
+      "apiKey": "____",
+      "apiSecret": "____",
+      "enabled": false,
+      "minBalance": 100,
+      "mirrorSetts": {
+        "used": false
+      },
+      "singleSetts": {
+        "used": false,
+        "tickers": {
+          "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC"],
+          "randomCount": 0
+        },
+        "predict": {
+          "predictType": "random"
+        }
+      }
+    },
+    "bitget": {
+      "apiKey": "____",
+      "apiSecret": "____",
+      "apiPass": "____",
+      "enabled": false,
+      "minBalance": 100,
+      "mirrorSetts": {
+        "used": false
+      },
+      "singleSetts": {
+        "used": false,
+        "tickers": {
+          "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC"],
+          "randomCount": 0
+        },
+        "predict": {
+          "predictType": "random"
+        }
+      }
+    },
+    "bingx": {
+      "apiKey": "",
+      "apiSecret": "",
+      "enabled": true,
+      "minBalance": 1000,
+      "mirrorSetts": {
+        "used": false
+      },
+      "singleSetts": {
+        "used": true,
+        "tickers": {
+          "definedAssets": [ "BTC", "ETH", "BNB", "XRP", "TRX", "TONCOIN", "LINK", "ADA", "DOT", "LTC", "BCH", "ETC", "UNI", "XLM", "SOL", "AVAX", "NEAR", "OP", "SUI", "FIL", "ATOM", "DOGE"],
+          "randomCount": 0
+        },
+        "predict": {
+          "predictType": "byBarsPercents",
+          "speedFilter": {
+            "enabled": true,
+            "lookbackBars": 4,
+            "maxMovePercent": 1.2,
+            "maxRangePercent": 2.2,
+            "maxMoveToAverageRatio": 1.8
+          }
+        },
+        "averagingProtection": {
+          "enabled": true,
+          "lookbackBars": 4,
+          "maxMovePercent": 1.0,
+          "maxRangePercent": 2.0,
+          "maxMoveToAverageRatio": 1.6,
+          "requireAgainstPosition": true,
+          "blockOnTwoAdverseBars": true
+        },
+        "qualityControl": {
+          "enabled": true,
+          "minClosedTrades": 20,
+          "disableOnNegativeExpectation": true,
+          "logTopTickers": 10
+        }
+      }
+    },
+    "htx": {
+      "apiKey": "____",
+      "apiSecret": "____",
+      "enabled": false,
+      "minBalance": 100,
+      "mirrorSetts": {
+        "used": false
+      },
+      "singleSetts": {
+        "used": false,
+        "tickers": {
+          "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC"],
+          "randomCount": 0
+        },
+        "predict": {
+          "predictType": "random"
+        }
+      }
+    },
+    "okex": {
+      "apiKey": "____",
+      "apiSecret": "____",
+      "apiPass": "____",
+      "enabled": false,
+      "minBalance": 100,
+      "mirrorSetts": {
+        "used": false
+      },
+      "singleSetts": {
+        "used": false,
+        "tickers": {
+          "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC"],
+          "randomCount": 0
+        },
+        "predict": {
+          "predictType": "random"
+        }
+      }
+    },
+    "bybit": {
+      "apiKey": "____",
+      "apiSecret": "____",
+      "enabled": false,
+      "minBalance": 100,
+      "mirrorSetts": {
+        "used": false
+      },
+      "singleSetts": {
+        "used": false,
+        "tickers": {
+          "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC"],
+          "randomCount": 0
+        },
+        "predict": {
+          "predictType": "random"
+        }
+      }
+    },
+    "mexc": {
+      "apiKey": "____",
+      "apiSecret": "____",
+      "enabled": false,
+      "mirrorSetts": {
+        "used": false,
+        "tickers": {
+          "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC"],
+          "randomCount": 0
+        }
+      },
+      "singleSetts": {
+        "used": false,
+        "tickers": {
+          "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC"],
+          "randomCount": 0
+        }
+      }
+    }
+  },
+  "logger": {
+    "useFile": false
+  },
+  "tele": {
+    "enabled": false,
+    "apiKey": "____",
+    "botChatId": "____",
+    "channelChatId": "____",
+    "verbose": false
+  },
+  "intervalSeconds": 120,
+  "loopsLength": 12000,
+  "minBalance": 100,
+  "mirrorSetts": {
+    "used": false,
+    "tickers": {
+      "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC", "TON", "AVAX", "AAVE", "INJ", "NEAR", "OP", "ETC", "LDO", "DOGE", "BCH", "UNI"],
+      "excludedAssets": ["USDC"],
+      "randomCount": 0
+    },
+    "marginSize": 2,
+    "futuresLeverage": 50,
+    "processOtherLeverages": false,
+    "closePositionPnl": 0.75,
+    "averageTiers": [
+      {
+        "maxMarginRate": 1.3,
+        "allowLossesRate": 0.1,
+        "minPurePercents": 2,
+        "marginSizeToAvg": 1
+      },
+      {
+        "maxMarginRate": 1.8,
+        "allowLossesRate": 0.1,
+        "minPurePercents": 4,
+        "marginSizeToAvg": 1
+      },
+      {
+        "maxMarginRate": 2.3,
+        "allowLossesRate": 0.2,
+        "minPurePercents": 7,
+        "marginSizeToAvg": 1
+      },
+      {
+        "maxMarginRate": 3.3,
+        "allowLossesRate": 0.2,
+        "minPurePercents": 12,
+        "marginSizeToAvg": 2
+      }
+    ]
+  },
+  "singleSetts": {
+    "used": false,
+    "tickers": {
+      "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC", "TONCOIN", "AVAX", "AAVE", "INJ", "NEAR", "OP", "ETC", "LDO", "DOGE", "BCH", "UNI"],
+      "excludedAssets": ["USDC"],
+      "randomCount": 0
+    },
+    "marginSize": 2,
+    "futuresLeverage": 25,
+    "processOtherLeverages": false,
+    "closePositionPnl": 1.2,
+    "averageTiers": [
+      {
+        "maxMarginRate": 1.25,
+        "allowLossesRate": 0.05,
+        "minPurePercents": 2.5,
+        "marginSizeToAvg": 1
+      },
+      {
+        "maxMarginRate": 1.7,
+        "allowLossesRate": 0.08,
+        "minPurePercents": 4.5,
+        "marginSizeToAvg": 1
+      },
+      {
+        "maxMarginRate": 2.2,
+        "allowLossesRate": 0.10,
+        "minPurePercents": 7,
+        "marginSizeToAvg": 1
+      }
+    ],
+    "predict": {
+      "predictType": "byBarsPercents",
+      "allowedLongAssets": null,
+      "allowedShortAssets": ["BTC", "ETH", "BNB", "XRP", "TRX", "TONCOIN", "LINK", "ADA", "DOT", "LTC", "BCH", "ETC", "UNI", "XLM", "SOL", "AVAX", "NEAR", "OP", "SUI", "FIL", "ATOM", "DOGE"],
+      "dangerPercentsWeek1": 25,
+      "dangerPercentsDay1": 10,
+      "dangerPercentsHour4": 5,
+      "speedFilter": {
+        "enabled": true,
+        "lookbackBars": 4,
+        "maxMovePercent": 1.2,
+        "maxRangePercent": 2.2,
+        "maxMoveToAverageRatio": 1.8
+      }
+    },
+    "averagingProtection": {
+      "enabled": true,
+      "lookbackBars": 4,
+      "maxMovePercent": 1.0,
+      "maxRangePercent": 2.0,
+      "maxMoveToAverageRatio": 1.6,
+      "requireAgainstPosition": true,
+      "blockOnTwoAdverseBars": true
+    },
+    "qualityControl": {
+      "enabled": true,
+      "minClosedTrades": 20,
+      "disableOnNegativeExpectation": true,
+      "logTopTickers": 10
+    }
+  }
+}
