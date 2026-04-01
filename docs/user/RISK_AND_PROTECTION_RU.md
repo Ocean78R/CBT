@@ -24,3 +24,10 @@
 - Не отключайте hard-risk и server SL без обязательной причины.
 - Forced exit — аварийный механизм, не заменяет базовую risk-настройку.
 - При сомнениях снижайте агрессию входа и размер позиции, а не ослабляйте защиту.
+
+## Server Stop-Loss для BingX (whole-position v1)
+- Главный защитный слой по убытку: server stop-loss на бирже.
+- Secondary fallback: forcedLossExit/local polling close.
+- Ownership path: только `serverStopLossManager` управляет созданием/обновлением/удалением server SL.
+- Для partial/averaging изменений позиции используется пересоздание SL через manager.
+- В `capitalRegime` (DEFENSIVE/HALT_NEW_ENTRIES) можно включить более жёсткий SL через `conservativeMode`.

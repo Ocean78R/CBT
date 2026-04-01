@@ -208,3 +208,15 @@ node --test tests/architecture/architecture.smoke.test.js
 - автоматическая проверка: `npm run test:docs`
 
 Если изменяется функциональность, runtime-flow, режимы или конфиг — документация обновляется в том же изменении кода.
+
+---
+
+## Server Stop-Loss / Reduce-Only для BingX (v1)
+
+Добавлен manager серверного SL (`serverStopLoss`) для whole-position сценария:
+- постановка `STOP_MARKET` reduce-only/close-only сразу после открытия позиции;
+- обновление SL после averaging;
+- cleanup/reconciliation сиротских SL через единый ownership path;
+- forcedLossExit остаётся fallback/secondary protection.
+
+Конфигурация управляется через `serverStopLoss.*` в `dist/_config/config.json`.

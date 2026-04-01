@@ -46,3 +46,11 @@
 1. Сначала ищите `order_attempt` и количество `order_retry`.
 2. Проверяйте `dedup_*` при подозрении на дубль.
 3. После рестарта проверяйте `reconciliation` и расхождения `activePositions/queueDepth`.
+
+## События server stop-loss
+Добавлены структурированные события слоя `server_stop_loss`:
+- `server_sl_upsert`, `server_sl_skip`, `server_sl_cancel_error`.
+- `server_sl_after_open_error`, `server_sl_after_averaging_error`.
+- `server_sl_cleanup`, `server_sl_cleanup_error`.
+
+Минимальные поля событий: `cycleId`, `ticker`, `exchange`, `module/layer`, `capitalRegime`, `decision`, `reason`, `fallback`.

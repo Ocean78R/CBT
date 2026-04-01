@@ -9,7 +9,9 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const entryLimits = unloadMode.entryLimits || {};
   const executionContour = merged.executionContour || {};
   const serverTakeProfit = merged.serverTakeProfit || {};
+  const serverStopLoss = merged.serverStopLoss || {};
   const tpConservativeMode = serverTakeProfit.conservativeMode || {};
+  const slConservativeMode = serverStopLoss.conservativeMode || {};
 
   const normalized = {
     ...merged,
@@ -38,6 +40,21 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
           ? tpConservativeMode.onlyForCapitalRegimes
           : ['DEFENSIVE', 'HALT_NEW_ENTRIES'],
         pnlMultiplier: Number(tpConservativeMode.pnlMultiplier || 0.85),
+      },
+    },
+    serverStopLoss: {
+      enabled: !!serverStopLoss.enabled,
+      provider: serverStopLoss.provider || 'bingx_reduce_only_v2',
+      fallbackToForcedLossExit: serverStopLoss.fallbackToForcedLossExit !== false,
+      refreshOnAveraging: serverStopLoss.refreshOnAveraging !== false,
+      reconcileOnLoop: serverStopLoss.reconcileOnLoop !== false,
+      triggerBy: serverStopLoss.triggerBy || 'MARK_PRICE',
+      conservativeMode: {
+        enabled: !!slConservativeMode.enabled,
+        onlyForCapitalRegimes: Array.isArray(slConservativeMode.onlyForCapitalRegimes)
+          ? slConservativeMode.onlyForCapitalRegimes
+          : ['DEFENSIVE', 'HALT_NEW_ENTRIES'],
+        lossMultiplier: Number(slConservativeMode.lossMultiplier || 0.85),
       },
     },
     unloadMode: {
