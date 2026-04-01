@@ -7,11 +7,13 @@ const {
   normalizeCapitalRegimeEngineConfig,
   getMaxRegime,
 } = require('./capitalRegimeEngine');
+const { evaluateCapitalStressForecast } = require('./capitalStressForecastEngine');
 
 function normalizePortfolioRiskContourConfig(config = {}) {
   const cooldown = config.cooldownAfterBadStreak || {};
   const thresholds = config.capitalRegimeThresholds || {};
   const capitalRegimeEngine = config.capitalRegimeEngine || {};
+  const portfolioForecastEngine = config.portfolioForecastEngine || {};
 
   return {
     enabled: !!config.enabled,
@@ -53,6 +55,15 @@ function normalizePortfolioRiskContourConfig(config = {}) {
         haltBalanceDrawdownPercent: Number(capitalRegimeEngine.haltBalanceDrawdownPercent || 0),
       },
     }),
+    portfolioForecastEngine: {
+      enabled: !!portfolioForecastEngine.enabled,
+      minConfidenceForSignals: Number(portfolioForecastEngine.minConfidenceForSignals || 0.45),
+      scenarioWeights: portfolioForecastEngine.scenarioWeights || {},
+      thresholds: portfolioForecastEngine.thresholds || {},
+      restrictions: portfolioForecastEngine.restrictions || {},
+      protectiveTightening: portfolioForecastEngine.protectiveTightening || {},
+      sizingHints: portfolioForecastEngine.sizingHints || {},
+    },
   };
 }
 
@@ -122,6 +133,20 @@ function evaluatePortfolioRiskContour(input = {}, rawConfig = {}) {
     capitalRegime = getMaxRegime(capitalRegime, CAPITAL_REGIMES.CAPITAL_PRESERVATION);
   }
 
+  const forecastContext = {
+    ...context,
+    capitalRegime,
+  };
+  const forecastDecision = evaluateCapitalStressForecast({ context: forecastContext, stats }, config.portfolioForecastEngine);
+  const forecastSignals = Array.isArray(forecastDecision.forecastSignals) && forecastDecision.forecastSignals.length > 0
+    ? forecastDecision.forecastSignals
+    : (Array.isArray(context.forecastSignals) ? context.forecastSignals : []);
+  const forecastRegimeShiftRisk = forecastDecision.forecastRegimeShiftRisk || (context.forecastRegimeShiftRisk || null);
+
+  if (forecastDecision.softPenalty > 0 && forecastDecision.confidence >= Number(config.portfolioForecastEngine.minConfidenceForSignals || 0.45)) {
+    reasons.push('forecast_soft_penalty');
+  }
+
   let hardVeto = null;
   if (limitsBreached.length > 0 || capitalRegime === CAPITAL_REGIMES.HALT_NEW_ENTRIES) {
     hardVeto = {
@@ -132,6 +157,19 @@ function evaluatePortfolioRiskContour(input = {}, rawConfig = {}) {
     };
   }
 
+  if (!hardVeto && config.portfolioForecastEngine.restrictions && config.portfolioForecastEngine.restrictions.applyHardRestrictionHintsAsVeto) {
+    const candidate = Array.isArray(forecastDecision.vetoCandidates) ? forecastDecision.vetoCandidates[0] : null;
+    if (candidate && forecastDecision.confidence >= Number(config.portfolioForecastEngine.minConfidenceForSignals || 0.45)) {
+      hardVeto = {
+        type: candidate.type || 'capital_prohibition',
+        reason: candidate.reason || 'forecast_halt_candidate',
+        reasons: [candidate.reason || 'forecast_halt_candidate'],
+        layer: 'risk.portfolioForecast',
+      };
+      reasons.push('forecast_hard_veto_applied');
+    }
+  }
+
   return {
     enabled: true,
     allowNewEntries: !hardVeto,
@@ -140,7 +178,8 @@ function evaluatePortfolioRiskContour(input = {}, rawConfig = {}) {
       reasons,
       previousCapitalRegime: context.previousCapitalRegime || CAPITAL_REGIMES.NORMAL,
       regimeChanged: (context.previousCapitalRegime || CAPITAL_REGIMES.NORMAL) !== capitalRegime,
-      forecastRegimeShiftRisk: context.forecastRegimeShiftRisk || null,
+      forecastRegimeShiftRisk,
+      forecastFragilityScore: Number.isFinite(forecastDecision.score) ? forecastDecision.score : null,
     },
     hardVeto,
     limits: {
@@ -165,9 +204,18 @@ function evaluatePortfolioRiskContour(input = {}, rawConfig = {}) {
         exchange: context.exchange,
         marketRegime: context.marketRegime,
         capitalRegime,
-        forecastRegimeShiftRisk: context.forecastRegimeShiftRisk,
-        forecastSignals: context.forecastSignals,
+        forecastRegimeShiftRisk,
+        forecastSignals,
       }),
+      forecast: {
+        layerName: forecastDecision.layerName,
+        dataQualityState: forecastDecision.dataQualityState,
+        reasonCodes: forecastDecision.reasonCodes || [],
+        score: Number.isFinite(forecastDecision.score) ? forecastDecision.score : 0,
+        confidence: Number.isFinite(forecastDecision.confidence) ? forecastDecision.confidence : 0,
+        outputHints: forecastDecision.outputHints || {},
+        aggregate: forecastDecision.aggregate || {},
+      },
       routerOrder: [
         'risk_contour',
         'portfolio_forecast_engine',

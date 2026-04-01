@@ -92,3 +92,19 @@
 1. Если `finalDecision=block`, первым делом смотрите `vetoReason` и `payload.telemetry.limitsBreached`.
 2. Для проверок regime-transition сверяйте `payload.balanceState.previousCapitalRegime` и `payload.balanceState.regimeChanged`.
 3. При активной паузе проверяйте `payload.limits.cooldownActive` и `payload.limits.cooldownUntilMs`.
+
+
+## События portfolio forecast / capital stress
+Добавлено структурированное событие `portfolio_capital_stress_forecast` (layer `risk.portfolioForecast`).
+
+Минимальные поля:
+- `cycleId`, `ticker`, `exchange`;
+- `module/layer`, `marketRegime`, `capitalRegime`, `setupType`;
+- `score`, `confidence`, `vetoReason` (если есть кандидат), `sizingDecision`;
+- `executionAction` (всегда `none`, т.к. слой не владеет исполнением);
+- `payload.dataQualityState`, `payload.aggregate`, `payload.outputHints`.
+
+Runtime-лог `capitalStressForecast` показывает отдельно:
+- текущее состояние капитала (`capitalRegime`),
+- прогнозный стресс (`forecastRisk`, `score/confidence`),
+- restriction/protective/sizing hints.
