@@ -108,3 +108,18 @@
 - Зависимости: `execution owner-path`, `position state`, `runtime capital context`, `forecast hints` (если уже присутствуют в runtime-контексте).
 - Кто главный: ownership path исполнения ордеров и risk-слои остаются primary; аналитика только наблюдает и журналирует.
 - Fallback: при отсутствии forecast-данных слой пишет `null/[]`, без остановки цикла и без изменения торгового поведения.
+
+## Runtime-позиция единого observability/reporting слоя
+- Позиция в пайплайне: после формирования структурированных событий в decision/risk/execution/lifecycle слоях, как неблокирующий subscriber.
+- Зависимости (более ранние слои): `DecisionContext` + `score` + `veto` контракты, события execution owner-path, capital/forecast context, lifecycle события позиции.
+- Восстановимая audit-цепочка: `capital state -> forecast stress -> universe -> regime -> confluence -> veto -> sizing -> execution -> lifecycle`.
+- Кто главный:
+  - primary: hard-risk/hard-safety/exchange constraints/universe/regime/confluence/sizing/execution ownership;
+  - observability: только наблюдение, отчёты, audit trail.
+- Fallback:
+  - если слой выключен (`observabilityReporting.enabled=false`) — поведение полностью legacy;
+  - если отсутствуют данные ранних слоёв — заполняются безопасные `null/unknown`, цикл не блокируется.
+- Производительность:
+  - запись в отчёты буферизирована и отложена (`flushIntervalMs`, `maxBufferSize`);
+  - high-volume decision events поддерживают sampling;
+  - critical execution/protective/lifecycle события сохраняются полностью без sampling-потерь.

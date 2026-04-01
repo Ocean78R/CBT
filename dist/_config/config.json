@@ -201,6 +201,29 @@
         "tradesCsv": "trades_journal.csv",
         "openStateJson": "open_trades_state.json",
         "reportOnCycleEnd": true
+      },
+      "observabilityReporting": {
+        "enabled": false,
+        "flushIntervalMs": 1500,
+        "maxBufferSize": 250,
+        "aggregateWindowCycles": 200,
+        "includePaperMode": true,
+        "includeLiveMode": true,
+        "sampling": {
+          "decisionEventsRate": 0.4,
+          "diagnosticEventsRate": 0.15,
+          "alwaysKeepCritical": true
+        },
+        "auditTrail": {
+          "enabled": true,
+          "keepPayload": true,
+          "maxEntries": 3000
+        },
+        "storage": {
+          "enabled": false,
+          "dataDir": "./data/analytics",
+          "eventsFile": "observability_events.ndjson"
+        }
       }
     },
     "htx": {

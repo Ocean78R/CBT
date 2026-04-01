@@ -59,3 +59,10 @@
 - Изменение: в аналитической строке `marketRegime` теперь берётся из runtime-контекста (fallback сохранён на `predictType`), что улучшает точность анализа по режимам.
 - Связанные файлы кода: `dist/index.js`.
 - Связанные разделы docs: `docs/user/CONFIG_GUIDE_RU.md`.
+
+## 2026-04-01 (единый observability/reporting/audit layer)
+- Изменение: добавлен единый слой наблюдаемости и отчётности с категоризацией событий (`decision/execution/protective/regime/lifecycle/forecast`), неблокирующим batching/flush и configurable sampling для high-volume decision-событий.
+- Изменение: добавлен audit trail для восстановления цепочки `capital -> forecast -> universe -> regime -> confluence -> veto -> sizing -> execution -> lifecycle`, включая forecast-ветку `forecast_events/forecast_restrictions/forecast_protective_hints`.
+- Изменение: добавлен конфиг `observabilityReporting` и интеграция с существующими structured events risk-слоёв без изменения legacy торгового поведения (слой выключен по умолчанию).
+- Связанные файлы кода: `dist/runtime/observability/reportingLayer.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/observability-reporting-layer.test.js`.
+- Связанные разделы docs: `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.

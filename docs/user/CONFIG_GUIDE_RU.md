@@ -116,6 +116,35 @@ Fallback-режим: если `executionContour.enabled=false`, исполнен
 
 Fallback: если `tradeAnalytics.enabled=false`, торговый flow полностью legacy, слой аналитики отключён.
 
+## Единый observability/reporting/audit layer
+Новый слой наблюдаемости не меняет торговые решения и подключается **строго через config**.
+
+- `observabilityReporting.enabled`: включает единый сбор событий и отчётов.
+- `observabilityReporting.flushIntervalMs`: период отложенной (неблокирующей) выгрузки буфера событий.
+- `observabilityReporting.maxBufferSize`: размер буфера перед принудительным flush.
+- `observabilityReporting.aggregateWindowCycles`: размер окна агрегации отчётов по циклам.
+- `observabilityReporting.includePaperMode`: включать события paper-режима в отчёты.
+- `observabilityReporting.includeLiveMode`: включать события live-режима в отчёты.
+- `observabilityReporting.sampling.decisionEventsRate`: sampling для массовых decision-событий.
+- `observabilityReporting.sampling.diagnosticEventsRate`: sampling для диагностических событий.
+- `observabilityReporting.sampling.alwaysKeepCritical`: критические execution/protection события сохраняются полностью.
+- `observabilityReporting.auditTrail.enabled`: включает хранение восстановимого audit trail.
+- `observabilityReporting.auditTrail.keepPayload`: хранить payload в trail (для детального разбора).
+- `observabilityReporting.auditTrail.maxEntries`: максимум записей trail в памяти.
+- `observabilityReporting.storage.enabled`: включает NDJSON-персистентность событий.
+- `observabilityReporting.storage.dataDir`: директория хранения событий.
+- `observabilityReporting.storage.eventsFile`: имя файла событий (`*.ndjson`).
+
+Фиксированные категории событий:
+- `decision_events`,
+- `execution_events`,
+- `protective_events`,
+- `regime_events`,
+- `lifecycle_events`,
+- `forecast_events` (включая `forecast_restrictions` и `forecast_protective_hints`).
+
+Fallback: при `observabilityReporting.enabled=false` слой полностью пассивен, торговый runtime идёт по legacy flow без изменений.
+
 ## Конфиг portfolioForecastEngine / capitalStressForecastEngine
 Блок находится в `portfolioRiskContour.portfolioForecastEngine` и включается только через config.
 
