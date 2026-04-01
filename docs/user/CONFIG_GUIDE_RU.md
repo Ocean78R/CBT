@@ -98,5 +98,8 @@ Fallback-режим: если `executionContour.enabled=false`, исполнен
 - `portfolioRiskContour.cooldownAfterBadStreak.consecutiveLosingClosures`: число подряд убыточных закрытий для паузы.
 - `portfolioRiskContour.cooldownAfterBadStreak.pauseMinutes`: длительность паузы.
 - `portfolioRiskContour.capitalRegimeThresholds.*`: пороги переходов в `CAUTION/DEFENSIVE/CAPITAL_PRESERVATION/HALT_NEW_ENTRIES` по loss/margin.
+- `portfolioRiskContour.capitalRegimeEngine.enabled`: включает отдельный current-state слой расчёта режима капитала.
+- `portfolioRiskContour.capitalRegimeEngine.escalationOnly`: запрещает авто-ослабление режима внутри одного цикла/контекста.
+- `portfolioRiskContour.capitalRegimeEngine.*BalanceDrawdownPercent`: пороги ужесточения по просадке баланса (дополнительно к loss/margin).
 
 Важно: слой `portfolioForecastEngine` должен подключаться только **после** `portfolioRiskContour` и не может ослаблять его hard-ограничения.

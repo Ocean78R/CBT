@@ -12,7 +12,18 @@
       "singleSetts": {
         "used": false,
         "tickers": {
-          "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC"],
+          "definedAssets": [
+            "BTC",
+            "ETH",
+            "SOL",
+            "XRP",
+            "DOT",
+            "ADA",
+            "ARB",
+            "LINK",
+            "SUI",
+            "LTC"
+          ],
           "randomCount": 0
         },
         "predict": {
@@ -32,7 +43,18 @@
       "singleSetts": {
         "used": false,
         "tickers": {
-          "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC"],
+          "definedAssets": [
+            "BTC",
+            "ETH",
+            "SOL",
+            "XRP",
+            "DOT",
+            "ADA",
+            "ARB",
+            "LINK",
+            "SUI",
+            "LTC"
+          ],
           "randomCount": 0
         },
         "predict": {
@@ -51,7 +73,30 @@
       "singleSetts": {
         "used": true,
         "tickers": {
-          "definedAssets": [ "BTC", "ETH", "BNB", "XRP", "TRX", "TONCOIN", "LINK", "ADA", "DOT", "LTC", "BCH", "ETC", "UNI", "XLM", "SOL", "AVAX", "NEAR", "OP", "SUI", "FIL", "ATOM", "DOGE"],
+          "definedAssets": [
+            "BTC",
+            "ETH",
+            "BNB",
+            "XRP",
+            "TRX",
+            "TONCOIN",
+            "LINK",
+            "ADA",
+            "DOT",
+            "LTC",
+            "BCH",
+            "ETC",
+            "UNI",
+            "XLM",
+            "SOL",
+            "AVAX",
+            "NEAR",
+            "OP",
+            "SUI",
+            "FIL",
+            "ATOM",
+            "DOGE"
+          ],
           "randomCount": 0
         },
         "predict": {
@@ -88,7 +133,10 @@
         "reconcileOnLoop": true,
         "conservativeMode": {
           "enabled": false,
-          "onlyForCapitalRegimes": ["DEFENSIVE", "HALT_NEW_ENTRIES"],
+          "onlyForCapitalRegimes": [
+            "DEFENSIVE",
+            "HALT_NEW_ENTRIES"
+          ],
           "pnlMultiplier": 0.85
         }
       },
@@ -101,7 +149,10 @@
         "triggerBy": "MARK_PRICE",
         "conservativeMode": {
           "enabled": false,
-          "onlyForCapitalRegimes": ["DEFENSIVE", "HALT_NEW_ENTRIES"],
+          "onlyForCapitalRegimes": [
+            "DEFENSIVE",
+            "HALT_NEW_ENTRIES"
+          ],
           "lossMultiplier": 0.85
         }
       },
@@ -135,7 +186,10 @@
         "forecastInfluence": {
           "enabled": false,
           "requireStressSignal": false,
-          "stressSignals": ["forecast_stress", "forecast_halt"],
+          "stressSignals": [
+            "forecast_stress",
+            "forecast_halt"
+          ],
           "lossMultiplierOnStress": 0.9,
           "holdMinutesMultiplierOnStress": 0.75
         }
@@ -152,7 +206,18 @@
       "singleSetts": {
         "used": false,
         "tickers": {
-          "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC"],
+          "definedAssets": [
+            "BTC",
+            "ETH",
+            "SOL",
+            "XRP",
+            "DOT",
+            "ADA",
+            "ARB",
+            "LINK",
+            "SUI",
+            "LTC"
+          ],
           "randomCount": 0
         },
         "predict": {
@@ -172,7 +237,18 @@
       "singleSetts": {
         "used": false,
         "tickers": {
-          "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC"],
+          "definedAssets": [
+            "BTC",
+            "ETH",
+            "SOL",
+            "XRP",
+            "DOT",
+            "ADA",
+            "ARB",
+            "LINK",
+            "SUI",
+            "LTC"
+          ],
           "randomCount": 0
         },
         "predict": {
@@ -191,7 +267,18 @@
       "singleSetts": {
         "used": false,
         "tickers": {
-          "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC"],
+          "definedAssets": [
+            "BTC",
+            "ETH",
+            "SOL",
+            "XRP",
+            "DOT",
+            "ADA",
+            "ARB",
+            "LINK",
+            "SUI",
+            "LTC"
+          ],
           "randomCount": 0
         },
         "predict": {
@@ -206,14 +293,36 @@
       "mirrorSetts": {
         "used": false,
         "tickers": {
-          "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC"],
+          "definedAssets": [
+            "BTC",
+            "ETH",
+            "SOL",
+            "XRP",
+            "DOT",
+            "ADA",
+            "ARB",
+            "LINK",
+            "SUI",
+            "LTC"
+          ],
           "randomCount": 0
         }
       },
       "singleSetts": {
         "used": false,
         "tickers": {
-          "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC"],
+          "definedAssets": [
+            "BTC",
+            "ETH",
+            "SOL",
+            "XRP",
+            "DOT",
+            "ADA",
+            "ARB",
+            "LINK",
+            "SUI",
+            "LTC"
+          ],
           "randomCount": 0
         }
       }
@@ -254,7 +363,10 @@
     "reconcileOnLoop": true,
     "conservativeMode": {
       "enabled": false,
-      "onlyForCapitalRegimes": ["DEFENSIVE", "HALT_NEW_ENTRIES"],
+      "onlyForCapitalRegimes": [
+        "DEFENSIVE",
+        "HALT_NEW_ENTRIES"
+      ],
       "pnlMultiplier": 0.85
     }
   },
@@ -267,7 +379,10 @@
     "triggerBy": "MARK_PRICE",
     "conservativeMode": {
       "enabled": false,
-      "onlyForCapitalRegimes": ["DEFENSIVE", "HALT_NEW_ENTRIES"],
+      "onlyForCapitalRegimes": [
+        "DEFENSIVE",
+        "HALT_NEW_ENTRIES"
+      ],
       "lossMultiplier": 0.85
     }
   },
@@ -301,7 +416,10 @@
     "forecastInfluence": {
       "enabled": false,
       "requireStressSignal": false,
-      "stressSignals": ["forecast_stress", "forecast_halt"],
+      "stressSignals": [
+        "forecast_stress",
+        "forecast_halt"
+      ],
       "lossMultiplierOnStress": 0.9,
       "holdMinutesMultiplierOnStress": 0.75
     }
@@ -327,11 +445,24 @@
       "defensiveMarginUsagePercent": 60,
       "capitalPreservationMarginUsagePercent": 70,
       "haltMarginUsagePercent": 85
+    },
+    "capitalRegimeEngine": {
+      "enabled": true,
+      "escalationOnly": true,
+      "cautionBalanceDrawdownPercent": 6,
+      "defensiveBalanceDrawdownPercent": 10,
+      "capitalPreservationBalanceDrawdownPercent": 14,
+      "haltBalanceDrawdownPercent": 18
     }
   },
   "unloadMode": {
     "enabled": false,
-    "safeEntryAssets": ["BTC", "ETH", "BNB", "XRP"],
+    "safeEntryAssets": [
+      "BTC",
+      "ETH",
+      "BNB",
+      "XRP"
+    ],
     "entryLimits": {
       "maxNewEntriesPerCycle": 2,
       "maxNewEntriesPerDay": 8,
@@ -340,17 +471,50 @@
     "capitalRegime": {
       "enabled": true,
       "forceHaltOnRiskSignals": true,
-      "cautionRiskSignals": ["forecast_caution", "drawdown_caution"],
-      "defensiveRiskSignals": ["forecast_defensive", "drawdown_defensive"],
-      "haltRiskSignals": ["forecast_halt", "drawdown_halt"]
+      "cautionRiskSignals": [
+        "forecast_caution",
+        "drawdown_caution"
+      ],
+      "defensiveRiskSignals": [
+        "forecast_defensive",
+        "drawdown_defensive"
+      ],
+      "haltRiskSignals": [
+        "forecast_halt",
+        "drawdown_halt"
+      ]
     }
   },
   "riskSignals": [],
   "mirrorSetts": {
     "used": false,
     "tickers": {
-      "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC", "TON", "AVAX", "AAVE", "INJ", "NEAR", "OP", "ETC", "LDO", "DOGE", "BCH", "UNI"],
-      "excludedAssets": ["USDC"],
+      "definedAssets": [
+        "BTC",
+        "ETH",
+        "SOL",
+        "XRP",
+        "DOT",
+        "ADA",
+        "ARB",
+        "LINK",
+        "SUI",
+        "LTC",
+        "TON",
+        "AVAX",
+        "AAVE",
+        "INJ",
+        "NEAR",
+        "OP",
+        "ETC",
+        "LDO",
+        "DOGE",
+        "BCH",
+        "UNI"
+      ],
+      "excludedAssets": [
+        "USDC"
+      ],
       "randomCount": 0
     },
     "marginSize": 2,
@@ -387,8 +551,32 @@
   "singleSetts": {
     "used": false,
     "tickers": {
-      "definedAssets": ["BTC", "ETH", "SOL", "XRP", "DOT", "ADA", "ARB", "LINK", "SUI", "LTC", "TONCOIN", "AVAX", "AAVE", "INJ", "NEAR", "OP", "ETC", "LDO", "DOGE", "BCH", "UNI"],
-      "excludedAssets": ["USDC"],
+      "definedAssets": [
+        "BTC",
+        "ETH",
+        "SOL",
+        "XRP",
+        "DOT",
+        "ADA",
+        "ARB",
+        "LINK",
+        "SUI",
+        "LTC",
+        "TONCOIN",
+        "AVAX",
+        "AAVE",
+        "INJ",
+        "NEAR",
+        "OP",
+        "ETC",
+        "LDO",
+        "DOGE",
+        "BCH",
+        "UNI"
+      ],
+      "excludedAssets": [
+        "USDC"
+      ],
       "randomCount": 0
     },
     "marginSize": 2,
@@ -410,7 +598,7 @@
       },
       {
         "maxMarginRate": 2.2,
-        "allowLossesRate": 0.10,
+        "allowLossesRate": 0.1,
         "minPurePercents": 7,
         "marginSizeToAvg": 1
       }
@@ -418,7 +606,30 @@
     "predict": {
       "predictType": "byBarsPercents",
       "allowedLongAssets": null,
-      "allowedShortAssets": ["BTC", "ETH", "BNB", "XRP", "TRX", "TONCOIN", "LINK", "ADA", "DOT", "LTC", "BCH", "ETC", "UNI", "XLM", "SOL", "AVAX", "NEAR", "OP", "SUI", "FIL", "ATOM", "DOGE"],
+      "allowedShortAssets": [
+        "BTC",
+        "ETH",
+        "BNB",
+        "XRP",
+        "TRX",
+        "TONCOIN",
+        "LINK",
+        "ADA",
+        "DOT",
+        "LTC",
+        "BCH",
+        "ETC",
+        "UNI",
+        "XLM",
+        "SOL",
+        "AVAX",
+        "NEAR",
+        "OP",
+        "SUI",
+        "FIL",
+        "ATOM",
+        "DOGE"
+      ],
       "dangerPercentsWeek1": 25,
       "dangerPercentsDay1": 10,
       "dangerPercentsHour4": 5,

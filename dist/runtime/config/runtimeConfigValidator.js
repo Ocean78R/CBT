@@ -18,6 +18,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const portfolioRiskContour = merged.portfolioRiskContour || {};
   const cooldownAfterBadStreak = portfolioRiskContour.cooldownAfterBadStreak || {};
   const capitalRegimeThresholds = portfolioRiskContour.capitalRegimeThresholds || {};
+  const capitalRegimeEngine = portfolioRiskContour.capitalRegimeEngine || {};
 
   const normalized = {
     ...merged,
@@ -72,6 +73,14 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         defensiveMarginUsagePercent: Number(capitalRegimeThresholds.defensiveMarginUsagePercent || 0),
         capitalPreservationMarginUsagePercent: Number(capitalRegimeThresholds.capitalPreservationMarginUsagePercent || 0),
         haltMarginUsagePercent: Number(capitalRegimeThresholds.haltMarginUsagePercent || 0),
+      },
+      capitalRegimeEngine: {
+        enabled: capitalRegimeEngine.enabled !== false,
+        escalationOnly: capitalRegimeEngine.escalationOnly !== false,
+        cautionBalanceDrawdownPercent: Number(capitalRegimeEngine.cautionBalanceDrawdownPercent || 0),
+        defensiveBalanceDrawdownPercent: Number(capitalRegimeEngine.defensiveBalanceDrawdownPercent || 0),
+        capitalPreservationBalanceDrawdownPercent: Number(capitalRegimeEngine.capitalPreservationBalanceDrawdownPercent || 0),
+        haltBalanceDrawdownPercent: Number(capitalRegimeEngine.haltBalanceDrawdownPercent || 0),
       },
     },
     forcedLossExit: {
