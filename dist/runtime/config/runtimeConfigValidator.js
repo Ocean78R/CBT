@@ -16,6 +16,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const regimeTightening = forcedLossExit.regimeTightening || {};
   const forecastInfluence = forcedLossExit.forecastInfluence || {};
   const portfolioRiskContour = merged.portfolioRiskContour || {};
+  const tradeAnalytics = merged.tradeAnalytics || {};
   const cooldownAfterBadStreak = portfolioRiskContour.cooldownAfterBadStreak || {};
   const capitalRegimeThresholds = portfolioRiskContour.capitalRegimeThresholds || {};
   const capitalRegimeEngine = portfolioRiskContour.capitalRegimeEngine || {};
@@ -108,6 +109,14 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         lossMultiplierOnStress: Number(forecastInfluence.lossMultiplierOnStress || 1),
         holdMinutesMultiplierOnStress: Number(forecastInfluence.holdMinutesMultiplierOnStress || 1),
       },
+    },
+    tradeAnalytics: {
+      enabled: tradeAnalytics.enabled !== false,
+      storage: tradeAnalytics.storage || 'csv',
+      dataDir: tradeAnalytics.dataDir || './data/analytics',
+      tradesCsv: tradeAnalytics.tradesCsv || 'trades_journal.csv',
+      openStateJson: tradeAnalytics.openStateJson || 'open_trades_state.json',
+      reportOnCycleEnd: tradeAnalytics.reportOnCycleEnd !== false,
     },
     serverStopLoss: {
       enabled: !!serverStopLoss.enabled,

@@ -92,3 +92,15 @@
 1. Если `finalDecision=block`, первым делом смотрите `vetoReason` и `payload.telemetry.limitsBreached`.
 2. Для проверок regime-transition сверяйте `payload.balanceState.previousCapitalRegime` и `payload.balanceState.regimeChanged`.
 3. При активной паузе проверяйте `payload.limits.cooldownActive` и `payload.limits.cooldownUntilMs`.
+
+## События trade analytics и журнал сделок
+Добавлены структурированные события:
+- `analytics/trade_open_registered`
+- `analytics/trade_averaging_registered`
+- `analytics/trade_close_registered`
+- `analytics/trade_report`
+
+Минимальные поля audit trail для нового слоя:
+`cycleId`, `ticker`, `exchange`, `module/layer`, `marketRegime`, `capitalRegime`, `setupType`, `score`, `confidence`, `vetoReason`, `sizingDecision`, `executionAction`, `fallbackAction`, `finalDecision`.
+
+Журнал сделок сохраняется в CSV и используется для метрик: `winRate`, `avgWin`, `avgLoss`, `expectancy`, статистика усреднений, распределение по времени суток, дню недели и типу сигнала.

@@ -103,3 +103,15 @@ Fallback-режим: если `executionContour.enabled=false`, исполнен
 - `portfolioRiskContour.capitalRegimeEngine.*BalanceDrawdownPercent`: пороги ужесточения по просадке баланса (дополнительно к loss/margin).
 
 Важно: слой `portfolioForecastEngine` должен подключаться только **после** `portfolioRiskContour` и не может ослаблять его hard-ограничения.
+
+## Базовый слой trade analytics
+Новый слой аналитики не меняет торговые решения и включается через config:
+
+- `tradeAnalytics.enabled`: включает запись журнала сделок и отчётов.
+- `tradeAnalytics.storage`: тип хранилища (`csv` в текущем боевом минимуме).
+- `tradeAnalytics.dataDir`: папка с файлами аналитики (по умолчанию `./data/analytics`).
+- `tradeAnalytics.tradesCsv`: CSV-журнал закрытых сделок.
+- `tradeAnalytics.openStateJson`: состояние открытых сделок/усреднений для восстановления после рестарта.
+- `tradeAnalytics.reportOnCycleEnd`: включать сводный отчёт в конце цикла.
+
+Fallback: если `tradeAnalytics.enabled=false`, торговый flow полностью legacy, слой аналитики отключён.

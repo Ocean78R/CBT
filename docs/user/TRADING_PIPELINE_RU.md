@@ -102,3 +102,9 @@
   - пауза после серии плохих циклов/закрытий.
 - `balanceState.capitalRegime`: `NORMAL | CAUTION | DEFENSIVE | CAPITAL_PRESERVATION | HALT_NEW_ENTRIES`.
 - `hardVeto` типа `capital_prohibition`, если вход должен быть заблокирован на уровне портфеля.
+
+## Runtime-позиция слоя trade analytics
+- Позиция в пайплайне: после execution/lifecycle действий (`position_opened`, `position_averaged`, `position_closed`) и при `cycle-summary`.
+- Зависимости: `execution owner-path`, `position state`, `runtime capital context`, `forecast hints` (если уже присутствуют в runtime-контексте).
+- Кто главный: ownership path исполнения ордеров и risk-слои остаются primary; аналитика только наблюдает и журналирует.
+- Fallback: при отсутствии forecast-данных слой пишет `null/[]`, без остановки цикла и без изменения торгового поведения.
