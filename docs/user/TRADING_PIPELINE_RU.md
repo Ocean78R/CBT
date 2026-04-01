@@ -66,3 +66,10 @@
 - После averaging manager пересоздаёт SL для whole-position (v1), чтобы объём защиты соответствовал новой позиции.
 - При закрытии позиции и при `position_absent_reconcile` выполняется cleanup сиротских SL только через manager-слой.
 - Fallback: если BingX server SL недоступен, остаются forcedLossExit/local polling close (без изменения legacy логики).
+
+## ForcedLossExit / StuckPositionProtection (runtime-слой)
+- Runtime-позиция: строго **после server SL и до averaging**.
+- Зависимости: `serverStopLoss` статус, контекст `capitalRegime`, market-regime, position-metrics, optional `portfolioForecastEngine` hints.
+- Ownership: модуль только формирует `ownershipAction` (`position_reduce_request` / `position_force_close_request`), а фактическое действие делает `execution_lifecycle_manager` + reconciliation.
+- Fallback: если слой выключен (`forcedLossExit.enabled=false`) или нет достаточных данных, поведение остаётся legacy (без неявного закрытия).
+- Приоритет: выше averaging, но не заменяет primary server stop-loss.

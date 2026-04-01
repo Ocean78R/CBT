@@ -104,6 +104,41 @@
           "onlyForCapitalRegimes": ["DEFENSIVE", "HALT_NEW_ENTRIES"],
           "lossMultiplier": 0.85
         }
+      },
+      "forcedLossExit": {
+        "enabled": false,
+        "maxNegativeHoldMinutes": 240,
+        "maxPostAveragingNegativeHoldMinutes": 90,
+        "maxLossPercentOnPosition": 6,
+        "maxAveragesPerPosition": 3,
+        "requireAdverseMarketConfirmation": true,
+        "actionMode": "warn",
+        "partialReduceShare": 0.35,
+        "cooldownMinutesAfterForcedExit": 60,
+        "regimeTightening": {
+          "enabled": true,
+          "byCapitalRegime": {
+            "DEFENSIVE": {
+              "maxNegativeHoldMinutes": 180,
+              "maxPostAveragingNegativeHoldMinutes": 60,
+              "maxLossPercentOnPosition": 5,
+              "maxAveragesPerPosition": 2
+            },
+            "CAPITAL_PRESERVATION": {
+              "maxNegativeHoldMinutes": 120,
+              "maxPostAveragingNegativeHoldMinutes": 45,
+              "maxLossPercentOnPosition": 4,
+              "maxAveragesPerPosition": 1
+            }
+          }
+        },
+        "forecastInfluence": {
+          "enabled": false,
+          "requireStressSignal": false,
+          "stressSignals": ["forecast_stress", "forecast_halt"],
+          "lossMultiplierOnStress": 0.9,
+          "holdMinutesMultiplierOnStress": 0.75
+        }
       }
     },
     "htx": {
@@ -233,6 +268,41 @@
       "enabled": false,
       "onlyForCapitalRegimes": ["DEFENSIVE", "HALT_NEW_ENTRIES"],
       "lossMultiplier": 0.85
+    }
+  },
+  "forcedLossExit": {
+    "enabled": false,
+    "maxNegativeHoldMinutes": 240,
+    "maxPostAveragingNegativeHoldMinutes": 90,
+    "maxLossPercentOnPosition": 6,
+    "maxAveragesPerPosition": 3,
+    "requireAdverseMarketConfirmation": true,
+    "actionMode": "warn",
+    "partialReduceShare": 0.35,
+    "cooldownMinutesAfterForcedExit": 60,
+    "regimeTightening": {
+      "enabled": true,
+      "byCapitalRegime": {
+        "DEFENSIVE": {
+          "maxNegativeHoldMinutes": 180,
+          "maxPostAveragingNegativeHoldMinutes": 60,
+          "maxLossPercentOnPosition": 5,
+          "maxAveragesPerPosition": 2
+        },
+        "CAPITAL_PRESERVATION": {
+          "maxNegativeHoldMinutes": 120,
+          "maxPostAveragingNegativeHoldMinutes": 45,
+          "maxLossPercentOnPosition": 4,
+          "maxAveragesPerPosition": 1
+        }
+      }
+    },
+    "forecastInfluence": {
+      "enabled": false,
+      "requireStressSignal": false,
+      "stressSignals": ["forecast_stress", "forecast_halt"],
+      "lossMultiplierOnStress": 0.9,
+      "holdMinutesMultiplierOnStress": 0.75
     }
   },
   "unloadMode": {

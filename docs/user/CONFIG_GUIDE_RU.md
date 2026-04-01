@@ -67,3 +67,19 @@ Fallback-режим: если `executionContour.enabled=false`, исполнен
 - `serverStopLoss.conservativeMode.enabled`: ужесточение SL в защитных режимах капитала.
 - `serverStopLoss.conservativeMode.onlyForCapitalRegimes`: для каких режимов капитала применять ужесточение.
 - `serverStopLoss.conservativeMode.lossMultiplier`: множитель дистанции SL в защитном режиме.
+
+
+## Конфиг forcedLossExit / stuckPositionProtection
+- `forcedLossExit.enabled`: включает слой контролируемого признания сценария ошибочным.
+- `forcedLossExit.maxNegativeHoldMinutes`: максимум минут удержания позиции в отрицательном PnL.
+- `forcedLossExit.maxPostAveragingNegativeHoldMinutes`: максимум минут в минусе после последнего averaging.
+- `forcedLossExit.maxLossPercentOnPosition`: лимит убытка по позиции (в %), после которого сценарий признаётся опасным.
+- `forcedLossExit.maxAveragesPerPosition`: лимит количества усреднений на одну позицию.
+- `forcedLossExit.requireAdverseMarketConfirmation`: требовать подтверждение неблагоприятного рынка перед реакцией.
+- `forcedLossExit.actionMode`: режим реакции `warn | block_averaging | partial_reduce | force_close`.
+- `forcedLossExit.partialReduceShare`: доля частичного сокращения в `partial_reduce`.
+- `forcedLossExit.cooldownMinutesAfterForcedExit`: защитный cooldown после forced action.
+- `forcedLossExit.regimeTightening.*`: явное ужесточение порогов для `capitalRegime` (например `DEFENSIVE`, `CAPITAL_PRESERVATION`).
+- `forcedLossExit.forecastInfluence.*`: отдельный вход influence от forecast-слоя (без прямого закрытия позиций forecast-слоем).
+
+Важно: старый flow остаётся fallback, пока `forcedLossExit.enabled=false`.

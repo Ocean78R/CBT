@@ -12,6 +12,9 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const serverStopLoss = merged.serverStopLoss || {};
   const tpConservativeMode = serverTakeProfit.conservativeMode || {};
   const slConservativeMode = serverStopLoss.conservativeMode || {};
+  const forcedLossExit = merged.forcedLossExit || {};
+  const regimeTightening = forcedLossExit.regimeTightening || {};
+  const forecastInfluence = forcedLossExit.forecastInfluence || {};
 
   const normalized = {
     ...merged,
@@ -40,6 +43,33 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
           ? tpConservativeMode.onlyForCapitalRegimes
           : ['DEFENSIVE', 'HALT_NEW_ENTRIES'],
         pnlMultiplier: Number(tpConservativeMode.pnlMultiplier || 0.85),
+      },
+    },
+
+    forcedLossExit: {
+      enabled: !!forcedLossExit.enabled,
+      maxNegativeHoldMinutes: Number(forcedLossExit.maxNegativeHoldMinutes || 0),
+      maxPostAveragingNegativeHoldMinutes: Number(forcedLossExit.maxPostAveragingNegativeHoldMinutes || 0),
+      maxLossPercentOnPosition: Number(forcedLossExit.maxLossPercentOnPosition || 0),
+      maxAveragesPerPosition: Number(forcedLossExit.maxAveragesPerPosition || 0),
+      requireAdverseMarketConfirmation: !!forcedLossExit.requireAdverseMarketConfirmation,
+      actionMode: ['warn', 'block_averaging', 'partial_reduce', 'force_close'].includes(forcedLossExit.actionMode)
+        ? forcedLossExit.actionMode
+        : 'warn',
+      partialReduceShare: Number(forcedLossExit.partialReduceShare || 0.25),
+      cooldownMinutesAfterForcedExit: Number(forcedLossExit.cooldownMinutesAfterForcedExit || 0),
+      regimeTightening: {
+        enabled: !!regimeTightening.enabled,
+        byCapitalRegime: typeof regimeTightening.byCapitalRegime === 'object' && regimeTightening.byCapitalRegime
+          ? regimeTightening.byCapitalRegime
+          : {},
+      },
+      forecastInfluence: {
+        enabled: !!forecastInfluence.enabled,
+        requireStressSignal: !!forecastInfluence.requireStressSignal,
+        stressSignals: Array.isArray(forecastInfluence.stressSignals) ? forecastInfluence.stressSignals : [],
+        lossMultiplierOnStress: Number(forecastInfluence.lossMultiplierOnStress || 1),
+        holdMinutesMultiplierOnStress: Number(forecastInfluence.holdMinutesMultiplierOnStress || 1),
       },
     },
     serverStopLoss: {

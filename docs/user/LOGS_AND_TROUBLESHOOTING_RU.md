@@ -54,3 +54,20 @@
 - `server_sl_cleanup`, `server_sl_cleanup_error`.
 
 Минимальные поля событий: `cycleId`, `ticker`, `exchange`, `module/layer`, `capitalRegime`, `decision`, `reason`, `fallback`.
+
+
+## События forcedLossExit / stuckPositionProtection
+Добавлено структурированное событие `forced_loss_exit_decision` (layer `risk.positionProtection`).
+
+Минимальные поля события:
+- `cycleId`, `ticker`, `exchange`;
+- `module/layer`, `marketRegime`, `capitalRegime`, `setupType`;
+- `score`, `confidence`;
+- `vetoReason` (если trigger), `sizingDecision`;
+- `executionAction`/`fallbackAction`;
+- `finalDecision`.
+
+Диагностика:
+1. Проверяйте, что при `actionMode=warn` событие есть, но `executionAction=none`.
+2. Для `block_averaging|partial_reduce|force_close` смотрите `sizingDecision/executionAction` и дальнейшие lifecycle события owner-layer.
+3. Если включён `forecastInfluence.requireStressSignal`, отсутствие stress-signal должно давать `finalDecision=no_action`.
