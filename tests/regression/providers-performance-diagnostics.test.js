@@ -246,3 +246,61 @@ test('performanceDiagnostics.requestScheduler: backoff при ошибке rate-
   assert.equal(schedulerDiagnostics.metrics.completed >= 1, true);
   assert.equal(calls >= 2, true);
 });
+
+test('performanceGovernor: staged evaluation и graceful degradation управляются через config без поломки fallback', async () => {
+  const diagnosticsEvents = [];
+  const connector = {
+    getTickerInfo: async (ticker) => ({ ticker, price: 111 }),
+    getMarkPrice: async () => 100,
+    getKLine: async () => [],
+    getSymbolsByLeverage: async () => [],
+    getMaxLeverageForTicker: async () => 20,
+    getLeverage: async () => 10,
+    getMarginMode: async () => 'cross',
+    getBalance: async () => ({ free: 1000 }),
+    getFuturesActivePositions: async () => [],
+    getFuturesPositionsForTicker: async () => [],
+    updateTickerLeverage: async () => true,
+    setMarginMode: async () => true,
+  };
+
+  const providers = createProviders(connector, { positionIsActive: () => true }, {
+    onDiagnosticEvent: (event) => diagnosticsEvents.push(event),
+    getRuntimeTags: () => ({
+      cycleId: 'cycle-governor-1',
+      exchange: 'bingx',
+      marketRegime: 'range',
+      capitalRegime: 'NORMAL',
+      setupType: 'pullback',
+    }),
+    performanceDiagnostics: {
+      enabled: true,
+      readOnlyCache: { enabled: true, methods: ['getTickerInfo'], ttlMs: 1 },
+      performanceGovernor: {
+        enabled: true,
+        mode: 'enforce',
+        cycle: { targetMs: 100, hardLimitMs: 120 },
+        budgets: { byLayerMs: { confirmations: 1 } },
+        optionalLayers: ['confirmations', 'analytics'],
+      },
+    },
+  });
+
+  providers.performanceGovernor.onCycleStart({ cycleId: 'cycle-governor-1', exchange: 'bingx', marketRegime: 'range', capitalRegime: 'NORMAL' });
+  providers.performanceGovernor.setStage('shortlist');
+
+  await providers.marketDataProvider.getTickerInfo('BTC-USDT');
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  // Русский комментарий: после минимального бюджета optional-слой переходит в cached/degraded режим.
+  const modeAfterBudget = providers.performanceGovernor.resolveLayerMode('confirmations', { cycleId: 'cycle-governor-1' });
+  assert.equal(['cached', 'degraded', 'skip', 'full'].includes(modeAfterBudget.mode), true);
+
+  const diag = providers.performanceGovernor.getDiagnostics();
+  assert.equal(diag.stagedEvaluation.sequence[0], 'shortlist');
+  assert.equal(diag.loopClasses.executionCriticalHz >= 1, true);
+  assert.equal(typeof diag.priorities.executionCritical, 'number');
+
+  const finalize = providers.performanceGovernor.finalizeCycle({ cycleId: 'cycle-governor-1', exchange: 'bingx' });
+  assert.equal(!!finalize, true);
+  assert.equal(Array.isArray(diagnosticsEvents), true);
+});

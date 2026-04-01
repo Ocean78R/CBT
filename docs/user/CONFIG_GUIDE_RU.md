@@ -219,3 +219,27 @@ Fallback и безопасность:
 - Кэшируются только read-only вызовы (`getMarkPrice`, `getKLine`, `getTickerInfo`, `getBalance`, `getLeverage`, `getMarginMode`).
 - Execution-critical методы (`updateTickerLeverage`, `setMarginMode`, любые order actions) остаются live-only и не получают агрессивного TTL-кэша.
 - При необходимости принудительного обновления используются `cacheControl.forceRefreshReadOnly(...)` и/или `cacheControl.onExecutionActivity([...])`.
+
+## Performance governor / control plane (новый конфиг)
+Новый слой включается только через config и не меняет ownership торговых решений.
+
+Ключи:
+- `performanceGovernor.enabled` — включает слой.
+- `performanceGovernor.mode`:
+  - `monitor_only` — только диагностика,
+  - `enforce` — применяет budgets/degradation.
+- `performanceGovernor.cycle.targetMs/hardLimitMs` — целевой и жёсткий лимиты цикла.
+- `performanceGovernor.budgets.reserveForExecutionMs` — резерв времени для execution-critical path.
+- `performanceGovernor.budgets.byLayerMs.*` — бюджеты для тяжёлых слоёв:
+  - `regimeRouter`, `htfStructure`, `zones`, `vwapProfile`, `bounceBreakdown`, `derivativesContext`, `confirmations`, `mlInference`.
+- `performanceGovernor.tickerLimits.maxExpensiveTickersPerCycle` — лимит тикеров для дорогих слоёв.
+- `performanceGovernor.tickerLimits.maxMlTickersPerCycle` — лимит тикеров для ML слоя.
+- `performanceGovernor.refreshCadence.*` — частоты редких признаков.
+- `performanceGovernor.loopClasses.*` — классы частот циклов (`executionCriticalHz`, `signalCoreHz`, `optionalContextHz`, `analyticsHz`).
+- `performanceGovernor.parallelism.*` — лимиты параллелизма тяжёлых/аналитических задач.
+- `performanceGovernor.observability.maxSyncEventsPerCycle` — ограничение синхронной отчётности на цикл.
+- `performanceGovernor.cache.*` — политика перехода в cached/degraded режим.
+
+Безопасность по умолчанию:
+- default: `enabled=false`, `mode=monitor_only`;
+- старое поведение остаётся fallback до явного включения.

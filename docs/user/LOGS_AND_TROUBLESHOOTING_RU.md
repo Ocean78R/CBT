@@ -155,3 +155,26 @@
 - stale reuse ratio: `staleReuseHits / totalCalls`;
 - in-flight dedup ratio: `inFlightHits / totalCalls`;
 - latency-эффект: сравнение slow-calls до/после (`slowCalls`, `byMethod.*.avgMs`).
+
+## Логи и события performance governor
+Новые события (совместимы с текущим observability/audit trail форматом):
+- `performance_governor_cycle_start`
+- `performance_governor_cycle_end`
+- `performance_governor_layer_skip`
+
+Минимальные поля, которые пишутся для управляющих решений governor:
+- `cycleId`, `ticker`, `exchange`, `module/layer`, `marketRegime`, `capitalRegime`,
+- `setupType`, `score/confidence`, `vetoReason` (если есть),
+- `sizingDecision`, `executionAction`, `finalDecision`.
+
+Диагностика деградации:
+- `mode=full` — слой выполняется полностью,
+- `mode=cached` — слой принудительно переводится в cache reuse,
+- `mode=degraded` — слой работает в упрощённом режиме,
+- `mode=skip` — слой пропускается по budget rules.
+
+Проверки при перегрузке:
+1. Проверить `performanceGovernor.mode` и `degradation` thresholds.
+2. Проверить `budgets.byLayerMs` для самых тяжёлых слоёв.
+3. Проверить `tickerLimits` и `refreshCadence`.
+4. Проверить, что execution-critical path не деградировал.
