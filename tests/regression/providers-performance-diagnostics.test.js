@@ -140,3 +140,109 @@ test('performanceDiagnostics: execution-critical методы не кеширу�
   await providers.marketDataProvider.getMarkPrice('BTC-USDT');
   assert.equal(markCalls, 2);
 });
+
+test('performanceDiagnostics.requestScheduler: ограничивает конкурентность и уважает приоритеты', async () => {
+  let active = 0;
+  let maxActive = 0;
+  const runOrder = [];
+  const connector = {
+    getTickerInfo: async (ticker) => {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      runOrder.push(ticker);
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      active -= 1;
+      return { ticker };
+    },
+    getMarkPrice: async () => 100,
+    getKLine: async () => [],
+    getSymbolsByLeverage: async () => [],
+    getMaxLeverageForTicker: async () => 20,
+    getLeverage: async () => 10,
+    getMarginMode: async () => 'cross',
+    getBalance: async () => ({ free: 1000 }),
+    getFuturesActivePositions: async () => [],
+    getFuturesPositionsForTicker: async () => [],
+    updateTickerLeverage: async () => true,
+    setMarginMode: async () => true,
+  };
+
+  const providers = createProviders(connector, { positionIsActive: () => true }, {
+    performanceDiagnostics: {
+      enabled: true,
+      readOnlyCache: { enabled: true, methods: ['getTickerInfo'], ttlMs: 1 },
+      requestScheduler: {
+        enabled: true,
+        maxConcurrency: 2,
+        maxRequestsPerWindow: 20,
+        windowMs: 1000,
+      },
+    },
+  });
+
+  await Promise.all([
+    providers.marketDataProvider.getTickerInfo('A'),
+    providers.marketDataProvider.getTickerInfo('B'),
+    providers.marketDataProvider.getTickerInfo('C'),
+    providers.marketDataProvider.getTickerInfo('D'),
+  ]);
+
+  assert.equal(maxActive <= 2, true);
+  assert.equal(runOrder.length, 4);
+  const schedulerDiagnostics = providers.getRequestSchedulerDiagnostics();
+  assert.equal(schedulerDiagnostics.metrics.enqueued >= 4, true);
+  assert.equal(schedulerDiagnostics.metrics.completed >= 4, true);
+});
+
+test('performanceDiagnostics.requestScheduler: backoff при ошибке rate-limit', async () => {
+  let firstCall = true;
+  let calls = 0;
+  const connector = {
+    getTickerInfo: async (ticker) => {
+      calls += 1;
+      if (firstCall) {
+        firstCall = false;
+        const error = new Error('429 too many requests');
+        error.status = 429;
+        throw error;
+      }
+      return { ticker };
+    },
+    getMarkPrice: async () => 100,
+    getKLine: async () => [],
+    getSymbolsByLeverage: async () => [],
+    getMaxLeverageForTicker: async () => 20,
+    getLeverage: async () => 10,
+    getMarginMode: async () => 'cross',
+    getBalance: async () => ({ free: 1000 }),
+    getFuturesActivePositions: async () => [],
+    getFuturesPositionsForTicker: async () => [],
+    updateTickerLeverage: async () => true,
+    setMarginMode: async () => true,
+  };
+
+  const providers = createProviders(connector, { positionIsActive: () => true }, {
+    performanceDiagnostics: {
+      enabled: true,
+      readOnlyCache: { enabled: true, methods: ['getTickerInfo'], ttlMs: 1 },
+      requestScheduler: {
+        enabled: true,
+        maxConcurrency: 1,
+        maxRequestsPerWindow: 50,
+        windowMs: 1000,
+        backoffBaseMs: 5,
+        backoffMaxMs: 20,
+      },
+    },
+  });
+
+  await assert.rejects(
+    providers.marketDataProvider.getTickerInfo('X'),
+    /429/,
+  );
+  await providers.marketDataProvider.getTickerInfo('Y');
+  const schedulerDiagnostics = providers.getRequestSchedulerDiagnostics();
+  assert.equal(schedulerDiagnostics.metrics.rejected >= 1, true);
+  assert.equal(schedulerDiagnostics.metrics.completed >= 1, true);
+  assert.equal(calls >= 2, true);
+});

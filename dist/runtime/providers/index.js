@@ -1,5 +1,7 @@
 'use strict';
 
+const { createRequestScheduler, normalizeSchedulerConfig } = require('../scheduler/requestScheduler');
+
 function normalizePerfConfig(config = {}) {
   const readOnlyCache = config.readOnlyCache || {};
   const hotState = config.hotState || {};
@@ -8,6 +10,7 @@ function normalizePerfConfig(config = {}) {
   const derivedFeatureCache = config.derivedFeatureCache || {};
   const ttl = derivedFeatureCache.ttl || {};
   const forcedRefresh = derivedFeatureCache.forcedRefresh || {};
+  const requestScheduler = config.requestScheduler || {};
 
   return {
     enabled: !!config.enabled,
@@ -50,6 +53,7 @@ function normalizePerfConfig(config = {}) {
       enabled: metrics.enabled !== false,
       slowCallMs: Number(metrics.slowCallMs || 250),
     },
+    requestScheduler: normalizeSchedulerConfig(requestScheduler),
   };
 }
 
@@ -266,8 +270,18 @@ function createInstrumentedCall(methodName, fn, perfState) {
       return perfState.inFlight.get(key);
     }
 
-    const requestPromise = Promise.resolve()
-      .then(() => fn(...args))
+    const runLiveRequest = () => Promise.resolve().then(() => fn(...args));
+    const requestPromise = (perfState.scheduler && typeof perfState.scheduler.enqueue === 'function' && canUseCache)
+      ? perfState.scheduler.enqueue(runLiveRequest, {
+        queueClass: resolveSchedulerQueueClass(methodName),
+        priority: resolveSchedulerPriority(perfState, methodName),
+        ticker: typeof args[0] === 'string' ? args[0] : null,
+        cycleId: perfState.hooks.getRuntimeTags ? perfState.hooks.getRuntimeTags().cycleId : null,
+        exchange: perfState.hooks.getRuntimeTags ? perfState.hooks.getRuntimeTags().exchange : 'unknown',
+      })
+      : runLiveRequest();
+
+    const wrappedPromise = requestPromise
       .then((result) => {
         if (canUseCache) {
           perfState.cache.set(key, {
@@ -309,9 +323,24 @@ function createInstrumentedCall(methodName, fn, perfState) {
         }
       });
 
-    perfState.inFlight.set(key, requestPromise);
-    return requestPromise;
+    perfState.inFlight.set(key, wrappedPromise);
+    return wrappedPromise;
   };
+}
+
+function resolveSchedulerQueueClass(methodName) {
+  if (['getTickerInfo', 'getMarkPrice', 'getKLine', 'getBalance'].includes(methodName)) return 'coreMarketData';
+  if (['getLeverage', 'getMarginMode', 'getFuturesActivePositions', 'getFuturesPositionsForTicker'].includes(methodName)) return 'derivativesContext';
+  return 'analyticsRefresh';
+}
+
+function resolveSchedulerPriority(perfState, methodName) {
+  const queueClass = resolveSchedulerQueueClass(methodName);
+  const schedulerConfig = perfState && perfState.config && perfState.config.requestScheduler
+    ? perfState.config.requestScheduler
+    : {};
+  const priorities = schedulerConfig.priorities || {};
+  return Number(priorities[queueClass] || 0);
 }
 
 function deriveFeatureTier(perfState, featureType) {
@@ -384,6 +413,9 @@ function createCacheControl(perfState) {
     },
     onCycleStart(cycleId) {
       if (!perfState.config.enabled) return;
+      if (perfState.scheduler && typeof perfState.scheduler.onCycleStart === 'function') {
+        perfState.scheduler.onCycleStart(cycleId);
+      }
       if (perfState.config.invalidation.fullFlushOnCycleStart) {
         perfState.cache.clear();
       }
@@ -417,6 +449,9 @@ function createProviders(connector, utils, options = {}) {
   const perfState = createPerfState(perfConfig, options.logger || null, {
     onDiagnosticEvent: options.onDiagnosticEvent,
     getRuntimeTags: options.getRuntimeTags,
+  });
+  perfState.scheduler = createRequestScheduler(perfConfig.requestScheduler, {
+    onDiagnosticEvent: options.onDiagnosticEvent,
   });
   const cacheControl = createCacheControl(perfState);
   const derivedFeatureAccessor = createDerivedFeatureAccessor(perfState);
@@ -472,7 +507,9 @@ function createProviders(connector, utils, options = {}) {
         byMethod: { ...perfState.metrics.byMethod },
         lastSlowCalls: [...perfState.metrics.lastSlowCalls],
       },
+      requestScheduler: perfState.scheduler ? perfState.scheduler.getDiagnostics() : { enabled: false },
     }),
+    getRequestSchedulerDiagnostics: () => (perfState.scheduler ? perfState.scheduler.getDiagnostics() : { enabled: false }),
   };
 }
 

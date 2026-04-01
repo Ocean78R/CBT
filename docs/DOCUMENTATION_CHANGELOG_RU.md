@@ -67,6 +67,14 @@
 - Связанные файлы кода: `dist/runtime/observability/reportingLayer.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/observability-reporting-layer.test.js`.
 - Связанные разделы docs: `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
 
+## 2026-04-01 (request scheduler + безопасное распараллеливание read-only)
+- Изменение: добавлен `requestScheduler` для read-only слоя providers с лимитом конкурентности, rate-limit awareness, очередями приоритетов и backoff при API-перегрузке.
+- Изменение: scheduler интегрирован только в read-only path и явно не подменяет execution owner-layer; execution-critical операции оставлены последовательными/live-only.
+- Изменение: добавлены диагностические события scheduler (`scheduler_enqueued`, `scheduler_started`, `scheduler_backoff_set`, `scheduler_optional_budget_skip`) для observability/audit trail совместимости.
+- Изменение: добавлены тесты на конкурентность, приоритетную очередь и backoff при rate-limit ошибке.
+- Связанные файлы кода: `dist/runtime/scheduler/requestScheduler.js`, `dist/runtime/providers/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/providers-performance-diagnostics.test.js`.
+- Связанные разделы docs: `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/TRADING_PIPELINE_RU.md`.
+
 ## 2026-04-01 (performance audit: профилирование и безопасные read-only оптимизации)
 - Изменение: добавлен конфигурируемый слой `performanceDiagnostics` для аудита производительности провайдеров (latency/cache/in-flight метрики) без изменения торговой логики и ownership path.
 - Изменение: в observability reporting добавлены performance-метрики `ingest/flush/analytics` и разделение потока событий на `signalReadOnly`, `executionProtection`, `analyticsReporting`.

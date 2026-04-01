@@ -29,6 +29,9 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const perfDerivedTtl = perfDerivedFeatureCache.ttl || {};
   const perfDerivedForcedRefresh = perfDerivedFeatureCache.forcedRefresh || {};
   const perfMetrics = performanceDiagnostics.metrics || {};
+  const perfRequestScheduler = performanceDiagnostics.requestScheduler || {};
+  const perfSchedulerPriorities = perfRequestScheduler.priorities || {};
+  const perfSchedulerOptionalBudget = perfRequestScheduler.optionalBudget || {};
   const cooldownAfterBadStreak = portfolioRiskContour.cooldownAfterBadStreak || {};
   const capitalRegimeThresholds = portfolioRiskContour.capitalRegimeThresholds || {};
   const capitalRegimeEngine = portfolioRiskContour.capitalRegimeEngine || {};
@@ -212,6 +215,24 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
       metrics: {
         enabled: perfMetrics.enabled !== false,
         slowCallMs: Number(perfMetrics.slowCallMs || 250),
+      },
+      requestScheduler: {
+        enabled: !!perfRequestScheduler.enabled,
+        maxConcurrency: Number(perfRequestScheduler.maxConcurrency || 6),
+        maxRequestsPerWindow: Number(perfRequestScheduler.maxRequestsPerWindow || 20),
+        windowMs: Number(perfRequestScheduler.windowMs || 1000),
+        backoffBaseMs: Number(perfRequestScheduler.backoffBaseMs || 250),
+        backoffMaxMs: Number(perfRequestScheduler.backoffMaxMs || 3000),
+        priorities: {
+          coreMarketData: Number(perfSchedulerPriorities.coreMarketData || 100),
+          optionalMicrostructure: Number(perfSchedulerPriorities.optionalMicrostructure || 40),
+          derivativesContext: Number(perfSchedulerPriorities.derivativesContext || 30),
+          analyticsRefresh: Number(perfSchedulerPriorities.analyticsRefresh || 20),
+        },
+        optionalBudget: {
+          enabled: perfSchedulerOptionalBudget.enabled !== false,
+          maxOptionalPerCycle: Number(perfSchedulerOptionalBudget.maxOptionalPerCycle || 300),
+        },
       },
     },
     serverStopLoss: {
