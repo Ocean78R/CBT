@@ -45,3 +45,11 @@
 - `soft penalty` — ухудшение оценки без полного запрета.
 - `no-trade regime` — режим «не торговать».
 - `capital prohibition` — запрет входа по капиталу/марже.
+
+## Runtime-позиция execution contour
+- Место в пайплайне: **после approved entry/sizing и до прямого вызова connector**.
+- Зависимости: готовое решение от risk/entry/sizing слоёв; сам execution contour не принимает торговых решений.
+- Ownership path: `openNewPosition/averagePosition/closePosition -> executeOrderIntent -> enqueueExecutionIntent/runExecutionIntent -> connector`.
+- Fallback: при `executionContour.enabled=false` используется прежний flow исполнения.
+
+Важно: execution contour — это технический слой надёжности (queue/retry/dedup/reconciliation), а не decision-layer.

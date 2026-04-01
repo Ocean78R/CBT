@@ -26,3 +26,17 @@
 ### 4) Подозрительное изменение поведения после доработки
 - Признак: вход/выходы изменились без явного флага.
 - Действие: проверить changelog документации и policy обновления; убедиться, что не произошло неявного переключения режима.
+
+## Новые execution-события для audit trail
+Добавлены структурированные runtime-события слоя `execution_contour`:
+- `queue_enqueued`, `queue_dequeued`, `queue_overflow`;
+- `order_attempt`, `order_retry`, `order_confirmed`, `order_failed`;
+- `dedup_inflight`, `dedup_skip`;
+- `reconciliation`.
+
+Минимальные поля для анализа: `cycleId`, `ticker`, `module/layer`, `decision`, `reason`, `action`, `dedupKey`, `attempt`, `queueSize`, `итог`.
+
+Практика диагностики:
+1. Сначала ищите `order_attempt` и количество `order_retry`.
+2. Проверяйте `dedup_*` при подозрении на дубль.
+3. После рестарта проверяйте `reconciliation` и расхождения `activePositions/queueDepth`.
