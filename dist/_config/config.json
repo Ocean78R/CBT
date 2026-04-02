@@ -80,7 +80,8 @@
           "confirmation": 0.2,
           "marketLevel": 0,
           "volumeContext": 0,
-          "bounceDetection": 0
+          "bounceDetection": 0,
+          "breakdownDetection": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -222,6 +223,65 @@
             "DEFENSIVE": 0.12,
             "CAPITAL_PRESERVATION": 0.2,
             "HALT_NEW_ENTRIES": 0.35
+          }
+        },
+        "breakdownDetection": {
+          "enabled": false,
+          "allowedRegimes": [
+            "trend",
+            "pullback",
+            "volatile_breakout"
+          ],
+          "noTradeRegimes": [
+            "no_trade_flat"
+          ],
+          "lookbackBars": 96,
+          "minCandlesForAnalysis": 30,
+          "supportLookbackBars": 28,
+          "supportProximityPercent": 0.35,
+          "pressureLookbackBars": 8,
+          "momentumLookbackBars": 6,
+          "repeatedTestsWindowBars": 20,
+          "repeatedTestsTolerancePercent": 0.2,
+          "breakdownConfirmationBars": 2,
+          "reclaimTolerancePercent": 0.12,
+          "thresholds": {
+            "scoreForSetupTag": 0.58,
+            "strongScore": 0.74,
+            "minConfidence": 0.34,
+            "minimumDataCoverage": 0.5,
+            "microstructureActivationScore": 0.62
+          },
+          "setupTypes": {
+            "pre_breakdown_pressure": true,
+            "confirmed_breakdown_continuation": true,
+            "weak_retest_failure": true,
+            "momentum_expansion_breakdown": true,
+            "volume_confirmed_breakdown": true,
+            "orderbook_ask_pressure": true
+          },
+          "weights": {
+            "proximityToSupport": 0.14,
+            "supportPressure": 0.14,
+            "repeatedTests": 0.12,
+            "downsideMomentumExpansion": 0.14,
+            "volumeSpikeOnBreakdown": 0.12,
+            "weakReboundRetest": 0.12,
+            "reclaimFailure": 0.1,
+            "microstructure": 0.12
+          },
+          "microstructure": {
+            "enabled": true,
+            "requireStrongCandidate": true,
+            "skipWhenBudgetExceeded": true,
+            "minAskBidImbalance": 0.1,
+            "maxSpreadPercent": 0.14
+          },
+          "capitalRegimePenalties": {
+            "CAUTION": 0.04,
+            "DEFENSIVE": 0.1,
+            "CAPITAL_PRESERVATION": 0.16,
+            "HALT_NEW_ENTRIES": 0.28
           }
         }
       }
@@ -306,7 +366,8 @@
           "confirmation": 0.2,
           "marketLevel": 0,
           "volumeContext": 0,
-          "bounceDetection": 0
+          "bounceDetection": 0,
+          "breakdownDetection": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -448,6 +509,65 @@
             "DEFENSIVE": 0.12,
             "CAPITAL_PRESERVATION": 0.2,
             "HALT_NEW_ENTRIES": 0.35
+          }
+        },
+        "breakdownDetection": {
+          "enabled": false,
+          "allowedRegimes": [
+            "trend",
+            "pullback",
+            "volatile_breakout"
+          ],
+          "noTradeRegimes": [
+            "no_trade_flat"
+          ],
+          "lookbackBars": 96,
+          "minCandlesForAnalysis": 30,
+          "supportLookbackBars": 28,
+          "supportProximityPercent": 0.35,
+          "pressureLookbackBars": 8,
+          "momentumLookbackBars": 6,
+          "repeatedTestsWindowBars": 20,
+          "repeatedTestsTolerancePercent": 0.2,
+          "breakdownConfirmationBars": 2,
+          "reclaimTolerancePercent": 0.12,
+          "thresholds": {
+            "scoreForSetupTag": 0.58,
+            "strongScore": 0.74,
+            "minConfidence": 0.34,
+            "minimumDataCoverage": 0.5,
+            "microstructureActivationScore": 0.62
+          },
+          "setupTypes": {
+            "pre_breakdown_pressure": true,
+            "confirmed_breakdown_continuation": true,
+            "weak_retest_failure": true,
+            "momentum_expansion_breakdown": true,
+            "volume_confirmed_breakdown": true,
+            "orderbook_ask_pressure": true
+          },
+          "weights": {
+            "proximityToSupport": 0.14,
+            "supportPressure": 0.14,
+            "repeatedTests": 0.12,
+            "downsideMomentumExpansion": 0.14,
+            "volumeSpikeOnBreakdown": 0.12,
+            "weakReboundRetest": 0.12,
+            "reclaimFailure": 0.1,
+            "microstructure": 0.12
+          },
+          "microstructure": {
+            "enabled": true,
+            "requireStrongCandidate": true,
+            "skipWhenBudgetExceeded": true,
+            "minAskBidImbalance": 0.1,
+            "maxSpreadPercent": 0.14
+          },
+          "capitalRegimePenalties": {
+            "CAUTION": 0.04,
+            "DEFENSIVE": 0.1,
+            "CAPITAL_PRESERVATION": 0.16,
+            "HALT_NEW_ENTRIES": 0.28
           }
         }
       }
@@ -867,7 +987,8 @@
           "confirmation": 0.2,
           "marketLevel": 0,
           "volumeContext": 0,
-          "bounceDetection": 0
+          "bounceDetection": 0,
+          "breakdownDetection": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1009,6 +1130,65 @@
             "DEFENSIVE": 0.12,
             "CAPITAL_PRESERVATION": 0.2,
             "HALT_NEW_ENTRIES": 0.35
+          }
+        },
+        "breakdownDetection": {
+          "enabled": false,
+          "allowedRegimes": [
+            "trend",
+            "pullback",
+            "volatile_breakout"
+          ],
+          "noTradeRegimes": [
+            "no_trade_flat"
+          ],
+          "lookbackBars": 96,
+          "minCandlesForAnalysis": 30,
+          "supportLookbackBars": 28,
+          "supportProximityPercent": 0.35,
+          "pressureLookbackBars": 8,
+          "momentumLookbackBars": 6,
+          "repeatedTestsWindowBars": 20,
+          "repeatedTestsTolerancePercent": 0.2,
+          "breakdownConfirmationBars": 2,
+          "reclaimTolerancePercent": 0.12,
+          "thresholds": {
+            "scoreForSetupTag": 0.58,
+            "strongScore": 0.74,
+            "minConfidence": 0.34,
+            "minimumDataCoverage": 0.5,
+            "microstructureActivationScore": 0.62
+          },
+          "setupTypes": {
+            "pre_breakdown_pressure": true,
+            "confirmed_breakdown_continuation": true,
+            "weak_retest_failure": true,
+            "momentum_expansion_breakdown": true,
+            "volume_confirmed_breakdown": true,
+            "orderbook_ask_pressure": true
+          },
+          "weights": {
+            "proximityToSupport": 0.14,
+            "supportPressure": 0.14,
+            "repeatedTests": 0.12,
+            "downsideMomentumExpansion": 0.14,
+            "volumeSpikeOnBreakdown": 0.12,
+            "weakReboundRetest": 0.12,
+            "reclaimFailure": 0.1,
+            "microstructure": 0.12
+          },
+          "microstructure": {
+            "enabled": true,
+            "requireStrongCandidate": true,
+            "skipWhenBudgetExceeded": true,
+            "minAskBidImbalance": 0.1,
+            "maxSpreadPercent": 0.14
+          },
+          "capitalRegimePenalties": {
+            "CAUTION": 0.04,
+            "DEFENSIVE": 0.1,
+            "CAPITAL_PRESERVATION": 0.16,
+            "HALT_NEW_ENTRIES": 0.28
           }
         }
       }
@@ -1092,7 +1272,8 @@
           "confirmation": 0.2,
           "marketLevel": 0,
           "volumeContext": 0,
-          "bounceDetection": 0
+          "bounceDetection": 0,
+          "breakdownDetection": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1234,6 +1415,65 @@
             "DEFENSIVE": 0.12,
             "CAPITAL_PRESERVATION": 0.2,
             "HALT_NEW_ENTRIES": 0.35
+          }
+        },
+        "breakdownDetection": {
+          "enabled": false,
+          "allowedRegimes": [
+            "trend",
+            "pullback",
+            "volatile_breakout"
+          ],
+          "noTradeRegimes": [
+            "no_trade_flat"
+          ],
+          "lookbackBars": 96,
+          "minCandlesForAnalysis": 30,
+          "supportLookbackBars": 28,
+          "supportProximityPercent": 0.35,
+          "pressureLookbackBars": 8,
+          "momentumLookbackBars": 6,
+          "repeatedTestsWindowBars": 20,
+          "repeatedTestsTolerancePercent": 0.2,
+          "breakdownConfirmationBars": 2,
+          "reclaimTolerancePercent": 0.12,
+          "thresholds": {
+            "scoreForSetupTag": 0.58,
+            "strongScore": 0.74,
+            "minConfidence": 0.34,
+            "minimumDataCoverage": 0.5,
+            "microstructureActivationScore": 0.62
+          },
+          "setupTypes": {
+            "pre_breakdown_pressure": true,
+            "confirmed_breakdown_continuation": true,
+            "weak_retest_failure": true,
+            "momentum_expansion_breakdown": true,
+            "volume_confirmed_breakdown": true,
+            "orderbook_ask_pressure": true
+          },
+          "weights": {
+            "proximityToSupport": 0.14,
+            "supportPressure": 0.14,
+            "repeatedTests": 0.12,
+            "downsideMomentumExpansion": 0.14,
+            "volumeSpikeOnBreakdown": 0.12,
+            "weakReboundRetest": 0.12,
+            "reclaimFailure": 0.1,
+            "microstructure": 0.12
+          },
+          "microstructure": {
+            "enabled": true,
+            "requireStrongCandidate": true,
+            "skipWhenBudgetExceeded": true,
+            "minAskBidImbalance": 0.1,
+            "maxSpreadPercent": 0.14
+          },
+          "capitalRegimePenalties": {
+            "CAUTION": 0.04,
+            "DEFENSIVE": 0.1,
+            "CAPITAL_PRESERVATION": 0.16,
+            "HALT_NEW_ENTRIES": 0.28
           }
         }
       }
@@ -1318,7 +1558,8 @@
           "confirmation": 0.2,
           "marketLevel": 0,
           "volumeContext": 0,
-          "bounceDetection": 0
+          "bounceDetection": 0,
+          "breakdownDetection": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1460,6 +1701,65 @@
             "DEFENSIVE": 0.12,
             "CAPITAL_PRESERVATION": 0.2,
             "HALT_NEW_ENTRIES": 0.35
+          }
+        },
+        "breakdownDetection": {
+          "enabled": false,
+          "allowedRegimes": [
+            "trend",
+            "pullback",
+            "volatile_breakout"
+          ],
+          "noTradeRegimes": [
+            "no_trade_flat"
+          ],
+          "lookbackBars": 96,
+          "minCandlesForAnalysis": 30,
+          "supportLookbackBars": 28,
+          "supportProximityPercent": 0.35,
+          "pressureLookbackBars": 8,
+          "momentumLookbackBars": 6,
+          "repeatedTestsWindowBars": 20,
+          "repeatedTestsTolerancePercent": 0.2,
+          "breakdownConfirmationBars": 2,
+          "reclaimTolerancePercent": 0.12,
+          "thresholds": {
+            "scoreForSetupTag": 0.58,
+            "strongScore": 0.74,
+            "minConfidence": 0.34,
+            "minimumDataCoverage": 0.5,
+            "microstructureActivationScore": 0.62
+          },
+          "setupTypes": {
+            "pre_breakdown_pressure": true,
+            "confirmed_breakdown_continuation": true,
+            "weak_retest_failure": true,
+            "momentum_expansion_breakdown": true,
+            "volume_confirmed_breakdown": true,
+            "orderbook_ask_pressure": true
+          },
+          "weights": {
+            "proximityToSupport": 0.14,
+            "supportPressure": 0.14,
+            "repeatedTests": 0.12,
+            "downsideMomentumExpansion": 0.14,
+            "volumeSpikeOnBreakdown": 0.12,
+            "weakReboundRetest": 0.12,
+            "reclaimFailure": 0.1,
+            "microstructure": 0.12
+          },
+          "microstructure": {
+            "enabled": true,
+            "requireStrongCandidate": true,
+            "skipWhenBudgetExceeded": true,
+            "minAskBidImbalance": 0.1,
+            "maxSpreadPercent": 0.14
+          },
+          "capitalRegimePenalties": {
+            "CAUTION": 0.04,
+            "DEFENSIVE": 0.1,
+            "CAPITAL_PRESERVATION": 0.16,
+            "HALT_NEW_ENTRIES": 0.28
           }
         }
       }
@@ -1543,7 +1843,8 @@
           "confirmation": 0.2,
           "marketLevel": 0,
           "volumeContext": 0,
-          "bounceDetection": 0
+          "bounceDetection": 0,
+          "breakdownDetection": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1685,6 +1986,65 @@
             "DEFENSIVE": 0.12,
             "CAPITAL_PRESERVATION": 0.2,
             "HALT_NEW_ENTRIES": 0.35
+          }
+        },
+        "breakdownDetection": {
+          "enabled": false,
+          "allowedRegimes": [
+            "trend",
+            "pullback",
+            "volatile_breakout"
+          ],
+          "noTradeRegimes": [
+            "no_trade_flat"
+          ],
+          "lookbackBars": 96,
+          "minCandlesForAnalysis": 30,
+          "supportLookbackBars": 28,
+          "supportProximityPercent": 0.35,
+          "pressureLookbackBars": 8,
+          "momentumLookbackBars": 6,
+          "repeatedTestsWindowBars": 20,
+          "repeatedTestsTolerancePercent": 0.2,
+          "breakdownConfirmationBars": 2,
+          "reclaimTolerancePercent": 0.12,
+          "thresholds": {
+            "scoreForSetupTag": 0.58,
+            "strongScore": 0.74,
+            "minConfidence": 0.34,
+            "minimumDataCoverage": 0.5,
+            "microstructureActivationScore": 0.62
+          },
+          "setupTypes": {
+            "pre_breakdown_pressure": true,
+            "confirmed_breakdown_continuation": true,
+            "weak_retest_failure": true,
+            "momentum_expansion_breakdown": true,
+            "volume_confirmed_breakdown": true,
+            "orderbook_ask_pressure": true
+          },
+          "weights": {
+            "proximityToSupport": 0.14,
+            "supportPressure": 0.14,
+            "repeatedTests": 0.12,
+            "downsideMomentumExpansion": 0.14,
+            "volumeSpikeOnBreakdown": 0.12,
+            "weakReboundRetest": 0.12,
+            "reclaimFailure": 0.1,
+            "microstructure": 0.12
+          },
+          "microstructure": {
+            "enabled": true,
+            "requireStrongCandidate": true,
+            "skipWhenBudgetExceeded": true,
+            "minAskBidImbalance": 0.1,
+            "maxSpreadPercent": 0.14
+          },
+          "capitalRegimePenalties": {
+            "CAUTION": 0.04,
+            "DEFENSIVE": 0.1,
+            "CAPITAL_PRESERVATION": 0.16,
+            "HALT_NEW_ENTRIES": 0.28
           }
         }
       }
@@ -1779,7 +2139,8 @@
           "confirmation": 0.2,
           "marketLevel": 0,
           "volumeContext": 0,
-          "bounceDetection": 0
+          "bounceDetection": 0,
+          "breakdownDetection": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1921,6 +2282,65 @@
             "DEFENSIVE": 0.12,
             "CAPITAL_PRESERVATION": 0.2,
             "HALT_NEW_ENTRIES": 0.35
+          }
+        },
+        "breakdownDetection": {
+          "enabled": false,
+          "allowedRegimes": [
+            "trend",
+            "pullback",
+            "volatile_breakout"
+          ],
+          "noTradeRegimes": [
+            "no_trade_flat"
+          ],
+          "lookbackBars": 96,
+          "minCandlesForAnalysis": 30,
+          "supportLookbackBars": 28,
+          "supportProximityPercent": 0.35,
+          "pressureLookbackBars": 8,
+          "momentumLookbackBars": 6,
+          "repeatedTestsWindowBars": 20,
+          "repeatedTestsTolerancePercent": 0.2,
+          "breakdownConfirmationBars": 2,
+          "reclaimTolerancePercent": 0.12,
+          "thresholds": {
+            "scoreForSetupTag": 0.58,
+            "strongScore": 0.74,
+            "minConfidence": 0.34,
+            "minimumDataCoverage": 0.5,
+            "microstructureActivationScore": 0.62
+          },
+          "setupTypes": {
+            "pre_breakdown_pressure": true,
+            "confirmed_breakdown_continuation": true,
+            "weak_retest_failure": true,
+            "momentum_expansion_breakdown": true,
+            "volume_confirmed_breakdown": true,
+            "orderbook_ask_pressure": true
+          },
+          "weights": {
+            "proximityToSupport": 0.14,
+            "supportPressure": 0.14,
+            "repeatedTests": 0.12,
+            "downsideMomentumExpansion": 0.14,
+            "volumeSpikeOnBreakdown": 0.12,
+            "weakReboundRetest": 0.12,
+            "reclaimFailure": 0.1,
+            "microstructure": 0.12
+          },
+          "microstructure": {
+            "enabled": true,
+            "requireStrongCandidate": true,
+            "skipWhenBudgetExceeded": true,
+            "minAskBidImbalance": 0.1,
+            "maxSpreadPercent": 0.14
+          },
+          "capitalRegimePenalties": {
+            "CAUTION": 0.04,
+            "DEFENSIVE": 0.1,
+            "CAPITAL_PRESERVATION": 0.16,
+            "HALT_NEW_ENTRIES": 0.28
           }
         }
       }

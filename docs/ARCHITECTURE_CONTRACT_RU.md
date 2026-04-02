@@ -14,7 +14,7 @@
 2. universe filters,
 3. dynamic asset selection,
 4. market regime router,
-5. confluence + technical confirmations + support/resistance + volume context + bounce/rebound context,
+5. confluence + technical confirmations + support/resistance + volume context + bounce/rebound + breakdown/bearish-continuation context,
 6. veto-signals / final entry score,
 7. dynamic sizing (только после approved entry),
 8. execution engine,
@@ -241,3 +241,13 @@ CBT/
   - формировать hard-veto вне общего risk/capital ownership path.
 - Обязательный формат выхода: совместимый decision-contract (`layerName/direction/score/confidence/softPenalty/vetoCandidates/dataQualityState/reasonCodes`) + поля контекста (`htfBias/marketStructureState/structureConfidence/trendAlignmentScore`).
 - Fallback-контракт: при нехватке данных `dataQualityState=degraded` и нейтральный bias; при slower-refresh reuse `dataQualityState=cached`.
+
+## breakdownEngine / bearishContinuationEngine (контракт интеграции)
+- Runtime-позиция: внутри confluence-пайплайна после `bounceDetectionLayer` и до `finalEntryDecisionLayer`.
+- Допустимые входные зависимости: `DecisionContext`, shared `candles/orderBook` из `MarketSnapshot/FeatureSnapshot`, `marketRegime`, `capitalRegime`.
+- Обязательные признаки: proximity к support, pressure/repeated tests, downside momentum expansion, volume spike, weak retest/failure to reclaim, optional order-book microstructure.
+- Ограничения:
+  - слой не открывает позицию и не решает конфликт с bounce внутри себя;
+  - hard-risk/capital/no-trade ограничения остаются выше по chain;
+  - при нехватке данных/budget слой обязан вернуть `degraded` контракт и не останавливать цикл.
+- Формат выхода: совместимый block-контракт (`layerName/direction/score/confidence/softPenalty/vetoCandidates/dataQualityState/reasonCodes/explanation`) + enrich в `DecisionContext.metadata.breakdownDetection`.
