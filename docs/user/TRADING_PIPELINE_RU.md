@@ -282,3 +282,43 @@ Cache tiers и чтение слоями:
 - Как включается/используется:
   - запуск вручную через CLI `npm run ml:train:entry-quality`;
   - артефакты сохраняются локально в `./data/ml_models/entry_quality` (или в путь из аргумента `--outDir`).
+
+## Runtime-позиция higherTimeframeBiasEngine / marketStructureEngine
+- Место слоя в пайплайне: `marketRegimeRouter -> higherTimeframeBiasEngine -> confluenceEntry/finalEntryDecision -> dynamicPositionSizing -> execution`.
+- Зависимости от более ранних слоёв:
+  - `DecisionContext` (`cycleId/ticker/exchange/marketRegime/capitalRegime/setupType`),
+  - shared snapshot (`sharedSnapshot.htfCandles`, `sharedSnapshot.latestPrice`),
+  - `balanceState/capitalRegime` как внешний контекст ограничений.
+- Кто главный:
+  - primary: `hard-risk/hard-safety/exchange constraints/unload mode/marketRegimeRouter`;
+  - `higherTimeframeBiasEngine` даёт только контекст (bias/penalty/boost), но не даёт hard-veto и не отправляет ордера.
+- Что осталось fallback:
+  - при `higherTimeframeBiasEngine.enabled=false` используется legacy entry-flow без HTF-штрафов;
+  - при нехватке данных или budget-pressure слой возвращает `dataQualityState=degraded|cached` и нейтральный контекст.
+- Как переключается режим:
+  - `higherTimeframeBiasEngine.enabled` — master-флаг;
+  - `higherTimeframeBiasEngine.slowerRefresh.*` — slower-refresh/cache режим HTF-структуры;
+  - `higherTimeframeBiasEngine.alignmentPenalties.*` — влияние только в confluence/final decision.
+
+### Что рассчитывает HTF-слой
+- Структура swing-пивотов `HH/HL` и `LH/LL`.
+- `Break of Structure` (BOS) по порогу `breakOfStructureThresholdPercent`.
+- `Shift / Change of Character` (CHoCH) как смена доминирующей структуры.
+- Направление старшего тренда (`bullish/bearish/sideways`).
+- Положение цены внутри старшего диапазона (`discount/middle/premium`).
+
+### Выходы слоя (совместимый контракт)
+- `layerName`, `direction`, `score`, `confidence`, `softPenalty`, `vetoCandidates`, `dataQualityState`, `reasonCodes`.
+- Специализированные поля контекста:
+  - `htfBias`,
+  - `marketStructureState`,
+  - `structureConfidence`,
+  - `trendAlignmentScore`.
+- Слой обогащает `DecisionContext.metadata.higherTimeframeBias` и не создаёт ad-hoc контрактов для финального решения.
+
+### Логика влияния на вход
+- Если локальный вход согласован с `htfBias`, возможен небольшой boost к score (через config).
+- Если локальный вход против `htfBias`, применяется `softPenalty`.
+- Нейтральный HTF-контекст даёт мягкое ослабление уверенности, но не формирует hard-veto.
+- Финальное решение всё равно остаётся за `confluence/finalEntryDecision` с приоритетом risk/capital-veto слоёв.
+

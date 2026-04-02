@@ -19,6 +19,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const tradeAnalytics = merged.tradeAnalytics || {};
   const paperTrading = merged.paperTrading || {};
   const mlDatasetBuilder = merged.mlDatasetBuilder || {};
+  const higherTimeframeBiasEngine = merged.higherTimeframeBiasEngine || {};
 
   const observabilityReporting = merged.observabilityReporting || {};
   const observabilitySampling = observabilityReporting.sampling || {};
@@ -54,6 +55,11 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const capitalRegimeThresholds = portfolioRiskContour.capitalRegimeThresholds || {};
   const capitalRegimeEngine = portfolioRiskContour.capitalRegimeEngine || {};
   const portfolioForecastEngine = portfolioRiskContour.portfolioForecastEngine || {};
+  const htfTrendWeights = higherTimeframeBiasEngine.trendWeights || {};
+  const htfRangeWeights = higherTimeframeBiasEngine.rangeWeights || {};
+  const htfConfidence = higherTimeframeBiasEngine.confidence || {};
+  const htfAlignmentPenalties = higherTimeframeBiasEngine.alignmentPenalties || {};
+  const htfSlowerRefresh = higherTimeframeBiasEngine.slowerRefresh || {};
 
   const normalized = {
     ...merged,
@@ -173,6 +179,45 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         stressSignals: Array.isArray(forecastInfluence.stressSignals) ? forecastInfluence.stressSignals : [],
         lossMultiplierOnStress: Number(forecastInfluence.lossMultiplierOnStress || 1),
         holdMinutesMultiplierOnStress: Number(forecastInfluence.holdMinutesMultiplierOnStress || 1),
+      },
+    },
+
+    higherTimeframeBiasEngine: {
+      enabled: !!higherTimeframeBiasEngine.enabled,
+      higherTimeframe: higherTimeframeBiasEngine.higherTimeframe || '4h',
+      lookbackBars: Number(higherTimeframeBiasEngine.lookbackBars || 120),
+      swingWindow: Number(higherTimeframeBiasEngine.swingWindow || 2),
+      minimumStructurePoints: Number(higherTimeframeBiasEngine.minimumStructurePoints || 4),
+      breakOfStructureThresholdPercent: Number(higherTimeframeBiasEngine.breakOfStructureThresholdPercent || 0.12),
+      shiftConfirmationBars: Number(higherTimeframeBiasEngine.shiftConfirmationBars || 2),
+      trendWeights: {
+        hhhl: Number(htfTrendWeights.hhhl || 0.45),
+        lhll: Number(htfTrendWeights.lhll || 0.45),
+        bos: Number(htfTrendWeights.bos || 0.35),
+        choch: Number(htfTrendWeights.choch || 0.25),
+      },
+      rangeWeights: {
+        premiumZoneUpper: Number(htfRangeWeights.premiumZoneUpper || 0.7),
+        discountZoneLower: Number(htfRangeWeights.discountZoneLower || 0.3),
+        neutralBandLow: Number(htfRangeWeights.neutralBandLow || 0.4),
+        neutralBandHigh: Number(htfRangeWeights.neutralBandHigh || 0.6),
+      },
+      confidence: {
+        min: Number(htfConfidence.min || 0.2),
+        max: Number(htfConfidence.max || 0.95),
+        degradeOnLimitedData: Number(htfConfidence.degradeOnLimitedData || 0.65),
+        degradeOnCachedData: Number(htfConfidence.degradeOnCachedData || 0.8),
+      },
+      alignmentPenalties: {
+        counterTrendSoftPenalty: Number(htfAlignmentPenalties.counterTrendSoftPenalty || 0.22),
+        weakAlignmentPenalty: Number(htfAlignmentPenalties.weakAlignmentPenalty || 0.1),
+        strongAlignmentBoost: Number(htfAlignmentPenalties.strongAlignmentBoost || 0.08),
+      },
+      slowerRefresh: {
+        enabled: htfSlowerRefresh.enabled !== false,
+        minBarsBetweenRefresh: Number(htfSlowerRefresh.minBarsBetweenRefresh || 1),
+        forceRefreshEveryCycles: Number(htfSlowerRefresh.forceRefreshEveryCycles || 0),
+        useFeatureStoreCache: htfSlowerRefresh.useFeatureStoreCache !== false,
       },
     },
 
