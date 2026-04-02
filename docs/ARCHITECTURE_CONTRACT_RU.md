@@ -30,6 +30,11 @@
 
 `DecisionContext` — единый формат для всех entry-решений и risk-gates.
 
+Для execution/reconciliation special position states (`NORMAL_POSITION`, `LEVERAGE_MISMATCH_POSITION`, `LEGACY_RESTRICTED_POSITION`) действует отдельное правило совместимости:
+- владелец состояния: только execution/reconciliation/lifecycle;
+- сигнал/entry-слои читают состояние только через runtime context (`DecisionContext.metadata`, `lifecycleContext`) и не управляют им;
+- safe close path (`reduce_only_close/profit_close/protective_forced_close`) остаётся доступным даже при restricted-state.
+
 Обязательные поля:
 - `cycleId`, `ticker`, `regime`, `mode`,
 - `score` (0..1), `confidence` (0..1),

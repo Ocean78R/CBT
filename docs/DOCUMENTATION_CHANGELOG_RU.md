@@ -8,6 +8,14 @@
 
 ---
 
+## 2026-04-02 (execution/reconciliation leverage mismatch corrective patch)
+- Изменение: execution/reconciliation расширен для explicit special states (`NORMAL_POSITION`, `LEVERAGE_MISMATCH_POSITION`, `LEGACY_RESTRICTED_POSITION`) с проверкой `leverage + position mode + reduce-only assumptions`.
+- Изменение: добавлена структурированная передача restricted-state в `PositionState`, `DecisionContext.metadata` и `lifecycleContext` без смены ownership path.
+- Изменение: заблокированные действия (`averaging`, leverage-sensitive updates) теперь фиксируются отдельным structured event `execution.blocked_action` с причиной и allow/block матрицей.
+- Изменение: добавлены регрессии на detection/restart recovery/propagation для mismatch-позиций.
+- Связанные файлы кода: `dist/index.js`, `tests/regression/single-strategy.regression.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/ARCHITECTURE_CONTRACT_RU.md`.
+
 ## 2026-04-02 (protective dedup/audit trace hardening)
 - Изменение: в observability-reporting добавлены агрегированные protective-метрики отчёта (`protectiveDiagnostics.duplicateClosePrevented`, `byOwner`, `byCloseSource`) для явной проверки, что `duplicateClosePrevented=true` попадает не только в логи, но и в report events.
 - Изменение: в audit/postmortem trace расширен lifecycle/reconciliation stage: сохраняются `protectiveActionOwner`, `protectiveActionToken`, `duplicateClosePrevented`, `closeSource`, включая рестартный reconciliation-кейс.

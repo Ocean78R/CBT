@@ -94,9 +94,11 @@
 - Runtime-позиция слоя: внутри `execution contour` на шаге reconciliation до entry/position processing.
 - Зависимости: `positionProvider` (фактическая позиция), `marketDataProvider.getMarginMode` (mode), runtime leverage из config.
 - Поддерживаемые состояния: `NORMAL_POSITION`, `LEVERAGE_MISMATCH_POSITION`, `LEGACY_RESTRICTED_POSITION`.
+- Детект в execution/reconciliation сравнивает минимум: `leverage`, `position mode`, `reduce-only safety assumptions`; mismatch не обрабатывается ad-hoc в signal-слоях.
 - Для `LEVERAGE_MISMATCH_POSITION` allowed actions: `reduce_only_close`, `profit_close`, `protective_forced_close`, `cleanup_reconciliation`, `partial_reduce_safe`.
 - Для `LEVERAGE_MISMATCH_POSITION` blocked actions: `averaging`, `leverage_sensitive_sizing_updates`, `normal_compatibility_required_actions`.
 - Dedup-owner path для restricted state не меняется: protective close остаётся в том же ownership/dedup контуре (`execution_lifecycle_manager` + `protectiveActionToken` + reconciliation trace).
+- Structured propagation: capability-state передаётся в `PositionState` (`position_state`), в `DecisionContext.metadata` (`executionRestrictions + positionCapabilityState`) и в `lifecycleContext`, чтобы будущие decision-слои шага 24 читали это состояние только как входной контекст.
 - Fallback: при отключении `executionContour.leverageMismatchRestrictionEnabled` поведение возвращается к legacy guard без capability-state маршрутизации.
 
 ## Portfolio Risk Contour (уровень портфеля/счёта)
