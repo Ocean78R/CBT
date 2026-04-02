@@ -359,3 +359,66 @@ test('structured propagation positionCapabilityState идёт в PositionState /
   assert.equal(capabilityEvent.payload.blockedActions.includes('averaging'), true);
   assert.equal(capitalRegimeEvent.payload.decisionContext.metadata.executionRestrictions.hasRestrictedPositions, true);
 });
+
+test('guard: downstream consumer читает special position state только как input-context (read-only contract)', async () => {
+  const mismatchPosition = {
+    symbolUnified: 'BTC-USDT',
+    side: types.PositionSide.long,
+    entryPrice: 100,
+    initialMargin: 10,
+    leverage: 12,
+    unrealizedPnl: -2,
+    percentage: -20,
+    contracts: 1,
+  };
+  const connector = new MockConnector(types, { positionsByTicker: { 'BTC-USDT': [mismatchPosition] }, availableMargin: 1000 });
+  const strategy = makeStrategy(connector, makeConfig({
+    logger: { runtime: { enabled: true } },
+    executionContour: { leverageMismatchRestrictionEnabled: true, reconcileOnLoopStart: true },
+  }));
+
+  await strategy.processSingleTicker('BTC-USDT');
+
+  const lifecycleEvent = (strategy.cycleJournal['BTC-USDT'] || []).find((event) => event.phase === 'position_state');
+  const capabilityEvent = (strategy.cycleJournal['BTC-USDT'] || []).find((event) => event.phase === 'position_capability_state');
+  const capitalRegimeEvent = (strategy.cycleJournal['BTC-USDT'] || []).find((event) => event.phase === 'capital_regime');
+  const propagationProfile = capabilityEvent.payload;
+  assert.equal(lifecycleEvent.payload.positionCapabilityState, 'LEVERAGE_MISMATCH_POSITION');
+  assert.equal(capabilityEvent.payload.positionCapabilityState, 'LEVERAGE_MISMATCH_POSITION');
+  assert.equal(capitalRegimeEvent.payload.decisionContext.metadata.executionRestrictions.hasRestrictedPositions, true);
+  assert.equal(propagationProfile.leverageMismatchDetected, true);
+  assert.equal(Array.isArray(propagationProfile.allowedActions), true);
+  assert.equal(Array.isArray(propagationProfile.blockedActions), true);
+  assert.equal(propagationProfile.blockedActions.includes('averaging'), true);
+
+  // Имитация некорректного downstream-потребителя: пытается "перехватить ownership"
+  // через правку только контекстных полей, без lifecycle/execution path.
+  lifecycleEvent.payload.positionCapabilityState = 'NORMAL_POSITION';
+  capabilityEvent.payload.positionCapabilityState = 'NORMAL_POSITION';
+  capabilityEvent.payload.leverageMismatchDetected = false;
+  capabilityEvent.payload.blockedActions = [];
+  capabilityEvent.payload.allowedActions = ['averaging'];
+  capitalRegimeEvent.payload.decisionContext.metadata.executionRestrictions.hasRestrictedPositions = false;
+
+  // Даже прямое вмешательство в position объект не должно "снять restricted mode"
+  // в следующем цикле: capability-state обязан быть пересчитан execution/lifecycle слоем.
+  mismatchPosition.positionCapabilityState = 'NORMAL_POSITION';
+  mismatchPosition.leverageMismatchDetected = false;
+  mismatchPosition.allowedActions = ['averaging'];
+  mismatchPosition.blockedActions = [];
+
+  await strategy.processSingleTicker('BTC-USDT');
+
+  const positionId = strategy.getPositionId('BTC-USDT', mismatchPosition);
+  const canonicalProfile = strategy.positionCapabilityRegistry.get(positionId);
+  const reconciliationSnapshot = strategy.reconciliationSnapshots.get('BTC-USDT');
+  const actionDecision = strategy.canExecutePositionAction(canonicalProfile, 'averaging');
+
+  assert.equal(canonicalProfile.positionCapabilityState, 'LEVERAGE_MISMATCH_POSITION');
+  assert.equal(canonicalProfile.leverageMismatchDetected, true);
+  assert.equal(canonicalProfile.blockedActions.includes('averaging'), true);
+  assert.equal(actionDecision.allowed, false);
+  assert.equal(reconciliationSnapshot.hasRestrictedPositions, true);
+  assert.equal(connector.orders.filter((x) => x.type === 'open').length, 0);
+  assert.equal(mismatchPosition.positionCapabilityState, 'LEVERAGE_MISMATCH_POSITION');
+});
