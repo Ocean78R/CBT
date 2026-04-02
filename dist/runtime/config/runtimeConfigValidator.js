@@ -149,6 +149,18 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         : 'warn',
       partialReduceShare: Number(forcedLossExit.partialReduceShare || 0.25),
       cooldownMinutesAfterForcedExit: Number(forcedLossExit.cooldownMinutesAfterForcedExit || 0),
+      enablePostEntryObservation: !!forcedLossExit.enablePostEntryObservation,
+      postEntryGraceMinutes: Number(forcedLossExit.postEntryGraceMinutes || 0),
+      postEntryObservationMinutes: Number(forcedLossExit.postEntryObservationMinutes || 0),
+      maxTimeUnderEntryWithoutRecovery: Number(forcedLossExit.maxTimeUnderEntryWithoutRecovery || 0),
+      earlyInvalidationLossPercent: Number(forcedLossExit.earlyInvalidationLossPercent || 0),
+      requirePersistentAdverseTrend: forcedLossExit.requirePersistentAdverseTrend !== false,
+      adverseTrendConfirmationBars: Number(forcedLossExit.adverseTrendConfirmationBars || 0),
+      adverseTrendSlopeThreshold: Number(forcedLossExit.adverseTrendSlopeThreshold || 0),
+      actionOnEarlyInvalidation: ['partial_reduce', 'force_close'].includes(forcedLossExit.actionOnEarlyInvalidation)
+        ? forcedLossExit.actionOnEarlyInvalidation
+        : 'force_close',
+      useForecastProtectiveHints: !!forcedLossExit.useForecastProtectiveHints,
       regimeTightening: {
         enabled: !!regimeTightening.enabled,
         byCapitalRegime: typeof regimeTightening.byCapitalRegime === 'object' && regimeTightening.byCapitalRegime

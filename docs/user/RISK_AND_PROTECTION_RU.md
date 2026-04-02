@@ -27,16 +27,17 @@
 
 ## Server Stop-Loss для BingX (whole-position v1)
 - Главный защитный слой по убытку: server stop-loss на бирже.
-- Secondary fallback: forcedLossExit/local polling close.
+- Secondary fallback: ранний `postEntryObservation/earlyInvalidationExit`, затем legacy `forcedLossExit/stuckPositionProtection`, затем local polling close.
 - Ownership path: только `serverStopLossManager` управляет созданием/обновлением/удалением server SL.
 - Для partial/averaging изменений позиции используется пересоздание SL через manager.
 - В `capitalRegime` (DEFENSIVE/HALT_NEW_ENTRIES) можно включить более жёсткий SL через `conservativeMode`.
 
 ## ForcedLossExit / StuckPositionProtection (конфигурируемый слой)
 - Слой активируется только через `forcedLossExit.enabled`.
-- Позиция считается затянувшейся/опасной, если выполнено хотя бы одно условие: лимит времени в минусе, лимит времени после усреднения, лимит убытка по позиции, лимит числа усреднений.
-- Дополнительный gate: `requireAdverseMarketConfirmation` (подтверждение неблагоприятного рынка).
-- Реакция (`actionMode`): `warn`, `block_averaging`, `partial_reduce`, `force_close`.
+- Порядок внутри слоя: `postEntryObservation/earlyInvalidationExit` (ранний уровень) -> legacy `forcedLossExit/stuckPositionProtection` (поздний fallback).
+- Ранний уровень: после `postEntryGraceMinutes` включается окно `postEntryObservationMinutes`; если цена устойчиво в adverse-зоне относительно entry, нет восстановления, подтверждён adverse trend и превышены ранние лимиты (`maxTimeUnderEntryWithoutRecovery`, `earlyInvalidationLossPercent`), инициируется `partial_reduce | force_close`.
+- Поздний fallback: если ранний уровень не сработал/выключен, позиция считается затянувшейся/опасной по legacy-условиям (время в минусе, после averaging, loss-limit, лимит averaging).
+- Дополнительные gate: `requireAdverseMarketConfirmation` и `requirePersistentAdverseTrend`; при недостатке trend-данных слой не падает и не выдаёт ложный trigger.
 - Все действия по позиции идут через ownership path execution/lifecycle; forcedLossExit не управляет TP/SL напрямую.
 - Влияние `capitalRegime` и forecast-stress на ужесточение порогов возможно только через явный config (`regimeTightening`, `forecastInfluence`).
 
