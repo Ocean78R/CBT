@@ -4,6 +4,7 @@ const { classifyDecision, createDecisionContext } = require('../shared/decisionC
 const { evaluateSupportResistance } = require('./supportResistanceEngine');
 const { evaluateVwapProfileLayer } = require('./vwapProfileEngine');
 const { evaluateBounceDetection } = require('./bounceDetectionEngine');
+const { evaluateBreakdown } = require('./breakdownEngine');
 
 function clamp01(value) {
   if (!Number.isFinite(value)) return 0;
@@ -21,6 +22,7 @@ function normalizeConfig(raw = {}) {
   const marketLevel = raw.marketLevel || {};
   const volumeContext = raw.volumeContext || {};
   const bounceDetection = raw.bounceDetection || {};
+  const breakdownDetection = raw.breakdownDetection || {};
 
   return {
     enabled: !!raw.enabled,
@@ -35,6 +37,7 @@ function normalizeConfig(raw = {}) {
       marketLevel: Number(blockWeights.marketLevel ?? 0),
       volumeContext: Number(blockWeights.volumeContext ?? 0),
       bounceDetection: Number(blockWeights.bounceDetection ?? 0),
+      breakdownDetection: Number(blockWeights.breakdownDetection ?? 0),
     },
     thresholds: {
       fullEntryScore: Number(thresholds.fullEntryScore ?? 0.68),
@@ -146,6 +149,28 @@ function normalizeConfig(raw = {}) {
       microstructure: typeof bounceDetection.microstructure === 'object' && bounceDetection.microstructure ? bounceDetection.microstructure : {},
       capitalRegimePenalties: typeof bounceDetection.capitalRegimePenalties === 'object' && bounceDetection.capitalRegimePenalties
         ? bounceDetection.capitalRegimePenalties
+        : {},
+    },
+    breakdownDetection: {
+      enabled: !!breakdownDetection.enabled,
+      allowedRegimes: Array.isArray(breakdownDetection.allowedRegimes) ? breakdownDetection.allowedRegimes : ['trend', 'pullback', 'volatile_breakout'],
+      noTradeRegimes: Array.isArray(breakdownDetection.noTradeRegimes) ? breakdownDetection.noTradeRegimes : ['no_trade_flat'],
+      lookbackBars: Number(breakdownDetection.lookbackBars ?? 96),
+      minCandlesForAnalysis: Number(breakdownDetection.minCandlesForAnalysis ?? 30),
+      supportLookbackBars: Number(breakdownDetection.supportLookbackBars ?? 28),
+      supportProximityPercent: Number(breakdownDetection.supportProximityPercent ?? 0.35),
+      pressureLookbackBars: Number(breakdownDetection.pressureLookbackBars ?? 8),
+      momentumLookbackBars: Number(breakdownDetection.momentumLookbackBars ?? 6),
+      repeatedTestsWindowBars: Number(breakdownDetection.repeatedTestsWindowBars ?? 20),
+      repeatedTestsTolerancePercent: Number(breakdownDetection.repeatedTestsTolerancePercent ?? 0.2),
+      breakdownConfirmationBars: Number(breakdownDetection.breakdownConfirmationBars ?? 2),
+      reclaimTolerancePercent: Number(breakdownDetection.reclaimTolerancePercent ?? 0.12),
+      thresholds: typeof breakdownDetection.thresholds === 'object' && breakdownDetection.thresholds ? breakdownDetection.thresholds : {},
+      setupTypes: typeof breakdownDetection.setupTypes === 'object' && breakdownDetection.setupTypes ? breakdownDetection.setupTypes : {},
+      weights: typeof breakdownDetection.weights === 'object' && breakdownDetection.weights ? breakdownDetection.weights : {},
+      microstructure: typeof breakdownDetection.microstructure === 'object' && breakdownDetection.microstructure ? breakdownDetection.microstructure : {},
+      capitalRegimePenalties: typeof breakdownDetection.capitalRegimePenalties === 'object' && breakdownDetection.capitalRegimePenalties
+        ? breakdownDetection.capitalRegimePenalties
         : {},
     },
   };
@@ -435,6 +460,7 @@ function combineLayerScores(layers, config) {
     ['marketLevelLayer', weights.marketLevel],
     ['volumeContextLayer', weights.volumeContext],
     ['bounceDetectionLayer', weights.bounceDetection],
+    ['breakdownDetectionLayer', weights.breakdownDetection],
   ];
 
   let weightedScore = 0;
@@ -538,6 +564,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       marketLevelLayer: createLayerResult('marketLevelLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       volumeContextLayer: createLayerResult('volumeContextLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       bounceDetectionLayer: createLayerResult('bounceDetectionLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
+      breakdownDetectionLayer: createLayerResult('breakdownDetectionLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       finalEntryDecisionLayer: createLayerResult('finalEntryDecisionLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       },
       decision: {
@@ -590,6 +617,23 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
     reasonCodes: bounceResult.reasonCodes,
     explanation: bounceResult.explanation || {},
   });
+  // Русский комментарий: breakdown-слой читается как bearish continuation сигнал и передаётся только в final decision.
+  const breakdownResult = evaluateBreakdown({
+    context,
+    sharedSnapshot: input.sharedSnapshot || {},
+    primarySignal: input.primarySignal || {},
+    budgetState: input.budgetState || 'normal',
+  }, config.breakdownDetection || {});
+  layers.breakdownDetectionLayer = createLayerResult('breakdownDetectionLayer', {
+    direction: breakdownResult.direction || 'none',
+    score: breakdownResult.score,
+    confidence: breakdownResult.confidence,
+    softPenalty: breakdownResult.softPenalty,
+    vetoCandidates: breakdownResult.vetoCandidates,
+    dataQualityState: breakdownResult.dataQualityState || 'degraded',
+    reasonCodes: breakdownResult.reasonCodes,
+    explanation: breakdownResult.explanation || {},
+  });
   layers.finalEntryDecisionLayer = evaluateFinalEntryDecisionLayer(input, config, layers);
 
   const final = layers.finalEntryDecisionLayer;
@@ -615,6 +659,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       { source: 'marketLevelLayer', value: layers.marketLevelLayer.softPenalty },
       { source: 'volumeContextLayer', value: layers.volumeContextLayer.softPenalty },
       { source: 'bounceDetectionLayer', value: layers.bounceDetectionLayer.softPenalty },
+      { source: 'breakdownDetectionLayer', value: layers.breakdownDetectionLayer.softPenalty },
     ],
     metadata: {
       layerScores: layers,
@@ -631,6 +676,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       marketLevels: layers.marketLevelLayer ? layers.marketLevelLayer.explanation : {},
       volumeContext: layers.volumeContextLayer ? layers.volumeContextLayer.explanation : {},
       bounceDetection: layers.bounceDetectionLayer ? layers.bounceDetectionLayer.explanation : {},
+      breakdownDetection: layers.breakdownDetectionLayer ? layers.breakdownDetectionLayer.explanation : {},
     },
   });
 
@@ -682,6 +728,7 @@ function toConfluenceEntryEvent(input = {}) {
       marketLevels: (layerScores.marketLevelLayer || {}).explanation || {},
       volumeContext: (layerScores.volumeContextLayer || {}).explanation || {},
       bounceDetection: (layerScores.bounceDetectionLayer || {}).explanation || {},
+      breakdownDetection: (layerScores.breakdownDetectionLayer || {}).explanation || {},
       // Русский комментарий: совместимый downstream-контекст для audit trail/reporting без ad-hoc форматов.
       telemetry: {
         downstreamContext: {
@@ -694,6 +741,7 @@ function toConfluenceEntryEvent(input = {}) {
             reasonCodes: Array.isArray(decision.reasonCodes) ? decision.reasonCodes : [],
             volumeContext: (layerScores.volumeContextLayer || {}).explanation || {},
             bounceDetection: (layerScores.bounceDetectionLayer || {}).explanation || {},
+            breakdownDetection: (layerScores.breakdownDetectionLayer || {}).explanation || {},
           },
         },
       },
