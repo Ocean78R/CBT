@@ -8,6 +8,14 @@
 
 ---
 
+## 2026-04-02 (dynamicAssetSelection shortlist для новых входов)
+- Изменение: добавлен конфиг-управляемый слой `singleSetts.tickers.dynamicAssetSelection` с whitelist=`definedAssets` и runtime-shortlist для новых входов.
+- Изменение: реализовано ранжирование тикеров по факторам `volatility/speed/tradeQuality/averagingPenalty/realizedPnl/liquidity` с сохранением статического fallback-режима.
+- Изменение: shortlist учитывает `balanceState/capitalRegime` и forecast stress-signal hints как внешний контекст; при ухудшении состояния капитала shortlist автоматически сжимается.
+- Изменение: добавлены structured events `entry_decision.dynamic_asset_selection` и расширены audit-поля `unload_mode_gate` (`dynamicShortlist`).
+- Связанные файлы кода: `dist/index.js`, `dist/_config/config.json`.
+- Связанные разделы docs: `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/TRADING_PIPELINE_RU.md`.
+
 ## 2026-04-01
 - Изменение: создан полноценный пользовательский documentation layer для оператора, добавлена структура user-docs, добавлена политика обязательного обновления документации и автоматическая проверка документационных требований.
 - Связанные файлы кода: `scripts/docs/check-documentation.js`, `scripts/architecture/check-architecture.js`, `tests/docs/documentation.policy.test.js`, `package.json`, `README.md`.

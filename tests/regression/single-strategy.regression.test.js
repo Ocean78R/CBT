@@ -171,6 +171,48 @@ test('qualityControl enabled: тикер не отключается в теку
   assert.equal(connector.orders.filter((x) => x.type === 'open').length, 1);
 });
 
+test('dynamicAssetSelection: новый вход разрешается только для тикеров из shortlist', async () => {
+  const connector = new MockConnector(types, { positionsByTicker: { 'BTC-USDT': [], 'ETH-USDT': [] } });
+  const strategy = makeStrategy(connector, makeConfig({
+    singleSetts: {
+      tickers: {
+        dynamicAssetSelection: { enabled: true, shortlistSize: 1 },
+      },
+    },
+  }));
+  strategy.dynamicEntryShortlist = {
+    layerName: 'dynamicAssetSelection',
+    direction: 'long_short',
+    score: 0.8,
+    confidence: 0.7,
+    softPenalty: 0,
+    vetoCandidates: [],
+    dataQualityState: 'full',
+    reasonCodes: ['test_shortlist'],
+    explanation: { shortlist: ['BTC-USDT'] },
+  };
+
+  await strategy.processSingleTicker('ETH-USDT');
+  assert.equal(connector.orders.filter((x) => x.type === 'open').length, 0);
+});
+
+test('приоритет unloadMode.safeEntryAssets выше dynamic shortlist', () => {
+  const connector = new MockConnector(types);
+  const strategy = makeStrategy(connector, makeConfig());
+  const decision = strategy.evaluateNewEntryAllowance('SOL-USDT', {
+    balanceState: 'NORMAL',
+    unloadModeEnabled: true,
+    safeEntryAssets: ['BTC', 'ETH'],
+    entryLimits: {},
+    dynamicAssetSelection: {
+      explanation: { shortlist: ['SOL-USDT'] },
+    },
+  });
+  assert.equal(decision.allowed, false);
+  assert.equal(decision.decision, 'no_trade_regime');
+  assert.match(decision.reason, /safeEntryAssets/);
+});
+
 test('базовый flow открытия и закрытия позиции', async () => {
   const connector = new MockConnector(types, { positionsByTicker: { 'BTC-USDT': [] } });
   const strategy = makeStrategy(connector);
