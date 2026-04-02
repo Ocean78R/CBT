@@ -69,6 +69,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const confluenceMarketLevel = confluenceEntryEngine.marketLevel || {};
   const confluenceVolumeContext = confluenceEntryEngine.volumeContext || {};
   const confluenceBounceDetection = confluenceEntryEngine.bounceDetection || {};
+  const confluenceBreakdownDetection = confluenceEntryEngine.breakdownDetection || {};
   const confluenceMarketLevelScoring = confluenceMarketLevel.scoring || {};
   const confluenceMarketLevelDetection = confluenceMarketLevel.detection || {};
   const confluenceVolumeContextAnchoredVwap = confluenceVolumeContext.anchoredVwap || {};
@@ -81,6 +82,10 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const confluenceBounceWeights = confluenceBounceDetection.weights || {};
   const confluenceBounceMicrostructure = confluenceBounceDetection.microstructure || {};
   const confluenceBounceSetupTypes = confluenceBounceDetection.setupTypes || {};
+  const confluenceBreakdownThresholds = confluenceBreakdownDetection.thresholds || {};
+  const confluenceBreakdownWeights = confluenceBreakdownDetection.weights || {};
+  const confluenceBreakdownMicrostructure = confluenceBreakdownDetection.microstructure || {};
+  const confluenceBreakdownSetupTypes = confluenceBreakdownDetection.setupTypes || {};
 
   const normalized = {
     ...merged,
@@ -255,6 +260,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         marketLevel: Number(confluenceBlockWeights.marketLevel || 0),
         volumeContext: Number(confluenceBlockWeights.volumeContext || 0),
         bounceDetection: Number(confluenceBlockWeights.bounceDetection || 0),
+        breakdownDetection: Number(confluenceBlockWeights.breakdownDetection || 0),
       },
       thresholds: {
         fullEntryScore: Number(confluenceThresholds.fullEntryScore || 0.68),
@@ -392,6 +398,61 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
             DEFENSIVE: 0.12,
             CAPITAL_PRESERVATION: 0.2,
             HALT_NEW_ENTRIES: 0.35,
+          },
+      },
+      breakdownDetection: {
+        enabled: !!confluenceBreakdownDetection.enabled,
+        allowedRegimes: Array.isArray(confluenceBreakdownDetection.allowedRegimes) ? confluenceBreakdownDetection.allowedRegimes : ['trend', 'pullback', 'volatile_breakout'],
+        noTradeRegimes: Array.isArray(confluenceBreakdownDetection.noTradeRegimes) ? confluenceBreakdownDetection.noTradeRegimes : ['no_trade_flat'],
+        lookbackBars: Number(confluenceBreakdownDetection.lookbackBars || 96),
+        minCandlesForAnalysis: Number(confluenceBreakdownDetection.minCandlesForAnalysis || 30),
+        supportLookbackBars: Number(confluenceBreakdownDetection.supportLookbackBars || 28),
+        supportProximityPercent: Number(confluenceBreakdownDetection.supportProximityPercent || 0.35),
+        pressureLookbackBars: Number(confluenceBreakdownDetection.pressureLookbackBars || 8),
+        momentumLookbackBars: Number(confluenceBreakdownDetection.momentumLookbackBars || 6),
+        repeatedTestsWindowBars: Number(confluenceBreakdownDetection.repeatedTestsWindowBars || 20),
+        repeatedTestsTolerancePercent: Number(confluenceBreakdownDetection.repeatedTestsTolerancePercent || 0.2),
+        breakdownConfirmationBars: Number(confluenceBreakdownDetection.breakdownConfirmationBars || 2),
+        reclaimTolerancePercent: Number(confluenceBreakdownDetection.reclaimTolerancePercent || 0.12),
+        thresholds: {
+          scoreForSetupTag: Number(confluenceBreakdownThresholds.scoreForSetupTag || 0.58),
+          strongScore: Number(confluenceBreakdownThresholds.strongScore || 0.74),
+          minConfidence: Number(confluenceBreakdownThresholds.minConfidence || 0.34),
+          minimumDataCoverage: Number(confluenceBreakdownThresholds.minimumDataCoverage || 0.5),
+          microstructureActivationScore: Number(confluenceBreakdownThresholds.microstructureActivationScore || 0.62),
+        },
+        setupTypes: {
+          pre_breakdown_pressure: confluenceBreakdownSetupTypes.pre_breakdown_pressure !== false,
+          confirmed_breakdown_continuation: confluenceBreakdownSetupTypes.confirmed_breakdown_continuation !== false,
+          weak_retest_failure: confluenceBreakdownSetupTypes.weak_retest_failure !== false,
+          momentum_expansion_breakdown: confluenceBreakdownSetupTypes.momentum_expansion_breakdown !== false,
+          volume_confirmed_breakdown: confluenceBreakdownSetupTypes.volume_confirmed_breakdown !== false,
+          orderbook_ask_pressure: confluenceBreakdownSetupTypes.orderbook_ask_pressure !== false,
+        },
+        weights: {
+          proximityToSupport: Number(confluenceBreakdownWeights.proximityToSupport || 0.14),
+          supportPressure: Number(confluenceBreakdownWeights.supportPressure || 0.14),
+          repeatedTests: Number(confluenceBreakdownWeights.repeatedTests || 0.12),
+          downsideMomentumExpansion: Number(confluenceBreakdownWeights.downsideMomentumExpansion || 0.14),
+          volumeSpikeOnBreakdown: Number(confluenceBreakdownWeights.volumeSpikeOnBreakdown || 0.12),
+          weakReboundRetest: Number(confluenceBreakdownWeights.weakReboundRetest || 0.12),
+          reclaimFailure: Number(confluenceBreakdownWeights.reclaimFailure || 0.1),
+          microstructure: Number(confluenceBreakdownWeights.microstructure || 0.12),
+        },
+        microstructure: {
+          enabled: confluenceBreakdownMicrostructure.enabled !== false,
+          requireStrongCandidate: confluenceBreakdownMicrostructure.requireStrongCandidate !== false,
+          skipWhenBudgetExceeded: confluenceBreakdownMicrostructure.skipWhenBudgetExceeded !== false,
+          minAskBidImbalance: Number(confluenceBreakdownMicrostructure.minAskBidImbalance || 0.1),
+          maxSpreadPercent: Number(confluenceBreakdownMicrostructure.maxSpreadPercent || 0.14),
+        },
+        capitalRegimePenalties: typeof confluenceBreakdownDetection.capitalRegimePenalties === 'object' && confluenceBreakdownDetection.capitalRegimePenalties
+          ? confluenceBreakdownDetection.capitalRegimePenalties
+          : {
+            CAUTION: 0.04,
+            DEFENSIVE: 0.1,
+            CAPITAL_PRESERVATION: 0.16,
+            HALT_NEW_ENTRIES: 0.28,
           },
       },
     },
