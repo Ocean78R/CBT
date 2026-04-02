@@ -68,6 +68,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const confluenceConfirmation = confluenceEntryEngine.confirmation || {};
   const confluenceMarketLevel = confluenceEntryEngine.marketLevel || {};
   const confluenceVolumeContext = confluenceEntryEngine.volumeContext || {};
+  const confluenceBounceDetection = confluenceEntryEngine.bounceDetection || {};
   const confluenceMarketLevelScoring = confluenceMarketLevel.scoring || {};
   const confluenceMarketLevelDetection = confluenceMarketLevel.detection || {};
   const confluenceVolumeContextAnchoredVwap = confluenceVolumeContext.anchoredVwap || {};
@@ -76,6 +77,10 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const confluenceVolumeContextLazyEvaluation = confluenceVolumeContext.lazyEvaluation || {};
   const confluenceVolumeContextRefreshPolicy = confluenceVolumeContext.refreshPolicy || {};
   const confluenceVolumeContextScoring = confluenceVolumeContext.scoring || {};
+  const confluenceBounceThresholds = confluenceBounceDetection.thresholds || {};
+  const confluenceBounceWeights = confluenceBounceDetection.weights || {};
+  const confluenceBounceMicrostructure = confluenceBounceDetection.microstructure || {};
+  const confluenceBounceSetupTypes = confluenceBounceDetection.setupTypes || {};
 
   const normalized = {
     ...merged,
@@ -249,6 +254,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         confirmation: Number(confluenceBlockWeights.confirmation || 0.2),
         marketLevel: Number(confluenceBlockWeights.marketLevel || 0),
         volumeContext: Number(confluenceBlockWeights.volumeContext || 0),
+        bounceDetection: Number(confluenceBlockWeights.bounceDetection || 0),
       },
       thresholds: {
         fullEntryScore: Number(confluenceThresholds.fullEntryScore || 0.68),
@@ -336,6 +342,57 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
           distancePenaltyFactor: Number(confluenceVolumeContextScoring.distancePenaltyFactor || 1.15),
           degradedPenalty: Number(confluenceVolumeContextScoring.degradedPenalty || 0.12),
         },
+      },
+      bounceDetection: {
+        enabled: !!confluenceBounceDetection.enabled,
+        allowedRegimes: Array.isArray(confluenceBounceDetection.allowedRegimes) ? confluenceBounceDetection.allowedRegimes : ['trend', 'range', 'pullback'],
+        noTradeRegimes: Array.isArray(confluenceBounceDetection.noTradeRegimes) ? confluenceBounceDetection.noTradeRegimes : ['no_trade_flat'],
+        lookbackBars: Number(confluenceBounceDetection.lookbackBars || 80),
+        swingWindow: Number(confluenceBounceDetection.swingWindow || 2),
+        zoneProximityPercent: Number(confluenceBounceDetection.zoneProximityPercent || 0.25),
+        falseBreakoutTolerancePercent: Number(confluenceBounceDetection.falseBreakoutTolerancePercent || 0.18),
+        momentumLookbackBars: Number(confluenceBounceDetection.momentumLookbackBars || 6),
+        minCandlesForAnalysis: Number(confluenceBounceDetection.minCandlesForAnalysis || 24),
+        thresholds: {
+          scoreForSetupTag: Number(confluenceBounceThresholds.scoreForSetupTag || 0.56),
+          strongScore: Number(confluenceBounceThresholds.strongScore || 0.72),
+          minConfidence: Number(confluenceBounceThresholds.minConfidence || 0.3),
+          minimumDataCoverage: Number(confluenceBounceThresholds.minimumDataCoverage || 0.45),
+          microstructureActivationScore: Number(confluenceBounceThresholds.microstructureActivationScore || 0.58),
+        },
+        setupTypes: {
+          zone_rejection: confluenceBounceSetupTypes.zone_rejection !== false,
+          liquidity_grab_reversal: confluenceBounceSetupTypes.liquidity_grab_reversal !== false,
+          momentum_exhaustion: confluenceBounceSetupTypes.momentum_exhaustion !== false,
+          divergence_rebound: confluenceBounceSetupTypes.divergence_rebound !== false,
+          volume_absorption_bounce: confluenceBounceSetupTypes.volume_absorption_bounce !== false,
+          microstructure_snapback: confluenceBounceSetupTypes.microstructure_snapback !== false,
+        },
+        weights: {
+          proximity: Number(confluenceBounceWeights.proximity || 0.18),
+          swingContext: Number(confluenceBounceWeights.swingContext || 0.12),
+          falseBreakout: Number(confluenceBounceWeights.falseBreakout || 0.14),
+          momentumSlowdown: Number(confluenceBounceWeights.momentumSlowdown || 0.12),
+          exhaustionOscillators: Number(confluenceBounceWeights.exhaustionOscillators || 0.14),
+          divergence: Number(confluenceBounceWeights.divergence || 0.1),
+          volumeAbsorption: Number(confluenceBounceWeights.volumeAbsorption || 0.14),
+          microstructure: Number(confluenceBounceWeights.microstructure || 0.06),
+        },
+        microstructure: {
+          enabled: confluenceBounceMicrostructure.enabled !== false,
+          requireStrongCandidate: confluenceBounceMicrostructure.requireStrongCandidate !== false,
+          skipWhenBudgetExceeded: confluenceBounceMicrostructure.skipWhenBudgetExceeded !== false,
+          maxSpreadPercent: Number(confluenceBounceMicrostructure.maxSpreadPercent || 0.12),
+          minImbalance: Number(confluenceBounceMicrostructure.minImbalance || 0.08),
+        },
+        capitalRegimePenalties: typeof confluenceBounceDetection.capitalRegimePenalties === 'object' && confluenceBounceDetection.capitalRegimePenalties
+          ? confluenceBounceDetection.capitalRegimePenalties
+          : {
+            CAUTION: 0.05,
+            DEFENSIVE: 0.12,
+            CAPITAL_PRESERVATION: 0.2,
+            HALT_NEW_ENTRIES: 0.35,
+          },
       },
     },
 

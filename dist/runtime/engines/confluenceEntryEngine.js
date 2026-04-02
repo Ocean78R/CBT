@@ -3,6 +3,7 @@
 const { classifyDecision, createDecisionContext } = require('../shared/decisionContract');
 const { evaluateSupportResistance } = require('./supportResistanceEngine');
 const { evaluateVwapProfileLayer } = require('./vwapProfileEngine');
+const { evaluateBounceDetection } = require('./bounceDetectionEngine');
 
 function clamp01(value) {
   if (!Number.isFinite(value)) return 0;
@@ -19,6 +20,7 @@ function normalizeConfig(raw = {}) {
   const primarySignal = raw.primarySignal || {};
   const marketLevel = raw.marketLevel || {};
   const volumeContext = raw.volumeContext || {};
+  const bounceDetection = raw.bounceDetection || {};
 
   return {
     enabled: !!raw.enabled,
@@ -32,6 +34,7 @@ function normalizeConfig(raw = {}) {
       confirmation: Number(blockWeights.confirmation ?? 0.2),
       marketLevel: Number(blockWeights.marketLevel ?? 0),
       volumeContext: Number(blockWeights.volumeContext ?? 0),
+      bounceDetection: Number(blockWeights.bounceDetection ?? 0),
     },
     thresholds: {
       fullEntryScore: Number(thresholds.fullEntryScore ?? 0.68),
@@ -120,6 +123,30 @@ function normalizeConfig(raw = {}) {
         distancePenaltyFactor: Number(((volumeContext.scoring || {}).distancePenaltyFactor) ?? 1.15),
         degradedPenalty: Number(((volumeContext.scoring || {}).degradedPenalty) ?? 0.12),
       },
+    },
+    bounceDetection: {
+      enabled: !!bounceDetection.enabled,
+      allowedRegimes: Array.isArray(bounceDetection.allowedRegimes) ? bounceDetection.allowedRegimes : ['trend', 'range', 'pullback'],
+      noTradeRegimes: Array.isArray(bounceDetection.noTradeRegimes) ? bounceDetection.noTradeRegimes : ['no_trade_flat'],
+      lookbackBars: Number(bounceDetection.lookbackBars ?? 80),
+      swingWindow: Number(bounceDetection.swingWindow ?? 2),
+      zoneProximityPercent: Number(bounceDetection.zoneProximityPercent ?? 0.25),
+      falseBreakoutTolerancePercent: Number(bounceDetection.falseBreakoutTolerancePercent ?? 0.18),
+      momentumLookbackBars: Number(bounceDetection.momentumLookbackBars ?? 6),
+      minCandlesForAnalysis: Number(bounceDetection.minCandlesForAnalysis ?? 24),
+      thresholds: {
+        scoreForSetupTag: Number(((bounceDetection.thresholds || {}).scoreForSetupTag) ?? 0.56),
+        strongScore: Number(((bounceDetection.thresholds || {}).strongScore) ?? 0.72),
+        minConfidence: Number(((bounceDetection.thresholds || {}).minConfidence) ?? 0.3),
+        minimumDataCoverage: Number(((bounceDetection.thresholds || {}).minimumDataCoverage) ?? 0.45),
+        microstructureActivationScore: Number(((bounceDetection.thresholds || {}).microstructureActivationScore) ?? 0.58),
+      },
+      setupTypes: typeof bounceDetection.setupTypes === 'object' && bounceDetection.setupTypes ? bounceDetection.setupTypes : {},
+      weights: typeof bounceDetection.weights === 'object' && bounceDetection.weights ? bounceDetection.weights : {},
+      microstructure: typeof bounceDetection.microstructure === 'object' && bounceDetection.microstructure ? bounceDetection.microstructure : {},
+      capitalRegimePenalties: typeof bounceDetection.capitalRegimePenalties === 'object' && bounceDetection.capitalRegimePenalties
+        ? bounceDetection.capitalRegimePenalties
+        : {},
     },
   };
 }
@@ -407,6 +434,7 @@ function combineLayerScores(layers, config) {
     ['confirmationLayer', weights.confirmation],
     ['marketLevelLayer', weights.marketLevel],
     ['volumeContextLayer', weights.volumeContext],
+    ['bounceDetectionLayer', weights.bounceDetection],
   ];
 
   let weightedScore = 0;
@@ -507,9 +535,10 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
         marketContextLayer: createLayerResult('marketContextLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
         primarySignalLayer: createLayerResult('primarySignalLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
         confirmationLayer: createLayerResult('confirmationLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
-        marketLevelLayer: createLayerResult('marketLevelLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
-        volumeContextLayer: createLayerResult('volumeContextLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
-        finalEntryDecisionLayer: createLayerResult('finalEntryDecisionLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
+      marketLevelLayer: createLayerResult('marketLevelLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
+      volumeContextLayer: createLayerResult('volumeContextLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
+      bounceDetectionLayer: createLayerResult('bounceDetectionLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
+      finalEntryDecisionLayer: createLayerResult('finalEntryDecisionLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       },
       decision: {
         finalDecision: 'LEGACY_FALLBACK',
@@ -544,6 +573,23 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
     shortlistCandidate: input.shortlistCandidate !== false,
     budgetState: input.budgetState || 'normal',
   }, config.volumeContext || {});
+  // Русский комментарий: bounce-слой запускается после market-context/primary-signal и перед final decision; не может открыть позицию сам.
+  const bounceResult = evaluateBounceDetection({
+    context,
+    sharedSnapshot: input.sharedSnapshot || {},
+    primarySignal: input.primarySignal || {},
+    budgetState: input.budgetState || 'normal',
+  }, config.bounceDetection || {});
+  layers.bounceDetectionLayer = createLayerResult('bounceDetectionLayer', {
+    direction: bounceResult.direction || 'none',
+    score: bounceResult.score,
+    confidence: bounceResult.confidence,
+    softPenalty: bounceResult.softPenalty,
+    vetoCandidates: bounceResult.vetoCandidates,
+    dataQualityState: bounceResult.dataQualityState || 'degraded',
+    reasonCodes: bounceResult.reasonCodes,
+    explanation: bounceResult.explanation || {},
+  });
   layers.finalEntryDecisionLayer = evaluateFinalEntryDecisionLayer(input, config, layers);
 
   const final = layers.finalEntryDecisionLayer;
@@ -568,6 +614,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       { source: 'confirmationLayer', value: layers.confirmationLayer.softPenalty },
       { source: 'marketLevelLayer', value: layers.marketLevelLayer.softPenalty },
       { source: 'volumeContextLayer', value: layers.volumeContextLayer.softPenalty },
+      { source: 'bounceDetectionLayer', value: layers.bounceDetectionLayer.softPenalty },
     ],
     metadata: {
       layerScores: layers,
@@ -583,6 +630,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       sizingDecision: 'not_evaluated',
       marketLevels: layers.marketLevelLayer ? layers.marketLevelLayer.explanation : {},
       volumeContext: layers.volumeContextLayer ? layers.volumeContextLayer.explanation : {},
+      bounceDetection: layers.bounceDetectionLayer ? layers.bounceDetectionLayer.explanation : {},
     },
   });
 
@@ -633,6 +681,7 @@ function toConfluenceEntryEvent(input = {}) {
       decision,
       marketLevels: (layerScores.marketLevelLayer || {}).explanation || {},
       volumeContext: (layerScores.volumeContextLayer || {}).explanation || {},
+      bounceDetection: (layerScores.bounceDetectionLayer || {}).explanation || {},
       // Русский комментарий: совместимый downstream-контекст для audit trail/reporting без ad-hoc форматов.
       telemetry: {
         downstreamContext: {
@@ -644,6 +693,7 @@ function toConfluenceEntryEvent(input = {}) {
             veto: decision.veto || null,
             reasonCodes: Array.isArray(decision.reasonCodes) ? decision.reasonCodes : [],
             volumeContext: (layerScores.volumeContextLayer || {}).explanation || {},
+            bounceDetection: (layerScores.bounceDetectionLayer || {}).explanation || {},
           },
         },
       },

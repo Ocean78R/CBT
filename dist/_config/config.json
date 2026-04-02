@@ -79,7 +79,8 @@
           "primarySignal": 0.32,
           "confirmation": 0.2,
           "marketLevel": 0,
-          "volumeContext": 0
+          "volumeContext": 0,
+          "bounceDetection": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -166,6 +167,61 @@
             "hvnLvnReactionWeight": 0.22,
             "distancePenaltyFactor": 1.15,
             "degradedPenalty": 0.12
+          }
+        },
+        "bounceDetection": {
+          "enabled": false,
+          "allowedRegimes": [
+            "trend",
+            "range",
+            "pullback"
+          ],
+          "noTradeRegimes": [
+            "no_trade_flat"
+          ],
+          "lookbackBars": 80,
+          "swingWindow": 2,
+          "zoneProximityPercent": 0.25,
+          "falseBreakoutTolerancePercent": 0.18,
+          "momentumLookbackBars": 6,
+          "minCandlesForAnalysis": 24,
+          "thresholds": {
+            "scoreForSetupTag": 0.56,
+            "strongScore": 0.72,
+            "minConfidence": 0.3,
+            "minimumDataCoverage": 0.45,
+            "microstructureActivationScore": 0.58
+          },
+          "setupTypes": {
+            "zone_rejection": true,
+            "liquidity_grab_reversal": true,
+            "momentum_exhaustion": true,
+            "divergence_rebound": true,
+            "volume_absorption_bounce": true,
+            "microstructure_snapback": true
+          },
+          "weights": {
+            "proximity": 0.18,
+            "swingContext": 0.12,
+            "falseBreakout": 0.14,
+            "momentumSlowdown": 0.12,
+            "exhaustionOscillators": 0.14,
+            "divergence": 0.1,
+            "volumeAbsorption": 0.14,
+            "microstructure": 0.06
+          },
+          "microstructure": {
+            "enabled": true,
+            "requireStrongCandidate": true,
+            "skipWhenBudgetExceeded": true,
+            "maxSpreadPercent": 0.12,
+            "minImbalance": 0.08
+          },
+          "capitalRegimePenalties": {
+            "CAUTION": 0.05,
+            "DEFENSIVE": 0.12,
+            "CAPITAL_PRESERVATION": 0.2,
+            "HALT_NEW_ENTRIES": 0.35
           }
         }
       }
@@ -249,7 +305,8 @@
           "primarySignal": 0.32,
           "confirmation": 0.2,
           "marketLevel": 0,
-          "volumeContext": 0
+          "volumeContext": 0,
+          "bounceDetection": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -336,6 +393,61 @@
             "hvnLvnReactionWeight": 0.22,
             "distancePenaltyFactor": 1.15,
             "degradedPenalty": 0.12
+          }
+        },
+        "bounceDetection": {
+          "enabled": false,
+          "allowedRegimes": [
+            "trend",
+            "range",
+            "pullback"
+          ],
+          "noTradeRegimes": [
+            "no_trade_flat"
+          ],
+          "lookbackBars": 80,
+          "swingWindow": 2,
+          "zoneProximityPercent": 0.25,
+          "falseBreakoutTolerancePercent": 0.18,
+          "momentumLookbackBars": 6,
+          "minCandlesForAnalysis": 24,
+          "thresholds": {
+            "scoreForSetupTag": 0.56,
+            "strongScore": 0.72,
+            "minConfidence": 0.3,
+            "minimumDataCoverage": 0.45,
+            "microstructureActivationScore": 0.58
+          },
+          "setupTypes": {
+            "zone_rejection": true,
+            "liquidity_grab_reversal": true,
+            "momentum_exhaustion": true,
+            "divergence_rebound": true,
+            "volume_absorption_bounce": true,
+            "microstructure_snapback": true
+          },
+          "weights": {
+            "proximity": 0.18,
+            "swingContext": 0.12,
+            "falseBreakout": 0.14,
+            "momentumSlowdown": 0.12,
+            "exhaustionOscillators": 0.14,
+            "divergence": 0.1,
+            "volumeAbsorption": 0.14,
+            "microstructure": 0.06
+          },
+          "microstructure": {
+            "enabled": true,
+            "requireStrongCandidate": true,
+            "skipWhenBudgetExceeded": true,
+            "maxSpreadPercent": 0.12,
+            "minImbalance": 0.08
+          },
+          "capitalRegimePenalties": {
+            "CAUTION": 0.05,
+            "DEFENSIVE": 0.12,
+            "CAPITAL_PRESERVATION": 0.2,
+            "HALT_NEW_ENTRIES": 0.35
           }
         }
       }
@@ -754,7 +866,8 @@
           "primarySignal": 0.32,
           "confirmation": 0.2,
           "marketLevel": 0,
-          "volumeContext": 0
+          "volumeContext": 0,
+          "bounceDetection": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -841,6 +954,61 @@
             "hvnLvnReactionWeight": 0.22,
             "distancePenaltyFactor": 1.15,
             "degradedPenalty": 0.12
+          }
+        },
+        "bounceDetection": {
+          "enabled": false,
+          "allowedRegimes": [
+            "trend",
+            "range",
+            "pullback"
+          ],
+          "noTradeRegimes": [
+            "no_trade_flat"
+          ],
+          "lookbackBars": 80,
+          "swingWindow": 2,
+          "zoneProximityPercent": 0.25,
+          "falseBreakoutTolerancePercent": 0.18,
+          "momentumLookbackBars": 6,
+          "minCandlesForAnalysis": 24,
+          "thresholds": {
+            "scoreForSetupTag": 0.56,
+            "strongScore": 0.72,
+            "minConfidence": 0.3,
+            "minimumDataCoverage": 0.45,
+            "microstructureActivationScore": 0.58
+          },
+          "setupTypes": {
+            "zone_rejection": true,
+            "liquidity_grab_reversal": true,
+            "momentum_exhaustion": true,
+            "divergence_rebound": true,
+            "volume_absorption_bounce": true,
+            "microstructure_snapback": true
+          },
+          "weights": {
+            "proximity": 0.18,
+            "swingContext": 0.12,
+            "falseBreakout": 0.14,
+            "momentumSlowdown": 0.12,
+            "exhaustionOscillators": 0.14,
+            "divergence": 0.1,
+            "volumeAbsorption": 0.14,
+            "microstructure": 0.06
+          },
+          "microstructure": {
+            "enabled": true,
+            "requireStrongCandidate": true,
+            "skipWhenBudgetExceeded": true,
+            "maxSpreadPercent": 0.12,
+            "minImbalance": 0.08
+          },
+          "capitalRegimePenalties": {
+            "CAUTION": 0.05,
+            "DEFENSIVE": 0.12,
+            "CAPITAL_PRESERVATION": 0.2,
+            "HALT_NEW_ENTRIES": 0.35
           }
         }
       }
@@ -923,7 +1091,8 @@
           "primarySignal": 0.32,
           "confirmation": 0.2,
           "marketLevel": 0,
-          "volumeContext": 0
+          "volumeContext": 0,
+          "bounceDetection": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1010,6 +1179,61 @@
             "hvnLvnReactionWeight": 0.22,
             "distancePenaltyFactor": 1.15,
             "degradedPenalty": 0.12
+          }
+        },
+        "bounceDetection": {
+          "enabled": false,
+          "allowedRegimes": [
+            "trend",
+            "range",
+            "pullback"
+          ],
+          "noTradeRegimes": [
+            "no_trade_flat"
+          ],
+          "lookbackBars": 80,
+          "swingWindow": 2,
+          "zoneProximityPercent": 0.25,
+          "falseBreakoutTolerancePercent": 0.18,
+          "momentumLookbackBars": 6,
+          "minCandlesForAnalysis": 24,
+          "thresholds": {
+            "scoreForSetupTag": 0.56,
+            "strongScore": 0.72,
+            "minConfidence": 0.3,
+            "minimumDataCoverage": 0.45,
+            "microstructureActivationScore": 0.58
+          },
+          "setupTypes": {
+            "zone_rejection": true,
+            "liquidity_grab_reversal": true,
+            "momentum_exhaustion": true,
+            "divergence_rebound": true,
+            "volume_absorption_bounce": true,
+            "microstructure_snapback": true
+          },
+          "weights": {
+            "proximity": 0.18,
+            "swingContext": 0.12,
+            "falseBreakout": 0.14,
+            "momentumSlowdown": 0.12,
+            "exhaustionOscillators": 0.14,
+            "divergence": 0.1,
+            "volumeAbsorption": 0.14,
+            "microstructure": 0.06
+          },
+          "microstructure": {
+            "enabled": true,
+            "requireStrongCandidate": true,
+            "skipWhenBudgetExceeded": true,
+            "maxSpreadPercent": 0.12,
+            "minImbalance": 0.08
+          },
+          "capitalRegimePenalties": {
+            "CAUTION": 0.05,
+            "DEFENSIVE": 0.12,
+            "CAPITAL_PRESERVATION": 0.2,
+            "HALT_NEW_ENTRIES": 0.35
           }
         }
       }
@@ -1093,7 +1317,8 @@
           "primarySignal": 0.32,
           "confirmation": 0.2,
           "marketLevel": 0,
-          "volumeContext": 0
+          "volumeContext": 0,
+          "bounceDetection": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1180,6 +1405,61 @@
             "hvnLvnReactionWeight": 0.22,
             "distancePenaltyFactor": 1.15,
             "degradedPenalty": 0.12
+          }
+        },
+        "bounceDetection": {
+          "enabled": false,
+          "allowedRegimes": [
+            "trend",
+            "range",
+            "pullback"
+          ],
+          "noTradeRegimes": [
+            "no_trade_flat"
+          ],
+          "lookbackBars": 80,
+          "swingWindow": 2,
+          "zoneProximityPercent": 0.25,
+          "falseBreakoutTolerancePercent": 0.18,
+          "momentumLookbackBars": 6,
+          "minCandlesForAnalysis": 24,
+          "thresholds": {
+            "scoreForSetupTag": 0.56,
+            "strongScore": 0.72,
+            "minConfidence": 0.3,
+            "minimumDataCoverage": 0.45,
+            "microstructureActivationScore": 0.58
+          },
+          "setupTypes": {
+            "zone_rejection": true,
+            "liquidity_grab_reversal": true,
+            "momentum_exhaustion": true,
+            "divergence_rebound": true,
+            "volume_absorption_bounce": true,
+            "microstructure_snapback": true
+          },
+          "weights": {
+            "proximity": 0.18,
+            "swingContext": 0.12,
+            "falseBreakout": 0.14,
+            "momentumSlowdown": 0.12,
+            "exhaustionOscillators": 0.14,
+            "divergence": 0.1,
+            "volumeAbsorption": 0.14,
+            "microstructure": 0.06
+          },
+          "microstructure": {
+            "enabled": true,
+            "requireStrongCandidate": true,
+            "skipWhenBudgetExceeded": true,
+            "maxSpreadPercent": 0.12,
+            "minImbalance": 0.08
+          },
+          "capitalRegimePenalties": {
+            "CAUTION": 0.05,
+            "DEFENSIVE": 0.12,
+            "CAPITAL_PRESERVATION": 0.2,
+            "HALT_NEW_ENTRIES": 0.35
           }
         }
       }
@@ -1262,7 +1542,8 @@
           "primarySignal": 0.32,
           "confirmation": 0.2,
           "marketLevel": 0,
-          "volumeContext": 0
+          "volumeContext": 0,
+          "bounceDetection": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1349,6 +1630,61 @@
             "hvnLvnReactionWeight": 0.22,
             "distancePenaltyFactor": 1.15,
             "degradedPenalty": 0.12
+          }
+        },
+        "bounceDetection": {
+          "enabled": false,
+          "allowedRegimes": [
+            "trend",
+            "range",
+            "pullback"
+          ],
+          "noTradeRegimes": [
+            "no_trade_flat"
+          ],
+          "lookbackBars": 80,
+          "swingWindow": 2,
+          "zoneProximityPercent": 0.25,
+          "falseBreakoutTolerancePercent": 0.18,
+          "momentumLookbackBars": 6,
+          "minCandlesForAnalysis": 24,
+          "thresholds": {
+            "scoreForSetupTag": 0.56,
+            "strongScore": 0.72,
+            "minConfidence": 0.3,
+            "minimumDataCoverage": 0.45,
+            "microstructureActivationScore": 0.58
+          },
+          "setupTypes": {
+            "zone_rejection": true,
+            "liquidity_grab_reversal": true,
+            "momentum_exhaustion": true,
+            "divergence_rebound": true,
+            "volume_absorption_bounce": true,
+            "microstructure_snapback": true
+          },
+          "weights": {
+            "proximity": 0.18,
+            "swingContext": 0.12,
+            "falseBreakout": 0.14,
+            "momentumSlowdown": 0.12,
+            "exhaustionOscillators": 0.14,
+            "divergence": 0.1,
+            "volumeAbsorption": 0.14,
+            "microstructure": 0.06
+          },
+          "microstructure": {
+            "enabled": true,
+            "requireStrongCandidate": true,
+            "skipWhenBudgetExceeded": true,
+            "maxSpreadPercent": 0.12,
+            "minImbalance": 0.08
+          },
+          "capitalRegimePenalties": {
+            "CAUTION": 0.05,
+            "DEFENSIVE": 0.12,
+            "CAPITAL_PRESERVATION": 0.2,
+            "HALT_NEW_ENTRIES": 0.35
           }
         }
       }
@@ -1442,7 +1778,8 @@
           "primarySignal": 0.32,
           "confirmation": 0.2,
           "marketLevel": 0,
-          "volumeContext": 0
+          "volumeContext": 0,
+          "bounceDetection": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1529,6 +1866,61 @@
             "hvnLvnReactionWeight": 0.22,
             "distancePenaltyFactor": 1.15,
             "degradedPenalty": 0.12
+          }
+        },
+        "bounceDetection": {
+          "enabled": false,
+          "allowedRegimes": [
+            "trend",
+            "range",
+            "pullback"
+          ],
+          "noTradeRegimes": [
+            "no_trade_flat"
+          ],
+          "lookbackBars": 80,
+          "swingWindow": 2,
+          "zoneProximityPercent": 0.25,
+          "falseBreakoutTolerancePercent": 0.18,
+          "momentumLookbackBars": 6,
+          "minCandlesForAnalysis": 24,
+          "thresholds": {
+            "scoreForSetupTag": 0.56,
+            "strongScore": 0.72,
+            "minConfidence": 0.3,
+            "minimumDataCoverage": 0.45,
+            "microstructureActivationScore": 0.58
+          },
+          "setupTypes": {
+            "zone_rejection": true,
+            "liquidity_grab_reversal": true,
+            "momentum_exhaustion": true,
+            "divergence_rebound": true,
+            "volume_absorption_bounce": true,
+            "microstructure_snapback": true
+          },
+          "weights": {
+            "proximity": 0.18,
+            "swingContext": 0.12,
+            "falseBreakout": 0.14,
+            "momentumSlowdown": 0.12,
+            "exhaustionOscillators": 0.14,
+            "divergence": 0.1,
+            "volumeAbsorption": 0.14,
+            "microstructure": 0.06
+          },
+          "microstructure": {
+            "enabled": true,
+            "requireStrongCandidate": true,
+            "skipWhenBudgetExceeded": true,
+            "maxSpreadPercent": 0.12,
+            "minImbalance": 0.08
+          },
+          "capitalRegimePenalties": {
+            "CAUTION": 0.05,
+            "DEFENSIVE": 0.12,
+            "CAPITAL_PRESERVATION": 0.2,
+            "HALT_NEW_ENTRIES": 0.35
           }
         }
       }
