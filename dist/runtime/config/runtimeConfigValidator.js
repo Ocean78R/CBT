@@ -70,6 +70,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const confluenceVolumeContext = confluenceEntryEngine.volumeContext || {};
   const confluenceBounceDetection = confluenceEntryEngine.bounceDetection || {};
   const confluenceBreakdownDetection = confluenceEntryEngine.breakdownDetection || {};
+  const confluenceDerivativesContext = confluenceEntryEngine.derivativesContext || {};
   const confluenceMarketLevelScoring = confluenceMarketLevel.scoring || {};
   const confluenceMarketLevelDetection = confluenceMarketLevel.detection || {};
   const confluenceVolumeContextAnchoredVwap = confluenceVolumeContext.anchoredVwap || {};
@@ -86,6 +87,11 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const confluenceBreakdownWeights = confluenceBreakdownDetection.weights || {};
   const confluenceBreakdownMicrostructure = confluenceBreakdownDetection.microstructure || {};
   const confluenceBreakdownSetupTypes = confluenceBreakdownDetection.setupTypes || {};
+  const confluenceDerivativesThresholds = confluenceDerivativesContext.thresholds || {};
+  const confluenceDerivativesWeights = confluenceDerivativesContext.weights || {};
+  const confluenceDerivativesCrowding = confluenceDerivativesContext.crowding || {};
+  const confluenceDerivativesLiquidation = confluenceDerivativesContext.liquidation || {};
+  const confluenceDerivativesRefresh = confluenceDerivativesContext.refreshPolicy || {};
 
   const normalized = {
     ...merged,
@@ -261,6 +267,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         volumeContext: Number(confluenceBlockWeights.volumeContext || 0),
         bounceDetection: Number(confluenceBlockWeights.bounceDetection || 0),
         breakdownDetection: Number(confluenceBlockWeights.breakdownDetection || 0),
+        derivativesContext: Number(confluenceBlockWeights.derivativesContext || 0),
       },
       thresholds: {
         fullEntryScore: Number(confluenceThresholds.fullEntryScore || 0.68),
@@ -453,6 +460,54 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
             DEFENSIVE: 0.1,
             CAPITAL_PRESERVATION: 0.16,
             HALT_NEW_ENTRIES: 0.28,
+          },
+      },
+      derivativesContext: {
+        enabled: !!confluenceDerivativesContext.enabled,
+        preferSharedSnapshot: confluenceDerivativesContext.preferSharedSnapshot !== false,
+        skipWhenBudgetExceeded: confluenceDerivativesContext.skipWhenBudgetExceeded !== false,
+        allowNoTradeOnExtremeCrowding: !!confluenceDerivativesContext.allowNoTradeOnExtremeCrowding,
+        thresholds: {
+          oiStrongIncrease: Number(confluenceDerivativesThresholds.oiStrongIncrease || 0.05),
+          oiStrongDecrease: Number(confluenceDerivativesThresholds.oiStrongDecrease || -0.05),
+          fundingExtreme: Number(confluenceDerivativesThresholds.fundingExtreme || 0.0009),
+          fundingElevated: Number(confluenceDerivativesThresholds.fundingElevated || 0.00045),
+          liquidationImbalanceStrong: Number(confluenceDerivativesThresholds.liquidationImbalanceStrong || 1.8),
+          minimumConfidence: Number(confluenceDerivativesThresholds.minimumConfidence || 0.35),
+          maxSoftPenalty: Number(confluenceDerivativesThresholds.maxSoftPenalty || 0.45),
+        },
+        weights: {
+          oiDynamics: Number(confluenceDerivativesWeights.oiDynamics || 0.34),
+          fundingState: Number(confluenceDerivativesWeights.fundingState || 0.32),
+          liquidationContext: Number(confluenceDerivativesWeights.liquidationContext || 0.2),
+          crowding: Number(confluenceDerivativesWeights.crowding || 0.14),
+        },
+        crowding: {
+          oiZscoreSpike: Number(confluenceDerivativesCrowding.oiZscoreSpike || 2.4),
+          fundingAbsSpike: Number(confluenceDerivativesCrowding.fundingAbsSpike || 0.0012),
+          liquidationClusterUsd: Number(confluenceDerivativesCrowding.liquidationClusterUsd || 2500000),
+          penaltyOnExtreme: Number(confluenceDerivativesCrowding.penaltyOnExtreme || 0.26),
+          penaltyOnElevated: Number(confluenceDerivativesCrowding.penaltyOnElevated || 0.12),
+        },
+        liquidation: {
+          useIfAvailable: confluenceDerivativesLiquidation.useIfAvailable !== false,
+          dominanceSupportWeight: Number(confluenceDerivativesLiquidation.dominanceSupportWeight || 0.22),
+          dominanceRiskPenalty: Number(confluenceDerivativesLiquidation.dominanceRiskPenalty || 0.2),
+        },
+        refreshPolicy: {
+          minCyclesBetweenRefresh: Number(confluenceDerivativesRefresh.minCyclesBetweenRefresh || 3),
+          forceRefreshEveryCycles: Number(confluenceDerivativesRefresh.forceRefreshEveryCycles || 0),
+          allowCachedReuse: confluenceDerivativesRefresh.allowCachedReuse !== false,
+          cacheKey: confluenceDerivativesRefresh.cacheKey || 'derivatives_context_engine',
+        },
+        capitalRegimePenalties: typeof confluenceDerivativesContext.capitalRegimePenalties === 'object' && confluenceDerivativesContext.capitalRegimePenalties
+          ? confluenceDerivativesContext.capitalRegimePenalties
+          : {
+            NORMAL: 0,
+            CAUTION: 0.04,
+            DEFENSIVE: 0.1,
+            CAPITAL_PRESERVATION: 0.16,
+            HALT_NEW_ENTRIES: 0.26,
           },
       },
     },

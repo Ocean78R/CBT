@@ -427,3 +427,133 @@ test('confluenceEntryEngine: breakdownDetectionLayer добавляет bearish 
   assert.ok(event.payload.breakdownDetection);
   assert.ok(event.payload.telemetry.downstreamContext.confluenceEntry.breakdownDetection);
 });
+
+test('confluenceEntryEngine: derivativesContextLayer усиливает/ослабляет вход без права исполнения сделки', () => {
+  const config = normalizeConfluenceEntryConfig({
+    enabled: true,
+    mode: 'confluence',
+    blockWeights: {
+      entryPermission: 0.22,
+      marketContext: 0.2,
+      primarySignal: 0.24,
+      confirmation: 0.12,
+      marketLevel: 0.08,
+      volumeContext: 0.04,
+      bounceDetection: 0.03,
+      breakdownDetection: 0.03,
+      derivativesContext: 0.04,
+    },
+    thresholds: { fullEntryScore: 0.56, weakEntryScore: 0.42, minConfidence: 0.25 },
+    derivativesContext: {
+      enabled: true,
+      preferSharedSnapshot: true,
+      refreshPolicy: { minCyclesBetweenRefresh: 2, allowCachedReuse: true },
+    },
+  });
+
+  const result = evaluateConfluenceEntry({
+    context: {
+      cycleId: 'c-deriv-1',
+      cycleIndex: 10,
+      ticker: 'BTC-USDT',
+      exchange: 'bingx',
+      marketRegime: 'trend',
+      capitalRegime: 'DEFENSIVE',
+      balanceState: { capitalRegime: 'DEFENSIVE' },
+      setupType: 'byBarsPercents',
+    },
+    featureStoreContext: {},
+    sharedSnapshot: {
+      candles: Array.from({ length: 40 }, (_, i) => ({
+        timestamp: i + 1, open: 100 + i, high: 102 + i, low: 99 + i, close: 101 + i, volume: 1000 + i * 10,
+      })),
+      derivatives: {
+        openInterest: { current: 112000000, previous: 100000000, zscore: 2.8 },
+        funding: { rate: 0.0011 },
+        liquidation: { longUsd: 1800000, shortUsd: 450000 },
+      },
+    },
+    regimeRouterDecision: {
+      layerName: 'marketRegimeRouter',
+      marketRegime: 'trend',
+      allowedSetups: ['byBarsPercents'],
+      selectedPredictType: 'byBarsPercents',
+      score: 0.8,
+      confidence: 0.76,
+    },
+    primarySignal: {
+      layerName: 'primarySignalLayer',
+      direction: 'long',
+      score: 0.82,
+      confidence: 0.74,
+      setupType: 'byBarsPercents',
+    },
+    confirmationSignals: [{ name: 'trend_confirmation', approved: true }],
+  }, config);
+
+  assert.equal(result.layers.derivativesContextLayer.layerName, 'derivativesContextLayer');
+  assert.ok(Number.isFinite(result.layers.derivativesContextLayer.softPenalty));
+  assert.ok((result.layers.derivativesContextLayer.reasonCodes || []).length > 0);
+  assert.ok(result.decisionContext.metadata.derivativesContext);
+  assert.ok(result.decisionContext.metadata.layerScores.derivativesContextLayer);
+
+  const event = toConfluenceEntryEvent({
+    context: { cycleId: 'c-deriv-1', ticker: 'BTC-USDT', exchange: 'bingx' },
+    result,
+  });
+  assert.ok(event.payload.derivativesContext);
+  assert.ok(event.payload.telemetry.downstreamContext.confluenceEntry.derivativesContext);
+});
+
+test('confluenceEntryEngine: derivativesContextLayer возвращает degraded mode при отсутствии данных', () => {
+  const config = normalizeConfluenceEntryConfig({
+    enabled: true,
+    mode: 'confluence',
+    blockWeights: {
+      entryPermission: 0.25,
+      marketContext: 0.2,
+      primarySignal: 0.25,
+      confirmation: 0.15,
+      derivativesContext: 0.15,
+    },
+    derivativesContext: {
+      enabled: true,
+      skipWhenBudgetExceeded: true,
+      refreshPolicy: { allowCachedReuse: false },
+    },
+  });
+
+  const result = evaluateConfluenceEntry({
+    context: {
+      cycleId: 'c-deriv-2',
+      cycleIndex: 3,
+      ticker: 'ETH-USDT',
+      exchange: 'bingx',
+      marketRegime: 'trend',
+      capitalRegime: 'NORMAL',
+      balanceState: { capitalRegime: 'NORMAL' },
+      setupType: 'byBarsPercents',
+    },
+    budgetState: 'exceeded',
+    sharedSnapshot: { candles: [] },
+    regimeRouterDecision: {
+      layerName: 'marketRegimeRouter',
+      marketRegime: 'trend',
+      allowedSetups: ['byBarsPercents'],
+      selectedPredictType: 'byBarsPercents',
+      score: 0.72,
+      confidence: 0.7,
+    },
+    primarySignal: {
+      layerName: 'primarySignalLayer',
+      direction: 'long',
+      score: 0.7,
+      confidence: 0.68,
+      setupType: 'byBarsPercents',
+    },
+  }, config);
+
+  assert.equal(result.layers.derivativesContextLayer.dataQualityState, 'degraded');
+  assert.ok((result.layers.derivativesContextLayer.reasonCodes || []).includes('derivatives_data_missing'));
+  assert.ok(['FULL_ENTRY', 'WEAK_ENTRY', 'NO_ENTRY'].includes(result.decision.finalDecision));
+});

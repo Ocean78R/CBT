@@ -129,6 +129,31 @@
 2. `capitalRegime` отражён в `allowedSetups` (защитные режимы должны сжимать доступные сетапы).
 3. При `no_trade_flat` итог должен быть `final=reject`, если `allowFallbackInFlatRegime=false`.
 
+## Логи derivatives context (perpetual futures)
+В runtime-логе `[confluenceEntry]` добавлены поля:
+- `derivativesScore`, `derivativesConfidence`,
+- `derivativesDataQuality` (`full|cached|degraded|fallback`),
+- `derivativesReason`,
+- `derivativesMode` (`full_mode|cached_mode|degraded_mode`),
+- `capitalInfluence`.
+
+В structured event `confluence_entry_decision` добавлены:
+- `payload.derivativesContext`,
+- `payload.layerScores.derivativesContextLayer`,
+- `payload.telemetry.downstreamContext.confluenceEntry.derivativesContext`.
+
+Минимальные поля для аудита каждого решения derivatives-слоя:
+- `cycleId`, `ticker`, `exchange`,
+- `module/layer`, `marketRegime`, `capitalRegime`, `setupType`,
+- `score/confidence`, `vetoReason`,
+- `sizingDecision`, `executionAction/fallbackAction`,
+- итоговое `finalDecision`.
+
+Диагностика:
+1. Если `derivativesDataQuality=degraded`, проверяйте наличие `sharedSnapshot.derivatives` и budget-state.
+2. Если слишком частый `full_mode`, увеличьте `refreshPolicy.minCyclesBetweenRefresh`.
+3. Если входы стали осторожнее в `DEFENSIVE/CAPITAL_PRESERVATION`, проверьте `capitalRegimePenalties`.
+
 ## Единый observability/reporting и audit trail
 Добавлен единый слой агрегированных отчётов и audit trail поверх структурированных событий runtime-контрактов.
 

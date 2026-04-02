@@ -5,6 +5,7 @@ const { evaluateSupportResistance } = require('./supportResistanceEngine');
 const { evaluateVwapProfileLayer } = require('./vwapProfileEngine');
 const { evaluateBounceDetection } = require('./bounceDetectionEngine');
 const { evaluateBreakdown } = require('./breakdownEngine');
+const { evaluateDerivativesContext } = require('./derivativesContextEngine');
 
 function clamp01(value) {
   if (!Number.isFinite(value)) return 0;
@@ -23,6 +24,7 @@ function normalizeConfig(raw = {}) {
   const volumeContext = raw.volumeContext || {};
   const bounceDetection = raw.bounceDetection || {};
   const breakdownDetection = raw.breakdownDetection || {};
+  const derivativesContext = raw.derivativesContext || {};
 
   return {
     enabled: !!raw.enabled,
@@ -38,6 +40,7 @@ function normalizeConfig(raw = {}) {
       volumeContext: Number(blockWeights.volumeContext ?? 0),
       bounceDetection: Number(blockWeights.bounceDetection ?? 0),
       breakdownDetection: Number(blockWeights.breakdownDetection ?? 0),
+      derivativesContext: Number(blockWeights.derivativesContext ?? 0),
     },
     thresholds: {
       fullEntryScore: Number(thresholds.fullEntryScore ?? 0.68),
@@ -171,6 +174,30 @@ function normalizeConfig(raw = {}) {
       microstructure: typeof breakdownDetection.microstructure === 'object' && breakdownDetection.microstructure ? breakdownDetection.microstructure : {},
       capitalRegimePenalties: typeof breakdownDetection.capitalRegimePenalties === 'object' && breakdownDetection.capitalRegimePenalties
         ? breakdownDetection.capitalRegimePenalties
+        : {},
+    },
+    derivativesContext: {
+      enabled: !!derivativesContext.enabled,
+      preferSharedSnapshot: derivativesContext.preferSharedSnapshot !== false,
+      skipWhenBudgetExceeded: derivativesContext.skipWhenBudgetExceeded !== false,
+      allowNoTradeOnExtremeCrowding: !!derivativesContext.allowNoTradeOnExtremeCrowding,
+      thresholds: typeof derivativesContext.thresholds === 'object' && derivativesContext.thresholds
+        ? derivativesContext.thresholds
+        : {},
+      weights: typeof derivativesContext.weights === 'object' && derivativesContext.weights
+        ? derivativesContext.weights
+        : {},
+      crowding: typeof derivativesContext.crowding === 'object' && derivativesContext.crowding
+        ? derivativesContext.crowding
+        : {},
+      liquidation: typeof derivativesContext.liquidation === 'object' && derivativesContext.liquidation
+        ? derivativesContext.liquidation
+        : {},
+      refreshPolicy: typeof derivativesContext.refreshPolicy === 'object' && derivativesContext.refreshPolicy
+        ? derivativesContext.refreshPolicy
+        : {},
+      capitalRegimePenalties: typeof derivativesContext.capitalRegimePenalties === 'object' && derivativesContext.capitalRegimePenalties
+        ? derivativesContext.capitalRegimePenalties
         : {},
     },
   };
@@ -461,6 +488,7 @@ function combineLayerScores(layers, config) {
     ['volumeContextLayer', weights.volumeContext],
     ['bounceDetectionLayer', weights.bounceDetection],
     ['breakdownDetectionLayer', weights.breakdownDetection],
+    ['derivativesContextLayer', weights.derivativesContext],
   ];
 
   let weightedScore = 0;
@@ -525,6 +553,7 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
       marketRegime: (layers.marketContextLayer && layers.marketContextLayer.explanation.marketRegime) || context.marketRegime || 'unknown',
       sizingDecision: 'not_evaluated',
       marketLevels: (layers.marketLevelLayer || {}).explanation || {},
+      derivativesContext: (layers.derivativesContextLayer || {}).explanation || {},
     },
   });
 
@@ -565,6 +594,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       volumeContextLayer: createLayerResult('volumeContextLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       bounceDetectionLayer: createLayerResult('bounceDetectionLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       breakdownDetectionLayer: createLayerResult('breakdownDetectionLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
+      derivativesContextLayer: createLayerResult('derivativesContextLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       finalEntryDecisionLayer: createLayerResult('finalEntryDecisionLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       },
       decision: {
@@ -634,6 +664,29 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
     reasonCodes: breakdownResult.reasonCodes,
     explanation: breakdownResult.explanation || {},
   });
+  // Русский комментарий: derivatives-context слой работает после базовых gating-слоёв и перед final decision.
+  const derivativesResult = evaluateDerivativesContext({
+    context,
+    sharedSnapshot: input.sharedSnapshot || {},
+    featureStoreContext: input.featureStoreContext || {},
+    primarySignal: input.primarySignal || {},
+    budgetState: input.budgetState || 'normal',
+  }, config.derivativesContext || {});
+  if (derivativesResult && derivativesResult.cacheWrite && input.featureStoreContext && typeof input.featureStoreContext === 'object') {
+    input.featureStoreContext[(config.derivativesContext || {}).refreshPolicy && (config.derivativesContext || {}).refreshPolicy.cacheKey
+      ? config.derivativesContext.refreshPolicy.cacheKey
+      : 'derivatives_context_engine'] = derivativesResult.cacheWrite;
+  }
+  layers.derivativesContextLayer = createLayerResult('derivativesContextLayer', {
+    direction: derivativesResult.direction || 'none',
+    score: derivativesResult.score,
+    confidence: derivativesResult.confidence,
+    softPenalty: derivativesResult.softPenalty,
+    vetoCandidates: derivativesResult.vetoCandidates,
+    dataQualityState: derivativesResult.dataQualityState || 'degraded',
+    reasonCodes: derivativesResult.reasonCodes,
+    explanation: derivativesResult.explanation || {},
+  });
   layers.finalEntryDecisionLayer = evaluateFinalEntryDecisionLayer(input, config, layers);
 
   const final = layers.finalEntryDecisionLayer;
@@ -660,6 +713,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       { source: 'volumeContextLayer', value: layers.volumeContextLayer.softPenalty },
       { source: 'bounceDetectionLayer', value: layers.bounceDetectionLayer.softPenalty },
       { source: 'breakdownDetectionLayer', value: layers.breakdownDetectionLayer.softPenalty },
+      { source: 'derivativesContextLayer', value: layers.derivativesContextLayer.softPenalty },
     ],
     metadata: {
       layerScores: layers,
@@ -677,6 +731,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       volumeContext: layers.volumeContextLayer ? layers.volumeContextLayer.explanation : {},
       bounceDetection: layers.bounceDetectionLayer ? layers.bounceDetectionLayer.explanation : {},
       breakdownDetection: layers.breakdownDetectionLayer ? layers.breakdownDetectionLayer.explanation : {},
+      derivativesContext: layers.derivativesContextLayer ? layers.derivativesContextLayer.explanation : {},
     },
   });
 
@@ -729,6 +784,7 @@ function toConfluenceEntryEvent(input = {}) {
       volumeContext: (layerScores.volumeContextLayer || {}).explanation || {},
       bounceDetection: (layerScores.bounceDetectionLayer || {}).explanation || {},
       breakdownDetection: (layerScores.breakdownDetectionLayer || {}).explanation || {},
+      derivativesContext: (layerScores.derivativesContextLayer || {}).explanation || {},
       // Русский комментарий: совместимый downstream-контекст для audit trail/reporting без ad-hoc форматов.
       telemetry: {
         downstreamContext: {
@@ -742,6 +798,7 @@ function toConfluenceEntryEvent(input = {}) {
             volumeContext: (layerScores.volumeContextLayer || {}).explanation || {},
             bounceDetection: (layerScores.bounceDetectionLayer || {}).explanation || {},
             breakdownDetection: (layerScores.breakdownDetectionLayer || {}).explanation || {},
+            derivativesContext: (layerScores.derivativesContextLayer || {}).explanation || {},
           },
         },
       },
