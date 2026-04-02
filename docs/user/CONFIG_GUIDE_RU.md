@@ -81,6 +81,29 @@
 - в режиме `enabled=false` сохраняется прежнее поведение по `predictType`;
 - `byBarsPercents` сохранён как fallback и как базовый trend-сетап.
 
+## Конфиг rebound/bounce слоя в confluenceEntryEngine
+Блок находится в `confluenceEntryEngine.bounceDetection`.
+
+- `confluenceEntryEngine.blockWeights.bounceDetection`: вес bounce-блока в финальной агрегированной оценке.
+- `bounceDetection.enabled`: включает слой вероятного отскока (сам по себе вход не открывает).
+- `bounceDetection.allowedRegimes`: в каких market regime слой вообще активируется.
+- `bounceDetection.noTradeRegimes`: список режимов, где слой возвращает no-trade результат.
+- `bounceDetection.lookbackBars/swingWindow`: глубина и окно swing-контекста.
+- `bounceDetection.zoneProximityPercent`: порог близости к зоне S/R для proximity-score.
+- `bounceDetection.falseBreakoutTolerancePercent`: допуск для false breakout / liquidity grab.
+- `bounceDetection.momentumLookbackBars`: окно оценки slowdown импульса.
+- `bounceDetection.minCandlesForAnalysis`: минимальный объём данных до включения full-mode.
+- `bounceDetection.thresholds.*`: пороги confidence/coverage/активации microstructure-подслоя.
+- `bounceDetection.setupTypes.*`: включение отдельных типов bounce setup.
+- `bounceDetection.weights.*`: веса групп признаков в итоговом bounce-score.
+- `bounceDetection.microstructure.*`: policy дорогого подслоя order-book/spread (lazy + budget-aware).
+- `bounceDetection.capitalRegimePenalties.*`: как режим капитала снижает вклад bounce в confluence (без ослабления hard-risk).
+
+Важно:
+- bounce-слой работает только как контекстный блок внутри `confluenceEntryEngine`;
+- при нехватке данных/бюджета слой отдаёт `degraded` результат и fallback reason-codes;
+- ownership финального решения остаётся у `finalEntryDecisionLayer`.
+
 ## Какие параметры опасно менять без понимания логики
 - hard-risk/hard-safety ограничения,
 - параметры stop-loss/forced-exit политики,

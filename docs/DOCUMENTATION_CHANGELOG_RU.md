@@ -8,6 +8,14 @@
 
 ---
 
+## 2026-04-02 (bounce/rebound detection layer в confluence)
+- Изменение: добавлен отдельный слой `bounceDetectionEngine` для оценки вероятного отскока (zone proximity, swing context, liquidity grab, momentum slowdown, exhaustion/divergence, volume absorption, optional microstructure).
+- Изменение: слой подключён в `confluenceEntryEngine` как `bounceDetectionLayer` между контекстными блоками и `finalEntryDecisionLayer`; ownership final entry остаётся у confluence final layer.
+- Изменение: добавлен config-блок `confluenceEntryEngine.bounceDetection` + новый вес `blockWeights.bounceDetection`; по умолчанию слой не меняет legacy-поведение (вес `0`, отключённый флаг).
+- Изменение: расширены runtime-логи и structured payload (`payload.bounceDetection`, `telemetry.downstreamContext.confluenceEntry.bounceDetection`) для audit trail/observability.
+- Связанные файлы кода: `dist/runtime/engines/bounceDetectionEngine.js`, `dist/runtime/engines/confluenceEntryEngine.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/confluence-entry-engine.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`.
+
 ## 2026-04-02 (allowedUniverse ownership + dynamic shortlist corrective patch)
 - Изменение: зафиксирована семантика `allowedUniverse` (config owner, alias через `definedAssets`) и `dynamicShortlist` (runtime-подмножество для новых входов); dynamic selection теперь работает только в режиме `whitelist_only`.
 - Изменение: добавлена жёсткая иерархия приоритета: `allowedUniverse -> unload/safeEntryAssets/hard restrictions -> capitalRegime -> dynamicShortlist -> downstream layers`.

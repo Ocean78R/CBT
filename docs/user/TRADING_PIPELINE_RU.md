@@ -342,7 +342,7 @@ Cache tiers и чтение слоями:
 
 ## Runtime-позиция confluenceEntryEngine / entryScoringEngine (многослойный вход)
 - Место слоя в runtime-пайплайне:
-  `hard-risk / portfolioRiskContour -> marketRegimeRouter -> confluenceEntryEngine(entryPermission -> marketContext -> primarySignal -> confirmation -> finalEntryDecision) -> dynamicPositionSizing -> execution`.
+  `hard-risk / portfolioRiskContour -> marketRegimeRouter -> confluenceEntryEngine(entryPermission -> marketContext -> primarySignal -> confirmation -> marketLevel -> volumeContext -> bounceDetection -> finalEntryDecision) -> dynamicPositionSizing -> execution`.
 - Зависимости от более ранних слоёв:
   - `DecisionContext` (cycle/ticker/regime/capital/score/confidence/veto/metadata),
   - `balanceState` и `capitalRegime` из `portfolioRiskContour`,
@@ -373,6 +373,33 @@ Cache tiers и чтение слоями:
 5. `finalEntryDecisionLayer`
    - агрегирует веса/штрафы, интерпретирует veto-контракт,
    - возвращает `FULL_ENTRY | WEAK_ENTRY | NO_ENTRY`.
+
+## Bounce / Rebound Detection Engine (новый сигнальный слой)
+- Runtime-позиция: `marketRegimeRouter -> confluenceEntryEngine(... -> bounceDetectionLayer -> finalEntryDecisionLayer)`.
+- Зависимости ранних слоёв:
+  - `DecisionContext` (`cycleId/ticker/exchange/marketRegime/capitalRegime/setupType`),
+  - shared snapshot (`candles`, `orderBook`, готовые индикаторы если есть),
+  - `primarySignal.direction/score` как контекст, но не как owner final decision.
+- Что делает слой:
+  - считает вероятность отскока/локального разворота по наборам признаков:
+    - proximity к support/resistance зоне;
+    - swing high/swing low контекст;
+    - false breakout / liquidity grab;
+    - slowdown импульса;
+    - exhaustion (RSI/MFI/StochRSI, с деградирующими proxy при нехватке данных);
+    - divergence;
+    - volume spike + absorption;
+    - optional microstructure (imbalance/spread) только после дешёвого gating.
+- Что **не** делает слой:
+  - не подменяет `marketRegimeRouter`;
+  - не открывает сделку напрямую;
+  - не снимает hard-risk/capital-veto ограничения.
+- Fallback и degraded mode:
+  - если `bounceDetection.enabled=false` или `blockWeights.bounceDetection=0`, поведение остаётся прежним;
+  - если данных недостаточно или budget исчерпан — слой возвращает `dataQualityState=degraded` и сниженную уверенность, без остановки цикла.
+- Конфликт с breakdown-логикой:
+  - внутри bounce-слоя конфликт **не** финализируется;
+  - конфликтные reason/veto-кандидаты передаются выше в `finalEntryDecisionLayer`.
 
 ### Обратная совместимость
 - Старое поведение осталось fallback-режимом и не удалено.

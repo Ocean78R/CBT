@@ -14,7 +14,7 @@
 2. universe filters,
 3. dynamic asset selection,
 4. market regime router,
-5. confluence + technical confirmations + support/resistance,
+5. confluence + technical confirmations + support/resistance + volume context + bounce/rebound context,
 6. veto-signals / final entry score,
 7. dynamic sizing (только после approved entry),
 8. execution engine,
@@ -241,4 +241,3 @@ CBT/
   - формировать hard-veto вне общего risk/capital ownership path.
 - Обязательный формат выхода: совместимый decision-contract (`layerName/direction/score/confidence/softPenalty/vetoCandidates/dataQualityState/reasonCodes`) + поля контекста (`htfBias/marketStructureState/structureConfidence/trendAlignmentScore`).
 - Fallback-контракт: при нехватке данных `dataQualityState=degraded` и нейтральный bias; при slower-refresh reuse `dataQualityState=cached`.
-

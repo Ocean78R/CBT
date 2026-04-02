@@ -244,3 +244,92 @@ test('confluenceEntryEngine: учитывает отдельный блок volu
   assert.ok(result.decisionContext.metadata.volumeContext);
   assert.ok(result.decisionContext.metadata.layerScores.volumeContextLayer);
 });
+
+test('confluenceEntryEngine: bounceDetectionLayer обогащает решение, но не открывает сделку самостоятельно', () => {
+  const config = normalizeConfluenceEntryConfig({
+    enabled: true,
+    mode: 'confluence',
+    blockWeights: {
+      entryPermission: 0.24,
+      marketContext: 0.2,
+      primarySignal: 0.22,
+      confirmation: 0.14,
+      marketLevel: 0.08,
+      volumeContext: 0.06,
+      bounceDetection: 0.06,
+    },
+    thresholds: { fullEntryScore: 0.56, weakEntryScore: 0.42, minConfidence: 0.25 },
+    bounceDetection: {
+      enabled: true,
+      allowedRegimes: ['trend', 'range'],
+      thresholds: { scoreForSetupTag: 0.5, minConfidence: 0.2, microstructureActivationScore: 0.4 },
+    },
+  });
+
+  const candles = Array.from({ length: 40 }, (_, idx) => ({
+    timestamp: idx + 1,
+    open: 100 - idx * 0.25,
+    high: 101 - idx * 0.2,
+    low: 98 - idx * 0.28,
+    close: 99 - idx * 0.22 + (idx > 30 ? (idx - 30) * 0.12 : 0),
+    volume: 1200 + idx * 20,
+  }));
+
+  const result = evaluateConfluenceEntry({
+    context: {
+      cycleId: 'c-5',
+      cycleIndex: 5,
+      ticker: 'XRP-USDT',
+      exchange: 'bingx',
+      marketRegime: 'trend',
+      capitalRegime: 'DEFENSIVE',
+      balanceState: { capitalRegime: 'DEFENSIVE' },
+      forecastRegimeShiftRisk: 'ELEVATED',
+      setupType: 'byBarsPercents',
+    },
+    sharedSnapshot: {
+      candles,
+      orderBook: {
+        bestBid: 90,
+        bestAsk: 90.05,
+        bidVolume: 120000,
+        askVolume: 90000,
+      },
+    },
+    budgetState: 'normal',
+    regimeRouterDecision: {
+      layerName: 'marketRegimeRouter',
+      marketRegime: 'trend',
+      allowedSetups: ['byBarsPercents'],
+      selectedPredictType: 'byBarsPercents',
+      score: 0.76,
+      confidence: 0.73,
+    },
+    primarySignal: {
+      layerName: 'primarySignalLayer',
+      direction: 'long',
+      score: 0.79,
+      confidence: 0.72,
+      setupType: 'byBarsPercents',
+    },
+    confirmationSignals: [{ name: 'trend_confirmation', approved: true }],
+    htfBiasDecision: {
+      layerName: 'higherTimeframeBiasEngine',
+      htfBias: 'long',
+      mode: 'full_mode',
+    },
+  }, config);
+
+  assert.equal(result.enabled, true);
+  assert.equal(result.layers.bounceDetectionLayer.layerName, 'bounceDetectionLayer');
+  assert.ok(Number.isFinite(result.layers.bounceDetectionLayer.score));
+  assert.ok(Array.isArray(result.layers.bounceDetectionLayer.explanation.setupTypes));
+  assert.ok(result.decisionContext.metadata.bounceDetection);
+
+  const event = toConfluenceEntryEvent({
+    context: { cycleId: 'c-5', ticker: 'XRP-USDT', exchange: 'bingx' },
+    result,
+  });
+  assert.ok(event.payload.bounceDetection);
+  assert.ok(event.payload.telemetry.downstreamContext.confluenceEntry.bounceDetection);
+});
