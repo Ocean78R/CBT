@@ -72,7 +72,9 @@ function createEngines(strategy) {
         }
         if (strategy.log && typeof strategy.log === 'function') {
           const ctx = input && input.context ? input.context : {};
-          strategy.log(`[forcedLossExit] cycle=${ctx.cycleId || 'n/a'} ticker=${ctx.ticker || 'n/a'} exchange=${ctx.exchange || 'n/a'} regime=${ctx.marketRegime || 'unknown'} capital=${ctx.capitalRegime || 'unknown'} action=${decision.actionMode} triggered=${decision.triggered} reasons=${(decision.reasons || []).join(',') || 'none'}`);
+          const early = decision && decision.earlyInvalidation ? decision.earlyInvalidation : {};
+          const diagnostics = early.diagnostics || {};
+          strategy.log(`[forcedLossExit] cycle=${ctx.cycleId || 'n/a'} ticker=${ctx.ticker || 'n/a'} exchange=${ctx.exchange || 'n/a'} module=forcedLossExit layer=risk.positionProtection regime=${ctx.marketRegime || 'unknown'} capital=${ctx.capitalRegime || 'unknown'} positionCapabilityState=${ctx.positionCapabilityState || 'unknown'} stage=${decision.triggerStage || 'none'} action=${decision.actionMode} triggered=${decision.triggered} final=${decision.triggered ? decision.actionMode : 'no_action'} earlyReason=${early.triggered ? (early.reasons || []).join(',') || 'none' : 'none'} reasons=${(decision.reasons || []).join(',') || 'none'} timeSinceEntryMin=${Number.isFinite(diagnostics.minutesSinceEntry) ? diagnostics.minutesSinceEntry.toFixed(2) : 'n/a'} deviationPct=${Number.isFinite(diagnostics.entryDeviationPercent) ? diagnostics.entryDeviationPercent.toFixed(4) : 'n/a'} adverseZoneMin=${Number.isFinite(diagnostics.timeUnderEntryWithoutRecoveryMinutes) ? diagnostics.timeUnderEntryWithoutRecoveryMinutes.toFixed(2) : 'n/a'} adverseTrendConfirmed=${diagnostics.adverseTrendConfirmed === true} scenarioBroken=${diagnostics.scenarioBroken === true} ownershipAction=${decision.ownershipAction ? decision.ownershipAction.type : 'none'}`);
         }
         return decision;
       },

@@ -103,6 +103,16 @@ Fallback-режим: если `executionContour.enabled=false`, исполнен
 - `forcedLossExit.cooldownMinutesAfterForcedExit`: защитный cooldown после forced action.
 - `forcedLossExit.regimeTightening.*`: явное ужесточение порогов для `capitalRegime` (например `DEFENSIVE`, `CAPITAL_PRESERVATION`).
 - `forcedLossExit.forecastInfluence.*`: отдельный вход influence от forecast-слоя (без прямого закрытия позиций forecast-слоем).
+- `forcedLossExit.enablePostEntryObservation`: включает ранний подрежим `postEntryObservation/earlyInvalidationExit`.
+- `forcedLossExit.postEntryGraceMinutes`: короткий grace period сразу после входа.
+- `forcedLossExit.postEntryObservationMinutes`: длительность окна наблюдения после grace period.
+- `forcedLossExit.maxTimeUnderEntryWithoutRecovery`: сколько минут допускается adverse-состояние без восстановления к entry.
+- `forcedLossExit.earlyInvalidationLossPercent`: ранний лимит отклонения от entry для признания сценария невалидным.
+- `forcedLossExit.requirePersistentAdverseTrend`: требовать подтверждённый устойчивый adverse trend.
+- `forcedLossExit.adverseTrendConfirmationBars`: минимум баров для подтверждения adverse trend.
+- `forcedLossExit.adverseTrendSlopeThreshold`: минимальный slope adverse trend для подтверждения.
+- `forcedLossExit.actionOnEarlyInvalidation`: действие раннего уровня (`partial_reduce | force_close`) через lifecycle ownership path.
+- `forcedLossExit.useForecastProtectiveHints`: опциональная точка интеграции forecast hints без жёсткой зависимости.
 
 Важно: старый flow остаётся fallback, пока `forcedLossExit.enabled=false`.
 

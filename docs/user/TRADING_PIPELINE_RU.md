@@ -37,11 +37,12 @@
 ## Как работает закрытие позиции
 Позиция сопровождается строго по иерархии:
 1. Server stop-loss.
-2. Forced loss exit / stuck protection.
-3. Server take-profit.
-4. Partial close / breakeven / trailing.
-5. Local polling fallback close.
-6. Averaging (если разрешено политикой и контекстом).
+2. Post-entry observation / early invalidation exit.
+3. Forced loss exit / stuck protection (fallback).
+4. Server take-profit.
+5. Partial close / breakeven / trailing.
+6. Local polling fallback close.
+7. Averaging (если разрешено политикой и контекстом).
 
 ## Типы торговых решений
 - `hard veto` — жёсткий запрет действия.
@@ -72,9 +73,10 @@
 
 ## ForcedLossExit / StuckPositionProtection (runtime-слой)
 - Runtime-позиция: строго **после server SL и до averaging**.
+- Внутренний порядок: `postEntryObservation/earlyInvalidationExit` -> `forcedLossExit/stuckPositionProtection` (fallback).
 - Зависимости: `serverStopLoss` статус, контекст `capitalRegime`, market-regime, position-metrics, optional `portfolioForecastEngine` hints.
 - Ownership: модуль только формирует `ownershipAction` (`position_reduce_request` / `position_force_close_request`), а фактическое действие делает `execution_lifecycle_manager` + reconciliation.
-- Fallback: если слой выключен (`forcedLossExit.enabled=false`) или нет достаточных данных, поведение остаётся legacy (без неявного закрытия).
+- Fallback: если `enablePostEntryObservation=false`, ранний уровень полностью отключён, legacy forced/stuck продолжает работать без rollback.
 - Приоритет: выше averaging, но не заменяет primary server stop-loss.
 
 

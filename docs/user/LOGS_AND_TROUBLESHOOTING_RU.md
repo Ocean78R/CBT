@@ -65,12 +65,16 @@
 - `score`, `confidence`;
 - `vetoReason` (если trigger), `sizingDecision`;
 - `executionAction`/`fallbackAction`;
-- `finalDecision`.
+- `finalDecision`;
+- `triggerStage` (`early_invalidation_exit | forced_loss_exit_fallback | none`);
+- `positionCapabilityState`;
+- `earlyInvalidationReason` (причина ранней инвалидации).
 
 Диагностика:
 1. Проверяйте, что при `actionMode=warn` событие есть, но `executionAction=none`.
 2. Для `block_averaging|partial_reduce|force_close` смотрите `sizingDecision/executionAction` и дальнейшие lifecycle события owner-layer.
 3. Если включён `forecastInfluence.requireStressSignal`, отсутствие stress-signal должно давать `finalDecision=no_action`.
+4. Для early-level смотрите диагностику: `timeSinceEntryMin`, `deviationPct`, `adverseZoneMin`, `adverseTrendConfirmed`, `scenarioBroken`.
 
 
 ## Логи restricted-state по leverage mismatch

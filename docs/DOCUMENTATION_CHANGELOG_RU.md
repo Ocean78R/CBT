@@ -41,6 +41,13 @@
 - Связанные файлы кода: `dist/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`.
 - Связанные разделы docs: `README.md`, `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/RISK_AND_PROTECTION_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
 
+## 2026-04-02 (postEntryObservation / earlyInvalidationExit)
+- Изменение: в рамках слоя `forcedLossExit` добавлен отдельный ранний подрежим `postEntryObservation/earlyInvalidationExit` с grace-period, окном наблюдения и подтверждением устойчивого adverse-trend.
+- Изменение: сохранён порядок защиты и fallback: `server stop-loss -> early invalidation -> legacy forced/stuck -> averaging`; при `enablePostEntryObservation=false` поведение возвращается к прежнему forced/stuck flow.
+- Изменение: добавлены runtime-поля логирования/structured event для ранней диагностики (`triggerStage`, `earlyInvalidationReason`, время с входа, отклонение от entry, длительность adverse-зоны, подтверждение trend, scenarioBroken).
+- Связанные файлы кода: `dist/runtime/risk/forcedLossExit.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/forced-loss-exit-early-invalidation.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/RISK_AND_PROTECTION_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`, `docs/ARCHITECTURE_CONTRACT_RU.md`.
+
 ## 2026-04-01 (forcedLossExit / stuckPositionProtection)
 - Изменение: добавлен конфигурируемый слой forcedLossExit/stuckPositionProtection после server SL и до averaging; введены action-режимы `warn/block_averaging/partial_reduce/force_close`, влияние capitalRegime через `regimeTightening`, отдельный forecast-вход через `forecastInfluence`, и структурированное событие `forced_loss_exit_decision`.
 - Связанные файлы кода: `dist/runtime/risk/forcedLossExit.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`.

@@ -81,11 +81,12 @@
 
 Иерархия открытых позиций:
 1. server stop-loss,
-2. forced loss exit / stuck protection,
-3. server take-profit,
-4. partial close / breakeven / trailing,
-5. local polling fallback close,
-6. averaging.
+2. post-entry observation / early invalidation exit,
+3. forced loss exit / stuck protection (fallback),
+4. server take-profit,
+5. partial close / breakeven / trailing,
+6. local polling fallback close,
+7. averaging.
 
 ## 7) Правило для index.js
 
