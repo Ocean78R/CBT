@@ -227,3 +227,19 @@ Cache tiers и чтение слоями:
   - при частично отсутствующих данных пишет безопасные `null/unknown` и не блокирует цикл;
   - при ошибке записи сборщик деградирует в best-effort режим, торговля продолжается.
 - Переключение режима: `mlDatasetBuilder.enabled`, а также `includePaperMode/includeLiveMode`.
+
+## Offline runtime-позиция первого ML training pipeline (оценка качества входа)
+- Место слоя: **вне боевого runtime-цикла**, отдельный offline-контур обучения на артефактах `mlDatasetBuilder`.
+- Зависимости от более ранних слоёв:
+  - собранный `entry_features.csv`/`entry_labels.csv` от `mlDatasetBuilder`;
+  - корректный `DecisionContext`-контракт в датасете (`score/confidence/veto/penalties/metadata`);
+  - заполнение полей состояния капитала и прогноза (`balance*`, `capitalRegime`, `portfolioForecastState`, `capitalStressForecastScore`, `forecastRegimeShiftRisk`, `portfolioFragilityScore`).
+- Кто главный:
+  - для торговых решений по-прежнему главный rule-based pipeline (risk/regime/confluence/sizing/execution);
+  - ML pipeline сейчас только обучает и оценивает модель offline.
+- Что fallback:
+  - при нехватке данных обучение не выполняется (`skipped_insufficient_data`), торговый runtime не меняется;
+  - при плохом split обучение также безопасно пропускается (`skipped_bad_split`).
+- Как включается/используется:
+  - запуск вручную через CLI `npm run ml:train:entry-quality`;
+  - артефакты сохраняются локально в `./data/ml_models/entry_quality` (или в путь из аргумента `--outDir`).

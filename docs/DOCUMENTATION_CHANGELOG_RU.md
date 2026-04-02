@@ -114,3 +114,10 @@
 - Изменение: добавлена интеграция с logging/observability (`ml_dataset_feature_captured`, `ml_dataset_label_resolved`) и персистентное `pendingState` для устойчивости к рестартам.
 - Связанные файлы кода: `dist/runtime/analytics/mlDatasetBuilder.js`, `dist/runtime/engines/index.js`, `dist/runtime/execution/paperTrading.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/ml-dataset-builder.test.js`.
 - Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
+
+## 2026-04-01 (первый practical ML training pipeline для качества входа)
+- Изменение: добавлен offline training pipeline `entryQualityTrainingPipeline` с полной цепочкой подготовки датасета (загрузка, очистка, пропуски, feature selection, split, обучение, метрики, сохранение артефактов).
+- Изменение: реализованы две цели обучения: `binaryPositiveEntry` (POSITIVE vs not POSITIVE) и `multiclassEntryQuality` (NEGATIVE/NEUTRAL/POSITIVE) на базе объяснимой logistic regression (OVR).
+- Изменение: добавлен CLI-скрипт для повторного обучения и безопасные защиты при недостатке данных (`skipped_insufficient_data`, `skipped_bad_split`).
+- Связанные файлы кода: `dist/runtime/ml/entryQualityTrainingPipeline.js`, `scripts/ml/train-entry-quality.js`, `tests/regression/ml-entry-quality-training.test.js`, `package.json`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`.

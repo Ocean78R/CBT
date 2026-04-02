@@ -295,3 +295,26 @@ Runtime-позиция слоя:
 - `capture.potentialEntries`: писать потенциальные входы (включая отклонённые/неисполненные).
 - `capture.actualEntries`: писать фактически исполненные входы.
 - `labeling.*`: пороги генерации label на основе итога.
+
+## Offline ML training pipeline (первый практичный контур)
+Этот контур **не меняет боевую торговлю** и используется только для обучения/оценки модели качества входа на собранном датасете.
+
+Запуск:
+- `npm run ml:train:entry-quality` — путь по умолчанию (`./data/ml_dataset/entry_features.csv`, `./data/ml_dataset/entry_labels.csv`).
+- Можно переопределить пути:
+  - `--features <path>`
+  - `--labels <path>`
+  - `--outDir <path>`
+  - `--validationShare <0..1>`
+  - `--minSamples <N>`
+
+Пример:
+- `node scripts/ml/train-entry-quality.js --features ./data/ml_dataset/entry_features.csv --labels ./data/ml_dataset/entry_labels.csv --outDir ./data/ml_models/entry_quality --validationShare 0.2 --minSamples 80`
+
+Артефакты обучения:
+- `entry_quality_model.json` — веса модели, контракт признаков, метрики по двум целям.
+- `training_report.json` — итог обучения/пропуска и статистика датасета.
+
+Защиты:
+- если выборка меньше `minSamples`, обучение пропускается безопасно;
+- если после split недостаточно train/validation, обучение пропускается безопасно.
