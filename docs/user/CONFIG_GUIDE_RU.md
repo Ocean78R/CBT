@@ -457,3 +457,60 @@ Runtime-позиция слоя:
 Важно:
 - слой зон отвечает только за ценовую геометрию и не смешивается с VWAP/volume profile;
 - final-entry ownership остаётся у `finalEntryDecisionLayer`, а zones выступает context/block-score слоем.
+
+## Конфиг VWAP / Volume Profile контекста
+Новый слой настраивается в `confluenceEntryEngine.volumeContext` и по умолчанию не меняет legacy поведение (выключен).
+
+```json
+{
+  "confluenceEntryEngine": {
+    "blockWeights": {
+      "volumeContext": 0
+    },
+    "volumeContext": {
+      "enabled": false,
+      "preferSharedFeatures": true,
+      "degradeOnMissingVolume": true,
+      "vwapWindowBars": 80,
+      "anchoredVwap": {
+        "enabled": true,
+        "lookbackBars": 120,
+        "swingWindow": 3,
+        "fallbackToSessionAnchor": true
+      },
+      "valueArea": {
+        "enabled": true,
+        "valueAreaPercent": 0.7
+      },
+      "volumeProfile": {
+        "enabled": true,
+        "bins": 24,
+        "hvnPercentile": 0.82,
+        "lvnPercentile": 0.18
+      },
+      "lazyEvaluation": {
+        "enabled": true,
+        "requireShortlistCandidate": true,
+        "requirePrimaryDirection": true,
+        "minPrimaryScore": 0.4,
+        "skipWhenBudgetExceeded": true
+      },
+      "refreshPolicy": {
+        "minBarsBetweenFullRecalc": 3,
+        "allowCachedReuse": true,
+        "forceFullRecalcEveryCycles": 0
+      },
+      "scoring": {
+        "vwapAlignmentWeight": 0.32,
+        "anchoredVwapAlignmentWeight": 0.22,
+        "valueAreaWeight": 0.24,
+        "hvnLvnReactionWeight": 0.22,
+        "distancePenaltyFactor": 1.15,
+        "degradedPenalty": 0.12
+      }
+    }
+  }
+}
+```
+
+Примечание: `blockWeights.volumeContext` задаёт вклад только volume-контекста и не смешивает его с `marketLevel` (zones engine).

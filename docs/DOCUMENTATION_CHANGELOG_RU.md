@@ -205,3 +205,12 @@
 - Изменение: интеграция выполнена без изменения execution/lifecycle ownership path; confluence не выполняет sizing и не отправляет ордера.
 - Связанные файлы кода: `dist/runtime/engines/confluenceEntryEngine.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/confluence-entry-engine.test.js`.
 - Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
+
+## 2026-04-02 (VWAP / volume profile context engine)
+- Изменение: добавлен отдельный слой `vwapProfileEngine` (`volumeContextLayer`) с расчётом VWAP, anchored VWAP, value area, HVN/LVN и позиции цены в объёмном профиле.
+- Изменение: интеграция выполнена в `confluenceEntryEngine` как отдельный block score (`blockWeights.volumeContext`) без смешивания с zones engine (`marketLevel`) и без изменения ownership final-entry слоя.
+- Изменение: добавлены lazy/cached/degraded режимы с refresh policy и fallback при нехватке данных/бюджета.
+- Изменение: расширены runtime-логи `[confluenceEntry]` и structured event `confluence_entry_decision` полями volume context для audit trail/observability/trade journal.
+- Изменение: добавлен config-блок `confluenceEntryEngine.volumeContext` и нормализация в runtime validator.
+- Связанные файлы кода: `dist/runtime/engines/vwapProfileEngine.js`, `dist/runtime/engines/confluenceEntryEngine.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/vwap-profile-engine.test.js`, `tests/regression/confluence-entry-engine.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
