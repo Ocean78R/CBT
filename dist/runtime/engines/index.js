@@ -58,6 +58,11 @@ function createEngines(strategy) {
 
         const confluenceInput = {
           context,
+          sharedSnapshot: {
+            candles: ((strategy.currentRuntimeContext || {}).sharedSnapshot || {}).candles
+              || (((strategy.currentRuntimeContext || {}).decisionContext || {}).metadata || {}).candles
+              || [],
+          },
           regimeRouterDecision: (((strategy.currentRuntimeContext || {}).decisionContext || {}).metadata || {}).marketRegimeRouter || {},
           primarySignal: {
             layerName: 'legacyPrimarySignalAdapter',
@@ -91,7 +96,9 @@ function createEngines(strategy) {
 
         if (strategy.log && typeof strategy.log === 'function') {
           const decision = (confluenceResult && confluenceResult.decision) || {};
-          strategy.log(`[confluenceEntry] cycle=${context.cycleId || 'n/a'} ticker=${ticker || 'n/a'} exchange=${context.exchange || 'n/a'} module=confluenceEntryEngine layer=entry.confluence regime=${context.marketRegime || 'unknown'} capital=${context.capitalRegime || 'NORMAL'} setup=${context.setupType || 'unknown'} score=${Number.isFinite(decision.score) ? decision.score : 0} confidence=${Number.isFinite(decision.confidence) ? decision.confidence : 0} veto=${decision.veto ? decision.veto.reason : 'none'} sizing=not_evaluated execution=${decision.entryAllowed ? 'forward_to_execution' : 'skip_entry'} fallback=${decision.entryAllowed ? 'none' : 'legacy_entry_flow'} final=${decision.finalDecision || 'LEGACY_FALLBACK'} mode=${confluenceResult.mode || 'legacy_fallback'} runtime=${confluenceResult.decisionContext && confluenceResult.decisionContext.metadata ? confluenceResult.decisionContext.metadata.runtimeMode || 'unknown' : 'unknown'}`);
+          const zoneLayer = ((confluenceResult || {}).layers || {}).marketLevelLayer || {};
+          const zoneReason = Array.isArray(zoneLayer.reasonCodes) ? zoneLayer.reasonCodes.join('|') : 'none';
+          strategy.log(`[confluenceEntry] cycle=${context.cycleId || 'n/a'} ticker=${ticker || 'n/a'} exchange=${context.exchange || 'n/a'} module=confluenceEntryEngine layer=entry.confluence regime=${context.marketRegime || 'unknown'} capital=${context.capitalRegime || 'NORMAL'} setup=${context.setupType || 'unknown'} score=${Number.isFinite(decision.score) ? decision.score : 0} confidence=${Number.isFinite(decision.confidence) ? decision.confidence : 0} veto=${decision.veto ? decision.veto.reason : 'none'} sizing=not_evaluated execution=${decision.entryAllowed ? 'forward_to_execution' : 'skip_entry'} fallback=${decision.entryAllowed ? 'none' : 'legacy_entry_flow'} final=${decision.finalDecision || 'LEGACY_FALLBACK'} mode=${confluenceResult.mode || 'legacy_fallback'} runtime=${confluenceResult.decisionContext && confluenceResult.decisionContext.metadata ? confluenceResult.decisionContext.metadata.runtimeMode || 'unknown' : 'unknown'} zonesScore=${Number.isFinite(zoneLayer.score) ? zoneLayer.score : 0} zonesConfidence=${Number.isFinite(zoneLayer.confidence) ? zoneLayer.confidence : 0} zonesDataQuality=${zoneLayer.dataQualityState || 'unknown'} zonesReason=${zoneReason}`);
         }
 
         if (confluenceResult && confluenceResult.enabled && confluenceResult.decision && confluenceResult.decision.entryAllowed) {

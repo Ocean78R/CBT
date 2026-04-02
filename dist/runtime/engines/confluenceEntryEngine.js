@@ -1,6 +1,7 @@
 'use strict';
 
 const { classifyDecision, createDecisionContext } = require('../shared/decisionContract');
+const { evaluateSupportResistance } = require('./supportResistanceEngine');
 
 function clamp01(value) {
   if (!Number.isFinite(value)) return 0;
@@ -15,6 +16,7 @@ function normalizeConfig(raw = {}) {
   const confirmation = raw.confirmation || {};
   const marketContext = raw.marketContext || {};
   const primarySignal = raw.primarySignal || {};
+  const marketLevel = raw.marketLevel || {};
 
   return {
     enabled: !!raw.enabled,
@@ -26,6 +28,7 @@ function normalizeConfig(raw = {}) {
       marketContext: Number(blockWeights.marketContext ?? 0.2),
       primarySignal: Number(blockWeights.primarySignal ?? 0.32),
       confirmation: Number(blockWeights.confirmation ?? 0.2),
+      marketLevel: Number(blockWeights.marketLevel ?? 0),
     },
     thresholds: {
       fullEntryScore: Number(thresholds.fullEntryScore ?? 0.68),
@@ -46,6 +49,31 @@ function normalizeConfig(raw = {}) {
       minSignalsForWeak: Number(confirmation.minSignalsForWeak ?? 1),
       htfBiasBoost: Number(confirmation.htfBiasBoost ?? 0.08),
       htfCounterTrendPenalty: Number(confirmation.htfCounterTrendPenalty ?? 0.18),
+    },
+    marketLevel: {
+      enabled: !!marketLevel.enabled,
+      priceSource: marketLevel.priceSource === 'close' ? 'close' : 'wick',
+      lookbackBars: Number(marketLevel.lookbackBars ?? 120),
+      rangeLookbackBars: Number(marketLevel.rangeLookbackBars ?? 40),
+      swingWindow: Number(marketLevel.swingWindow ?? 2),
+      minSwingPoints: Number(marketLevel.minSwingPoints ?? 3),
+      zoneWidthPercent: Number(marketLevel.zoneWidthPercent ?? 0.2),
+      proximityThresholdPercent: Number(marketLevel.proximityThresholdPercent ?? 0.35),
+      breakoutTolerancePercent: Number(marketLevel.breakoutTolerancePercent ?? 0.16),
+      retestWindowBars: Number(marketLevel.retestWindowBars ?? 6),
+      falseBreakoutWindowBars: Number(marketLevel.falseBreakoutWindowBars ?? 3),
+      minBreakoutBodyPercent: Number(marketLevel.minBreakoutBodyPercent ?? 0.12),
+      scoring: {
+        proximityScore: Number((marketLevel.scoring || {}).proximityScore ?? 0.33),
+        retestScore: Number((marketLevel.scoring || {}).retestScore ?? 0.24),
+        falseBreakoutScore: Number((marketLevel.scoring || {}).falseBreakoutScore ?? 0.24),
+        breakoutContextScore: Number((marketLevel.scoring || {}).breakoutContextScore ?? 0.19),
+        rangePenalty: Number((marketLevel.scoring || {}).rangePenalty ?? 0.12),
+        degradedPenalty: Number((marketLevel.scoring || {}).degradedPenalty ?? 0.08),
+      },
+      detection: {
+        requireBreakoutForRetest: ((marketLevel.detection || {}).requireBreakoutForRetest) !== false,
+      },
     },
   };
 }
@@ -295,6 +323,35 @@ function evaluateConfirmationLayer(input, config) {
   });
 }
 
+function evaluateMarketLevelLayer(input, config) {
+  const result = evaluateSupportResistance(input, config.marketLevel || {});
+  if (!result || result.layerName !== 'supportResistanceEngine') {
+    return createLayerResult('marketLevelLayer', {
+      direction: 'none',
+      score: 0,
+      confidence: 0,
+      softPenalty: config.marketContext.degradedDataSoftPenalty,
+      dataQualityState: 'degraded',
+      reasonCodes: ['market_level_result_invalid'],
+      explanation: {
+        // Русский комментарий: при ошибке слоя зон confluence не останавливается и продолжает legacy-confluence flow.
+        fallbackPolicy: 'continue_without_market_levels',
+      },
+    });
+  }
+
+  return createLayerResult('marketLevelLayer', {
+    direction: result.direction || 'none',
+    score: result.score,
+    confidence: result.confidence,
+    softPenalty: result.softPenalty,
+    vetoCandidates: result.vetoCandidates,
+    dataQualityState: result.dataQualityState || 'degraded',
+    reasonCodes: result.reasonCodes,
+    explanation: result.explanation || {},
+  });
+}
+
 function combineLayerScores(layers, config) {
   const weights = config.blockWeights;
   const weighted = [
@@ -302,6 +359,7 @@ function combineLayerScores(layers, config) {
     ['marketContextLayer', weights.marketContext],
     ['primarySignalLayer', weights.primarySignal],
     ['confirmationLayer', weights.confirmation],
+    ['marketLevelLayer', weights.marketLevel],
   ];
 
   let weightedScore = 0;
@@ -365,6 +423,7 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
       setupType: (layers.marketContextLayer && layers.marketContextLayer.explanation.selectedSetup) || 'unknown',
       marketRegime: (layers.marketContextLayer && layers.marketContextLayer.explanation.marketRegime) || context.marketRegime || 'unknown',
       sizingDecision: 'not_evaluated',
+      marketLevels: (layers.marketLevelLayer || {}).explanation || {},
     },
   });
 
@@ -401,6 +460,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
         marketContextLayer: createLayerResult('marketContextLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
         primarySignalLayer: createLayerResult('primarySignalLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
         confirmationLayer: createLayerResult('confirmationLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
+        marketLevelLayer: createLayerResult('marketLevelLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
         finalEntryDecisionLayer: createLayerResult('finalEntryDecisionLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       },
       decision: {
@@ -427,6 +487,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
   layers.marketContextLayer = evaluateMarketContextLayer(input, config);
   layers.primarySignalLayer = evaluatePrimarySignalLayer(input, config);
   layers.confirmationLayer = evaluateConfirmationLayer(input, config);
+  layers.marketLevelLayer = evaluateMarketLevelLayer(input, config);
   layers.finalEntryDecisionLayer = evaluateFinalEntryDecisionLayer(input, config, layers);
 
   const final = layers.finalEntryDecisionLayer;
@@ -449,6 +510,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       { source: 'marketContextLayer', value: layers.marketContextLayer.softPenalty },
       { source: 'primarySignalLayer', value: layers.primarySignalLayer.softPenalty },
       { source: 'confirmationLayer', value: layers.confirmationLayer.softPenalty },
+      { source: 'marketLevelLayer', value: layers.marketLevelLayer.softPenalty },
     ],
     metadata: {
       layerScores: layers,
@@ -462,6 +524,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       executionAction: entryAllowed ? 'forward_to_execution' : 'skip_entry',
       fallbackAction: entryAllowed ? 'none' : 'legacy_entry_flow',
       sizingDecision: 'not_evaluated',
+      marketLevels: layers.marketLevelLayer ? layers.marketLevelLayer.explanation : {},
     },
   });
 
@@ -510,6 +573,7 @@ function toConfluenceEntryEvent(input = {}) {
     payload: {
       layerScores,
       decision,
+      marketLevels: (layerScores.marketLevelLayer || {}).explanation || {},
       // Русский комментарий: совместимый downstream-контекст для audit trail/reporting без ad-hoc форматов.
       telemetry: {
         downstreamContext: {

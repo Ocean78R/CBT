@@ -422,3 +422,24 @@ Runtime-позиция слоя:
 - confluence-слой не рассчитывает размер позиции и не отправляет ордера;
 - ограничения `capitalRegime`/`balanceState` имеют приоритет и не ослабляются;
 - при отключении слоя поведение возвращается в legacy fallback.
+
+### Конфиг marketLevel (support/resistance zones) внутри confluenceEntryEngine
+Блок находится в `confluenceEntryEngine.marketLevel`.
+
+- `enabled`: master-флаг слоя зон.
+- `blockWeights.marketLevel`: вес слоя зон в агрегированном confluence-score (для строгой обратной совместимости оставляйте `0`).
+- `lookbackBars`: окно свечей для поиска swing-точек.
+- `rangeLookbackBars`: окно для диапазона `high/low`.
+- `swingWindow`: ширина окна локального экстремума.
+- `minSwingPoints`: минимум swing high/low для валидного построения зон.
+- `zoneWidthPercent`: ширина зоны вокруг уровня (в % от цены уровня).
+- `proximityThresholdPercent`: порог близости цены к зоне.
+- `breakoutTolerancePercent`: допуск для пробоя зоны/границы диапазона.
+- `retestWindowBars`: окно баров, в котором ищется retest после breakout.
+- `falseBreakoutWindowBars`: окно баров для сценария false breakout/liquidity grab.
+- `minBreakoutBodyPercent`: минимальный размер тела свечи для подтверждения breakout-контекста.
+- `scoring.*`: веса для proximity/retest/false-breakout/breakout-context и штрафов.
+
+Важно:
+- слой зон отвечает только за ценовую геометрию и не смешивается с VWAP/volume profile;
+- final-entry ownership остаётся у `finalEntryDecisionLayer`, а zones выступает context/block-score слоем.
