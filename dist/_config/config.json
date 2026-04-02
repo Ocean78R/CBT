@@ -67,6 +67,38 @@
           "forceRefreshEveryCycles": 0,
           "useFeatureStoreCache": true
         }
+      },
+      "confluenceEntryEngine": {
+        "enabled": false,
+        "mode": "legacy_fallback",
+        "allowWeakEntry": true,
+        "enforceRegimeSetupCompatibility": true,
+        "blockWeights": {
+          "entryPermission": 0.28,
+          "marketContext": 0.2,
+          "primarySignal": 0.32,
+          "confirmation": 0.2
+        },
+        "thresholds": {
+          "fullEntryScore": 0.68,
+          "weakEntryScore": 0.45,
+          "minConfidence": 0.35,
+          "hardVetoConfidenceByCapital": 0
+        },
+        "marketContext": {
+          "noTradeSoftPenalty": 0.45,
+          "degradedDataSoftPenalty": 0.12
+        },
+        "primarySignal": {
+          "fallbackConfidence": 0.42,
+          "fallbackScore": 0.4
+        },
+        "confirmation": {
+          "minSignalsForFull": 2,
+          "minSignalsForWeak": 1,
+          "htfBiasBoost": 0.08,
+          "htfCounterTrendPenalty": 0.18
+        }
       }
     },
     "bitget": {
@@ -136,6 +168,38 @@
           "forceRefreshEveryCycles": 0,
           "useFeatureStoreCache": true
         }
+      },
+      "confluenceEntryEngine": {
+        "enabled": false,
+        "mode": "legacy_fallback",
+        "allowWeakEntry": true,
+        "enforceRegimeSetupCompatibility": true,
+        "blockWeights": {
+          "entryPermission": 0.28,
+          "marketContext": 0.2,
+          "primarySignal": 0.32,
+          "confirmation": 0.2
+        },
+        "thresholds": {
+          "fullEntryScore": 0.68,
+          "weakEntryScore": 0.45,
+          "minConfidence": 0.35,
+          "hardVetoConfidenceByCapital": 0
+        },
+        "marketContext": {
+          "noTradeSoftPenalty": 0.45,
+          "degradedDataSoftPenalty": 0.12
+        },
+        "primarySignal": {
+          "fallbackConfidence": 0.42,
+          "fallbackScore": 0.4
+        },
+        "confirmation": {
+          "minSignalsForFull": 2,
+          "minSignalsForWeak": 1,
+          "htfBiasBoost": 0.08,
+          "htfCounterTrendPenalty": 0.18
+        }
       }
     },
     "bingx": {
@@ -202,8 +266,8 @@
         "averagingProtection": {
           "enabled": true,
           "lookbackBars": 4,
-          "maxMovePercent": 1.0,
-          "maxRangePercent": 2.0,
+          "maxMovePercent": 1,
+          "maxRangePercent": 2,
           "maxMoveToAverageRatio": 1.6,
           "requireAgainstPosition": true,
           "blockOnTwoAdverseBars": true
@@ -540,6 +604,38 @@
           "forceRefreshEveryCycles": 0,
           "useFeatureStoreCache": true
         }
+      },
+      "confluenceEntryEngine": {
+        "enabled": false,
+        "mode": "legacy_fallback",
+        "allowWeakEntry": true,
+        "enforceRegimeSetupCompatibility": true,
+        "blockWeights": {
+          "entryPermission": 0.28,
+          "marketContext": 0.2,
+          "primarySignal": 0.32,
+          "confirmation": 0.2
+        },
+        "thresholds": {
+          "fullEntryScore": 0.68,
+          "weakEntryScore": 0.45,
+          "minConfidence": 0.35,
+          "hardVetoConfidenceByCapital": 0
+        },
+        "marketContext": {
+          "noTradeSoftPenalty": 0.45,
+          "degradedDataSoftPenalty": 0.12
+        },
+        "primarySignal": {
+          "fallbackConfidence": 0.42,
+          "fallbackScore": 0.4
+        },
+        "confirmation": {
+          "minSignalsForFull": 2,
+          "minSignalsForWeak": 1,
+          "htfBiasBoost": 0.08,
+          "htfCounterTrendPenalty": 0.18
+        }
       }
     },
     "htx": {
@@ -607,6 +703,38 @@
           "minBarsBetweenRefresh": 1,
           "forceRefreshEveryCycles": 0,
           "useFeatureStoreCache": true
+        }
+      },
+      "confluenceEntryEngine": {
+        "enabled": false,
+        "mode": "legacy_fallback",
+        "allowWeakEntry": true,
+        "enforceRegimeSetupCompatibility": true,
+        "blockWeights": {
+          "entryPermission": 0.28,
+          "marketContext": 0.2,
+          "primarySignal": 0.32,
+          "confirmation": 0.2
+        },
+        "thresholds": {
+          "fullEntryScore": 0.68,
+          "weakEntryScore": 0.45,
+          "minConfidence": 0.35,
+          "hardVetoConfidenceByCapital": 0
+        },
+        "marketContext": {
+          "noTradeSoftPenalty": 0.45,
+          "degradedDataSoftPenalty": 0.12
+        },
+        "primarySignal": {
+          "fallbackConfidence": 0.42,
+          "fallbackScore": 0.4
+        },
+        "confirmation": {
+          "minSignalsForFull": 2,
+          "minSignalsForWeak": 1,
+          "htfBiasBoost": 0.08,
+          "htfCounterTrendPenalty": 0.18
         }
       }
     },
@@ -677,6 +805,38 @@
           "forceRefreshEveryCycles": 0,
           "useFeatureStoreCache": true
         }
+      },
+      "confluenceEntryEngine": {
+        "enabled": false,
+        "mode": "legacy_fallback",
+        "allowWeakEntry": true,
+        "enforceRegimeSetupCompatibility": true,
+        "blockWeights": {
+          "entryPermission": 0.28,
+          "marketContext": 0.2,
+          "primarySignal": 0.32,
+          "confirmation": 0.2
+        },
+        "thresholds": {
+          "fullEntryScore": 0.68,
+          "weakEntryScore": 0.45,
+          "minConfidence": 0.35,
+          "hardVetoConfidenceByCapital": 0
+        },
+        "marketContext": {
+          "noTradeSoftPenalty": 0.45,
+          "degradedDataSoftPenalty": 0.12
+        },
+        "primarySignal": {
+          "fallbackConfidence": 0.42,
+          "fallbackScore": 0.4
+        },
+        "confirmation": {
+          "minSignalsForFull": 2,
+          "minSignalsForWeak": 1,
+          "htfBiasBoost": 0.08,
+          "htfCounterTrendPenalty": 0.18
+        }
       }
     },
     "bybit": {
@@ -744,6 +904,38 @@
           "minBarsBetweenRefresh": 1,
           "forceRefreshEveryCycles": 0,
           "useFeatureStoreCache": true
+        }
+      },
+      "confluenceEntryEngine": {
+        "enabled": false,
+        "mode": "legacy_fallback",
+        "allowWeakEntry": true,
+        "enforceRegimeSetupCompatibility": true,
+        "blockWeights": {
+          "entryPermission": 0.28,
+          "marketContext": 0.2,
+          "primarySignal": 0.32,
+          "confirmation": 0.2
+        },
+        "thresholds": {
+          "fullEntryScore": 0.68,
+          "weakEntryScore": 0.45,
+          "minConfidence": 0.35,
+          "hardVetoConfidenceByCapital": 0
+        },
+        "marketContext": {
+          "noTradeSoftPenalty": 0.45,
+          "degradedDataSoftPenalty": 0.12
+        },
+        "primarySignal": {
+          "fallbackConfidence": 0.42,
+          "fallbackScore": 0.4
+        },
+        "confirmation": {
+          "minSignalsForFull": 2,
+          "minSignalsForWeak": 1,
+          "htfBiasBoost": 0.08,
+          "htfCounterTrendPenalty": 0.18
         }
       }
     },
@@ -823,6 +1015,38 @@
           "minBarsBetweenRefresh": 1,
           "forceRefreshEveryCycles": 0,
           "useFeatureStoreCache": true
+        }
+      },
+      "confluenceEntryEngine": {
+        "enabled": false,
+        "mode": "legacy_fallback",
+        "allowWeakEntry": true,
+        "enforceRegimeSetupCompatibility": true,
+        "blockWeights": {
+          "entryPermission": 0.28,
+          "marketContext": 0.2,
+          "primarySignal": 0.32,
+          "confirmation": 0.2
+        },
+        "thresholds": {
+          "fullEntryScore": 0.68,
+          "weakEntryScore": 0.45,
+          "minConfidence": 0.35,
+          "hardVetoConfidenceByCapital": 0
+        },
+        "marketContext": {
+          "noTradeSoftPenalty": 0.45,
+          "degradedDataSoftPenalty": 0.12
+        },
+        "primarySignal": {
+          "fallbackConfidence": 0.42,
+          "fallbackScore": 0.4
+        },
+        "confirmation": {
+          "minSignalsForFull": 2,
+          "minSignalsForWeak": 1,
+          "htfBiasBoost": 0.08,
+          "htfCounterTrendPenalty": 0.18
         }
       }
     }
@@ -1251,8 +1475,8 @@
     "averagingProtection": {
       "enabled": true,
       "lookbackBars": 4,
-      "maxMovePercent": 1.0,
-      "maxRangePercent": 2.0,
+      "maxMovePercent": 1,
+      "maxRangePercent": 2,
       "maxMoveToAverageRatio": 1.6,
       "requireAgainstPosition": true,
       "blockOnTwoAdverseBars": true

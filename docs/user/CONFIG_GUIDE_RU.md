@@ -393,3 +393,32 @@ Runtime-позиция слоя:
 - слой не может ослаблять `capitalRegime`/risk contour;
 - влияние ограничено только контекстным score-adjustment перед `finalEntryDecision`.
 
+
+## Конфиг confluenceEntryEngine / entryScoringEngine
+Блок находится на уровне exchange-конфига: `confluenceEntryEngine`.
+
+- `enabled`: master-флаг нового confluence-входа.
+- `mode`: `confluence` (новый режим) или `legacy_fallback` (старое поведение).
+- `allowWeakEntry`: разрешить промежуточный класс `WEAK_ENTRY`.
+- `enforceRegimeSetupCompatibility`: запрет входа, если setup не разрешён regime-router.
+- `blockWeights.*`: веса блоков `entryPermission/marketContext/primarySignal/confirmation`.
+- `thresholds.fullEntryScore`: порог `FULL_ENTRY`.
+- `thresholds.weakEntryScore`: порог `WEAK_ENTRY`.
+- `thresholds.minConfidence`: минимальная уверенность финального слоя.
+- `marketContext.*`: штрафы за `no-trade` и degraded контекст режима.
+- `primarySignal.*`: fallback score/confidence для legacy-адаптера.
+- `confirmation.*`: требования к подтверждениям и влияние HTF alignment.
+
+Пример включения:
+```json
+"confluenceEntryEngine": {
+  "enabled": true,
+  "mode": "confluence",
+  "allowWeakEntry": true
+}
+```
+
+Важно:
+- confluence-слой не рассчитывает размер позиции и не отправляет ордера;
+- ограничения `capitalRegime`/`balanceState` имеют приоритет и не ослабляются;
+- при отключении слоя поведение возвращается в legacy fallback.

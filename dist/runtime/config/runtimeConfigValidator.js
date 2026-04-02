@@ -20,6 +20,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const paperTrading = merged.paperTrading || {};
   const mlDatasetBuilder = merged.mlDatasetBuilder || {};
   const higherTimeframeBiasEngine = merged.higherTimeframeBiasEngine || {};
+  const confluenceEntryEngine = merged.confluenceEntryEngine || {};
 
   const observabilityReporting = merged.observabilityReporting || {};
   const observabilitySampling = observabilityReporting.sampling || {};
@@ -60,6 +61,11 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const htfConfidence = higherTimeframeBiasEngine.confidence || {};
   const htfAlignmentPenalties = higherTimeframeBiasEngine.alignmentPenalties || {};
   const htfSlowerRefresh = higherTimeframeBiasEngine.slowerRefresh || {};
+  const confluenceBlockWeights = confluenceEntryEngine.blockWeights || {};
+  const confluenceThresholds = confluenceEntryEngine.thresholds || {};
+  const confluenceMarketContext = confluenceEntryEngine.marketContext || {};
+  const confluencePrimarySignal = confluenceEntryEngine.primarySignal || {};
+  const confluenceConfirmation = confluenceEntryEngine.confirmation || {};
 
   const normalized = {
     ...merged,
@@ -218,6 +224,39 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         minBarsBetweenRefresh: Number(htfSlowerRefresh.minBarsBetweenRefresh || 1),
         forceRefreshEveryCycles: Number(htfSlowerRefresh.forceRefreshEveryCycles || 0),
         useFeatureStoreCache: htfSlowerRefresh.useFeatureStoreCache !== false,
+      },
+    },
+
+    confluenceEntryEngine: {
+      enabled: !!confluenceEntryEngine.enabled,
+      mode: confluenceEntryEngine.mode === 'confluence' ? 'confluence' : 'legacy_fallback',
+      allowWeakEntry: confluenceEntryEngine.allowWeakEntry !== false,
+      enforceRegimeSetupCompatibility: confluenceEntryEngine.enforceRegimeSetupCompatibility !== false,
+      blockWeights: {
+        entryPermission: Number(confluenceBlockWeights.entryPermission || 0.28),
+        marketContext: Number(confluenceBlockWeights.marketContext || 0.2),
+        primarySignal: Number(confluenceBlockWeights.primarySignal || 0.32),
+        confirmation: Number(confluenceBlockWeights.confirmation || 0.2),
+      },
+      thresholds: {
+        fullEntryScore: Number(confluenceThresholds.fullEntryScore || 0.68),
+        weakEntryScore: Number(confluenceThresholds.weakEntryScore || 0.45),
+        minConfidence: Number(confluenceThresholds.minConfidence || 0.35),
+        hardVetoConfidenceByCapital: Number(confluenceThresholds.hardVetoConfidenceByCapital || 0),
+      },
+      marketContext: {
+        noTradeSoftPenalty: Number(confluenceMarketContext.noTradeSoftPenalty || 0.45),
+        degradedDataSoftPenalty: Number(confluenceMarketContext.degradedDataSoftPenalty || 0.12),
+      },
+      primarySignal: {
+        fallbackConfidence: Number(confluencePrimarySignal.fallbackConfidence || 0.42),
+        fallbackScore: Number(confluencePrimarySignal.fallbackScore || 0.4),
+      },
+      confirmation: {
+        minSignalsForFull: Number(confluenceConfirmation.minSignalsForFull || 2),
+        minSignalsForWeak: Number(confluenceConfirmation.minSignalsForWeak || 1),
+        htfBiasBoost: Number(confluenceConfirmation.htfBiasBoost || 0.08),
+        htfCounterTrendPenalty: Number(confluenceConfirmation.htfCounterTrendPenalty || 0.18),
       },
     },
 
