@@ -27,6 +27,27 @@
 - `unloadMode.capitalRegime.*RiskSignals`: группы risk-signal подсказок (например, от forecast слоя) для ужесточения режима.
 - `riskSignals`: текущие внешние risk-signal hints в runtime-контексте.
 
+## DynamicAssetSelection для новых входов
+Блок находится в `singleSetts.tickers.dynamicAssetSelection`.
+
+- `enabled`: включает динамический shortlist; при `false` остаётся статический fallback (`definedAssets`).
+- `shortlistSize`: базовый размер shortlist на цикл.
+- `lookbackBars`: глубина свечей для факторов `volatility/speed`.
+- `lookbackTrades`: глубина trade-journal для факторов `tradeQuality/averaging/realizedPnl`.
+- `weights.volatility`: вес волатильности.
+- `weights.speed`: вес скорости цены.
+- `weights.tradeQuality`: вес качества истории сделок.
+- `weights.averagingPenalty`: штраф за частые усреднения.
+- `weights.realizedPnl`: вес реализованного PnL по тикеру.
+- `weights.liquidity`: вес ликвидности/стабильности (если метрика доступна).
+- `conservativeRegimeShortlistMultiplier`: сжатие shortlist при защитных режимах капитала.
+- `stressedForecastShortlistMultiplier`: дополнительное сжатие shortlist при forecast stress-сигналах.
+- `forecastStressSignals`: сигналы, по которым применяется tightening shortlist как внешний контекст.
+
+Приоритеты:
+- `unloadMode`/`safeEntryAssets` выше dynamicAssetSelection и применяются раньше.
+- dynamic shortlist влияет только на **новые входы**; сопровождение уже открытых позиций не блокируется.
+
 ## Какие параметры опасно менять без понимания логики
 - hard-risk/hard-safety ограничения,
 - параметры stop-loss/forced-exit политики,

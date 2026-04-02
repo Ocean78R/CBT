@@ -763,11 +763,32 @@
         "BCH",
         "UNI"
       ],
-      "excludedAssets": [
-        "USDC"
-      ],
-      "randomCount": 0
-    },
+          "excludedAssets": [
+            "USDC"
+          ],
+          "randomCount": 0,
+          "dynamicAssetSelection": {
+            "enabled": false,
+            "shortlistSize": 8,
+            "lookbackBars": 8,
+            "lookbackTrades": 500,
+            "conservativeRegimeShortlistMultiplier": 0.6,
+            "stressedForecastShortlistMultiplier": 0.75,
+            "forecastStressSignals": [
+              "forecast_defensive",
+              "forecast_halt",
+              "forecast_stress_high"
+            ],
+            "weights": {
+              "volatility": 0.2,
+              "speed": 0.15,
+              "tradeQuality": 0.25,
+              "averagingPenalty": 0.15,
+              "realizedPnl": 0.2,
+              "liquidity": 0.05
+            }
+          }
+        },
     "marginSize": 2,
     "futuresLeverage": 50,
     "processOtherLeverages": false,
@@ -828,7 +849,28 @@
       "excludedAssets": [
         "USDC"
       ],
-      "randomCount": 0
+      "randomCount": 0,
+      "dynamicAssetSelection": {
+        "enabled": false,
+        "shortlistSize": 8,
+        "lookbackBars": 8,
+        "lookbackTrades": 500,
+        "conservativeRegimeShortlistMultiplier": 0.6,
+        "stressedForecastShortlistMultiplier": 0.75,
+        "forecastStressSignals": [
+          "forecast_defensive",
+          "forecast_halt",
+          "forecast_stress_high"
+        ],
+        "weights": {
+          "volatility": 0.2,
+          "speed": 0.15,
+          "tradeQuality": 0.25,
+          "averagingPenalty": 0.15,
+          "realizedPnl": 0.2,
+          "liquidity": 0.05
+        }
+      }
     },
     "marginSize": 2,
     "futuresLeverage": 25,
