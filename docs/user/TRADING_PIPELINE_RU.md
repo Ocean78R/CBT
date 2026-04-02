@@ -165,6 +165,31 @@
 - Кто главный: ownership path исполнения ордеров и risk-слои остаются primary; аналитика только наблюдает и журналирует.
 - Fallback: при отсутствии forecast-данных слой пишет `null/[]`, без остановки цикла и без изменения торгового поведения.
 
+## Runtime-позиция derivativesContextEngine (perpetual futures context)
+- Место в пайплайне: **после дешёвых gating-слоёв (`entryPermission/marketContext/primary/confirmation`) и перед `finalEntryDecisionLayer`**.
+- Зависимости ранних слоёв:
+  - `DecisionContext` (`cycleId`, `ticker`, `exchange`, `marketRegime`, `capitalRegime`, `setupType`);
+  - `sharedSnapshot.derivatives` (OI/funding/liquidation), если уже рассчитан в текущем цикле;
+  - `primarySignal.direction` как внешний вход для направленной интерпретации деривативного фона.
+- Что делает:
+  1. Оценивает `open interest dynamics`;
+  2. Оценивает `funding state`;
+  3. Учитывает `liquidation context` (если доступен);
+  4. Вычисляет признаки crowding/перегрева;
+  5. Возвращает совместимый block-result (`score/confidence/softPenalty/vetoCandidates/dataQualityState/reasonCodes`).
+- Что **не делает**:
+  - не открывает/закрывает позицию;
+  - не отправляет ордера;
+  - не переопределяет hard-risk/capital-veto.
+- Кто главный и fallback:
+  - главный по финальному разрешению входа: `finalEntryDecisionLayer`;
+  - `derivativesContextEngine` — только контекстный усилитель/ослабитель;
+  - при `confluenceEntryEngine.derivativesContext.enabled=false` поведение остаётся legacy/fallback.
+- Refresh cadence и reuse:
+  - OI/funding/liquidation читаются из `sharedSnapshot` и/или cache;
+  - full refresh выполняется реже (`minCyclesBetweenRefresh`);
+  - между refresh используется `cached_mode`, при нехватке данных/бюджета — `degraded_mode` без остановки цикла.
+
 ## Runtime-позиция единого observability/reporting слоя
 - Позиция в пайплайне: после формирования структурированных событий в decision/risk/execution/lifecycle слоях, как неблокирующий subscriber.
 - Зависимости (более ранние слои): `DecisionContext` + `score` + `veto` контракты, события execution owner-path, capital/forecast context, lifecycle события позиции.

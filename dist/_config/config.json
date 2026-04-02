@@ -81,7 +81,8 @@
           "marketLevel": 0,
           "volumeContext": 0,
           "bounceDetection": 0,
-          "breakdownDetection": 0
+          "breakdownDetection": 0,
+          "derivativesContext": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -282,6 +283,52 @@
             "DEFENSIVE": 0.1,
             "CAPITAL_PRESERVATION": 0.16,
             "HALT_NEW_ENTRIES": 0.28
+          }
+        },
+        "derivativesContext": {
+          "enabled": false,
+          "preferSharedSnapshot": true,
+          "skipWhenBudgetExceeded": true,
+          "allowNoTradeOnExtremeCrowding": false,
+          "thresholds": {
+            "oiStrongIncrease": 0.05,
+            "oiStrongDecrease": -0.05,
+            "fundingExtreme": 0.0009,
+            "fundingElevated": 0.00045,
+            "liquidationImbalanceStrong": 1.8,
+            "minimumConfidence": 0.35,
+            "maxSoftPenalty": 0.45
+          },
+          "weights": {
+            "oiDynamics": 0.34,
+            "fundingState": 0.32,
+            "liquidationContext": 0.2,
+            "crowding": 0.14
+          },
+          "crowding": {
+            "oiZscoreSpike": 2.4,
+            "fundingAbsSpike": 0.0012,
+            "liquidationClusterUsd": 2500000,
+            "penaltyOnExtreme": 0.26,
+            "penaltyOnElevated": 0.12
+          },
+          "liquidation": {
+            "useIfAvailable": true,
+            "dominanceSupportWeight": 0.22,
+            "dominanceRiskPenalty": 0.2
+          },
+          "refreshPolicy": {
+            "minCyclesBetweenRefresh": 3,
+            "forceRefreshEveryCycles": 0,
+            "allowCachedReuse": true,
+            "cacheKey": "derivatives_context_engine"
+          },
+          "capitalRegimePenalties": {
+            "NORMAL": 0,
+            "CAUTION": 0.04,
+            "DEFENSIVE": 0.1,
+            "CAPITAL_PRESERVATION": 0.16,
+            "HALT_NEW_ENTRIES": 0.26
           }
         }
       }

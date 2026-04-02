@@ -128,6 +128,26 @@
 - при нехватке данных возвращает `dataQualityState=degraded` без ложной уверенности;
 - конфликт breakdown vs bounce не решается внутри слоя и передаётся выше в `finalEntryDecisionLayer`.
 
+## Конфиг derivatives context слоя в confluenceEntryEngine
+Блок находится в `confluenceEntryEngine.derivativesContext`.
+
+- `confluenceEntryEngine.blockWeights.derivativesContext`: вес derivatives-блока в агрегированной оценке входа.
+- `derivativesContext.enabled`: включает отдельный futures-specific слой деривативного контекста.
+- `derivativesContext.preferSharedSnapshot`: приоритет чтения OI/funding/liquidation из `sharedSnapshot` (без повторного запроса данных).
+- `derivativesContext.skipWhenBudgetExceeded`: при перегрузе переводит слой в `cached/degraded` вместо тяжёлого full расчёта.
+- `derivativesContext.allowNoTradeOnExtremeCrowding`: разрешает формировать `no_trade_regime` veto-кандидат при экстремальном crowding.
+- `derivativesContext.thresholds.*`: пороги OI/funding/liquidation и ограничение максимального penalty.
+- `derivativesContext.weights.*`: веса подблоков (`oiDynamics`, `fundingState`, `liquidationContext`, `crowding`).
+- `derivativesContext.crowding.*`: параметры детектора перегрева (`oiZscoreSpike`, `fundingAbsSpike`, `liquidationClusterUsd`).
+- `derivativesContext.liquidation.*`: правила интерпретации доминирования ликвидаций.
+- `derivativesContext.refreshPolicy.*`: cadence и reuse (`minCyclesBetweenRefresh`, `allowCachedReuse`, `cacheKey`).
+- `derivativesContext.capitalRegimePenalties.*`: защитный penalty по `capitalRegime` (слой не может ослаблять risk-контур).
+
+Важно:
+- слой не открывает сделку сам, а только усиливает/ослабляет оценку во `finalEntryDecisionLayer`;
+- старое поведение остаётся fallback при выключенном флаге;
+- hard-risk и capital prohibition остаются выше derivatives logic.
+
 ## Какие параметры опасно менять без понимания логики
 - hard-risk/hard-safety ограничения,
 - параметры stop-loss/forced-exit политики,

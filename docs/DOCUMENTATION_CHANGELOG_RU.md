@@ -230,3 +230,12 @@
 - Изменение: добавлен config-блок `confluenceEntryEngine.volumeContext` и нормализация в runtime validator.
 - Связанные файлы кода: `dist/runtime/engines/vwapProfileEngine.js`, `dist/runtime/engines/confluenceEntryEngine.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/vwap-profile-engine.test.js`, `tests/regression/confluence-entry-engine.test.js`.
 - Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
+
+## 2026-04-02 (derivativesContextEngine для perpetual futures)
+- Изменение: добавлен отдельный слой `derivativesContextEngine` для анализа деривативного контекста (`open interest`, `funding`, `liquidation context`, `crowding/перегрев`) в совместимом confluence-контракте.
+- Изменение: интеграция слоя выполнена в `confluenceEntryEngine` как context-only блок (`derivativesContextLayer`) перед `finalEntryDecisionLayer`; слой не открывает сделку самостоятельно.
+- Изменение: добавлены режимы `full/cached/degraded` с refresh cadence (`minCyclesBetweenRefresh`, `allowCachedReuse`) и fallback при отсутствии данных.
+- Изменение: добавлено влияние `capitalRegime` через отдельные penalties в derivatives-конфиге без ослабления hard-risk и `capital_prohibition`.
+- Изменение: расширены runtime-логи `[confluenceEntry]` и structured event `confluence_entry_decision` полями derivatives-context для audit trail/observability/trade journal.
+- Связанные файлы кода: `dist/runtime/engines/derivativesContextEngine.js`, `dist/runtime/engines/confluenceEntryEngine.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/confluence-entry-engine.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
