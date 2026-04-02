@@ -43,9 +43,10 @@
    - Есть валидация и docs-контракт (`fallbackToForcedLossExit`, `refreshOnAveraging`, `reconcileOnLoop`),
    - но в данном срезе кода проверка сделана на уровне контракта/позиционирования, а не полного e2e исполнения server-SL менеджера.
 
-2. **Защита от дублирования server SL и earlyInvalidation опирается на оркестрационный порядок и ownership path**
-   - Явного «mutex»-механизма между уже выставленным server close и локальным forced action в этом модуле нет;
-   - предполагается, что дедупликация/идемпотентность обеспечивается execution+lifecycle/reconciliation слоем.
+2. **Защита от дублирования server SL и earlyInvalidation формализована runtime-token + owner-policy**
+   - Добавлен `protectiveActionToken` для dedup/correlation между risk/execution/lifecycle/reconciliation;
+   - Добавлен runtime-owner policy: `server_stop_loss_manager` (primary при server initiated/confirmed close) и `execution_lifecycle_manager` (локальный owner path);
+   - Повторная локальная попытка `force_close` при активном/подтверждённом server close переводится в безопасный no-op с `duplicateClosePrevented=true`.
 
 3. **Ранняя invalidation зависит от качества входных метрик позиции**
    - При отсутствии `minutesSinceEntry`, `entryDeviationPercent` или подтверждения тренда ранний слой намеренно не триггерит.
@@ -53,13 +54,10 @@
 
 ## Что учесть в следующих шагах
 
-1. Добавить/усилить e2e-тесты orchestration уровня для сценариев:
+1. Продолжить e2e orchestration в полном runtime manager-слое (кроме unit/integration проверки risk-модуля):
    - server SL выставлен и сработал,
-   - earlyInvalidation одновременно генерирует ownershipAction,
-   - проверка отсутствия двойного закрытия и корректного reconciliation.
-
-2. Формализовать явный dedup/ownership token между server-order manager и forced/early protective actions
-   - чтобы исключить race-condition при высокочастотных циклах.
+   - earlyInvalidation/forced action приходит в том же или следующем цикле,
+   - проверка отсутствия двойного close в реальном execution контуре.
 
 3. Если модуль serverStopLoss уже вынесен в другой слой/репозиторий, добавить ссылку в docs/архитектуру на фактический runtime-owner,
    - чтобы аудит согласованности был не только контрактным, но и по конкретному коду исполнения.

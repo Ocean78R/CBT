@@ -3,6 +3,9 @@
 const DEFAULT_ACTION_MODE = 'warn';
 const ALLOWED_ACTION_MODES = new Set(['warn', 'block_averaging', 'partial_reduce', 'force_close']);
 const ALLOWED_EARLY_INVALIDATION_ACTIONS = new Set(['partial_reduce', 'force_close']);
+const PROTECTIVE_CLOSE_SOURCES = new Set(['server_sl', 'early_invalidation', 'forced_loss_exit', 'lifecycle_close']);
+const PROTECTIVE_OWNER_SERVER_SL = 'server_stop_loss_manager';
+const PROTECTIVE_OWNER_LIFECYCLE = 'execution_lifecycle_manager';
 
 function normalizeForcedLossExitConfig(config = {}) {
   const regimeTightening = config.regimeTightening || {};
@@ -186,7 +189,7 @@ function toOwnershipAction(actionMode, config) {
     return {
       type: 'position_reduce_request',
       share: Math.max(0.05, Math.min(1, safeNumber(config.partialReduceShare, 0.25))),
-      ownerPath: 'execution_lifecycle_manager',
+      ownerPath: PROTECTIVE_OWNER_LIFECYCLE,
       cooldownMinutes: safeNumber(config.cooldownMinutesAfterForcedExit, 0),
       cleanupMode: 'via_reconciliation_contour',
     };
@@ -194,12 +197,94 @@ function toOwnershipAction(actionMode, config) {
   if (actionMode === 'force_close') {
     return {
       type: 'position_force_close_request',
-      ownerPath: 'execution_lifecycle_manager',
+      ownerPath: PROTECTIVE_OWNER_LIFECYCLE,
       cooldownMinutes: safeNumber(config.cooldownMinutesAfterForcedExit, 0),
       cleanupMode: 'via_reconciliation_contour',
     };
   }
   return null;
+}
+
+function normalizeCloseSource(rawSource, fallbackSource) {
+  if (PROTECTIVE_CLOSE_SOURCES.has(rawSource)) return rawSource;
+  return fallbackSource;
+}
+
+function resolveProtectiveActionToken(input = {}) {
+  const context = input.context || {};
+  const position = input.position || {};
+  const state = context.protectiveActionState || {};
+  const serverSlState = context.serverStopLossState || {};
+
+  if (state.token) return String(state.token);
+  if (serverSlState.protectiveActionToken) return String(serverSlState.protectiveActionToken);
+  if (context.protectiveActionToken) return String(context.protectiveActionToken);
+
+  const cycleId = context.cycleId || 'n/a';
+  const ticker = context.ticker || position.ticker || 'n/a';
+  const positionId = position.positionId || position.id || position.externalId || position.side || 'n/a';
+  return `protective-close:${ticker}:${positionId}:${cycleId}`;
+}
+
+function resolveServerStopLossCloseState(input = {}) {
+  const context = input.context || {};
+  const serverSlState = context.serverStopLossState || {};
+  const status = String(serverSlState.status || '').toLowerCase();
+  const closeInitiated = serverSlState.closeInitiated === true || ['triggered', 'initiated', 'close_initiated', 'working'].includes(status);
+  const closeConfirmed = serverSlState.closeConfirmed === true || ['filled', 'close_confirmed', 'confirmed', 'closed'].includes(status);
+  return {
+    owner: serverSlState.runtimeOwner || PROTECTIVE_OWNER_SERVER_SL,
+    closeInitiated,
+    closeConfirmed,
+    status: status || 'unknown',
+    protectiveActionToken: serverSlState.protectiveActionToken || null,
+  };
+}
+
+function applyProtectiveOwnershipGuard(decision = {}, input = {}) {
+  const context = input.context || {};
+  const actionType = decision && decision.ownershipAction ? decision.ownershipAction.type : null;
+  const isCloseAction = actionType === 'position_force_close_request';
+  const runtimeToken = resolveProtectiveActionToken(input);
+  const serverCloseState = resolveServerStopLossCloseState(input);
+  const runtimeState = context.protectiveActionState || {};
+
+  const fallbackSource = decision.triggerStage === 'early_invalidation_exit' ? 'early_invalidation' : 'forced_loss_exit';
+  const closeSource = normalizeCloseSource(context.protectiveCloseSource, fallbackSource);
+
+  const localActionAlreadyOwned = runtimeState.closeInitiated === true
+    || runtimeState.closeConfirmed === true
+    || runtimeState.status === 'initiated'
+    || runtimeState.status === 'confirmed';
+
+  const mustDeduplicate = isCloseAction && (
+    serverCloseState.closeInitiated
+    || serverCloseState.closeConfirmed
+    || localActionAlreadyOwned
+  );
+
+  const protectiveActionOwner = (serverCloseState.closeInitiated || serverCloseState.closeConfirmed)
+    ? serverCloseState.owner
+    : (runtimeState.owner || PROTECTIVE_OWNER_LIFECYCLE);
+
+  return {
+    ...decision,
+    ownershipAction: mustDeduplicate ? null : decision.ownershipAction,
+    protectiveActionOwner,
+    protectiveActionToken: runtimeToken,
+    duplicateClosePrevented: mustDeduplicate,
+    closeSource,
+    runtimeOwnership: {
+      serverStopLoss: {
+        owner: serverCloseState.owner,
+        closeInitiated: serverCloseState.closeInitiated,
+        closeConfirmed: serverCloseState.closeConfirmed,
+        status: serverCloseState.status,
+      },
+      lifecycleOwner: PROTECTIVE_OWNER_LIFECYCLE,
+      deduplicated: mustDeduplicate,
+    },
+  };
 }
 
 function evaluateEarlyInvalidation(input = {}, config = {}, thresholds = {}) {
@@ -304,7 +389,7 @@ function evaluateForcedLossExit(input = {}, rawConfig = {}) {
   const position = input.position || {};
 
   if (!config.enabled) {
-    return {
+    return applyProtectiveOwnershipGuard({
       enabled: false,
       triggered: false,
       actionMode: config.actionMode,
@@ -314,7 +399,7 @@ function evaluateForcedLossExit(input = {}, rawConfig = {}) {
       thresholds: null,
       triggerStage: null,
       earlyInvalidation: { enabled: false, triggered: false, reasons: ['forced_loss_exit_disabled'] },
-    };
+    }, input);
   }
 
   const thresholds = getEffectiveThresholds(config, context);
@@ -323,7 +408,7 @@ function evaluateForcedLossExit(input = {}, rawConfig = {}) {
   if (earlyInvalidation.triggered) {
     const ownershipAction = toOwnershipAction(earlyInvalidation.actionMode, config);
     const shouldBlockAveraging = ['partial_reduce', 'force_close'].includes(earlyInvalidation.actionMode);
-    return {
+    return applyProtectiveOwnershipGuard({
       enabled: true,
       triggered: true,
       actionMode: earlyInvalidation.actionMode,
@@ -337,7 +422,7 @@ function evaluateForcedLossExit(input = {}, rawConfig = {}) {
       },
       triggerStage: 'early_invalidation_exit',
       earlyInvalidation,
-    };
+    }, input);
   }
 
   const pnlPercent = Number(position.pnlPercent || 0);
@@ -371,7 +456,7 @@ function evaluateForcedLossExit(input = {}, rawConfig = {}) {
   const shouldBlockAveraging = triggered && ['block_averaging', 'partial_reduce', 'force_close'].includes(config.actionMode);
   const ownershipAction = triggered ? toOwnershipAction(config.actionMode, config) : null;
 
-  return {
+  return applyProtectiveOwnershipGuard({
     enabled: true,
     triggered,
     actionMode: config.actionMode,
@@ -386,7 +471,7 @@ function evaluateForcedLossExit(input = {}, rawConfig = {}) {
     },
     triggerStage: triggered ? 'forced_loss_exit_fallback' : null,
     earlyInvalidation,
-  };
+  }, input);
 }
 
 function toForcedLossExitEvent(input = {}) {
@@ -410,6 +495,10 @@ function toForcedLossExitEvent(input = {}) {
     vetoReason: decision.triggered ? `forced_loss_exit:${(decision.reasons || []).join(',')}` : null,
     sizingDecision: decision.shouldBlockAveraging ? 'averaging_blocked' : 'unchanged',
     executionAction: decision.ownershipAction ? decision.ownershipAction.type : 'none',
+    protectiveActionOwner: decision.protectiveActionOwner || PROTECTIVE_OWNER_LIFECYCLE,
+    protectiveActionToken: decision.protectiveActionToken || null,
+    duplicateClosePrevented: decision.duplicateClosePrevented === true,
+    closeSource: decision.closeSource || 'forced_loss_exit',
     fallbackAction: decision.actionMode === 'warn' ? 'log_only' : 'none',
     finalDecision: decision.triggered ? decision.actionMode : 'no_action',
     triggerStage: decision.triggerStage || 'none',
