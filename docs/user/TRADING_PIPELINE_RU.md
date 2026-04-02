@@ -24,8 +24,10 @@
 - `capitalRegimeEngine` является primary current-state layer и вычисляет режимы: `NORMAL`, `CAUTION`, `DEFENSIVE`, `CAPITAL_PRESERVATION`, `HALT_NEW_ENTRIES`.
 - `portfolioForecastEngine` может добавлять `forecastRegimeShiftRisk`, но не имеет права ослаблять текущий `capitalRegime`.
 - `safeEntryAssets` ограничивает список тикеров для новых входов, но не мешает сопровождать старые позиции в любых тикерах.
-- `dynamicAssetSelection` формирует shortlist **после** universe/definedAssets и **до** final entry decision; слой использует shared market snapshot + trade journal и не владеет execution side-effects.
+- `allowedUniverse` (`definedAssets`/`allowedUniverse` в config) — единственный owner разрешённого universe для входов.
+- `dynamicAssetSelection` формирует runtime-`dynamicShortlist` **внутри allowedUniverse** и только для новых входов; слой использует shared market snapshot + trade journal и не владеет execution side-effects.
 - `dynamicAssetSelection` учитывает `balanceState/capitalRegime` и forecast stress-hints как внешний контекст: при ухудшении режима shortlist сжимается.
+- Приоритеты жёстко фиксированы: `allowedUniverse -> hard restrictions/safeEntryAssets/unload -> capitalRegime -> dynamicShortlist -> regime/router/confluence/zones -> sizing/execution`.
 
 ## Как работает открытие позиции
 1. Сбор market/account данных.

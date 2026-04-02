@@ -1473,8 +1473,10 @@
         "USDC"
       ],
       "randomCount": 0,
+      "enableDynamicAssetSelection": false,
       "dynamicAssetSelection": {
         "enabled": false,
+        "dynamicSelectionMode": "whitelist_only",
         "shortlistSize": 8,
         "lookbackBars": 8,
         "lookbackTrades": 500,
@@ -1556,8 +1558,10 @@
         "USDC"
       ],
       "randomCount": 0,
+      "enableDynamicAssetSelection": false,
       "dynamicAssetSelection": {
         "enabled": false,
+        "dynamicSelectionMode": "whitelist_only",
         "shortlistSize": 8,
         "lookbackBars": 8,
         "lookbackTrades": 500,
