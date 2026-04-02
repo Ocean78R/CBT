@@ -333,3 +333,97 @@ test('confluenceEntryEngine: bounceDetectionLayer обогащает решен�
   assert.ok(event.payload.bounceDetection);
   assert.ok(event.payload.telemetry.downstreamContext.confluenceEntry.bounceDetection);
 });
+
+test('confluenceEntryEngine: breakdownDetectionLayer добавляет bearish continuation в confluence-контракт', () => {
+  const config = normalizeConfluenceEntryConfig({
+    enabled: true,
+    mode: 'confluence',
+    blockWeights: {
+      entryPermission: 0.22,
+      marketContext: 0.2,
+      primarySignal: 0.2,
+      confirmation: 0.14,
+      marketLevel: 0.08,
+      volumeContext: 0.06,
+      bounceDetection: 0.04,
+      breakdownDetection: 0.06,
+    },
+    thresholds: { fullEntryScore: 0.55, weakEntryScore: 0.4, minConfidence: 0.2 },
+    breakdownDetection: {
+      enabled: true,
+      allowedRegimes: ['trend', 'pullback'],
+      thresholds: { scoreForSetupTag: 0.5, minConfidence: 0.2, microstructureActivationScore: 0.45 },
+    },
+  });
+
+  const candles = Array.from({ length: 52 }, (_, idx) => {
+    const base = 140 - idx * 0.52;
+    return {
+      timestamp: idx + 1,
+      open: base + 0.24,
+      high: base + 0.42,
+      low: base - (idx % 4 === 0 ? 0.9 : 0.36),
+      close: base - (idx > 40 ? 0.35 : 0.12),
+      volume: 900 + idx * 26 + (idx > 42 ? 260 : 0),
+    };
+  });
+
+  const result = evaluateConfluenceEntry({
+    context: {
+      cycleId: 'c-6',
+      cycleIndex: 6,
+      ticker: 'DOGE-USDT',
+      exchange: 'bingx',
+      marketRegime: 'trend',
+      capitalRegime: 'CAUTION',
+      balanceState: { capitalRegime: 'CAUTION' },
+      forecastRegimeShiftRisk: 'LOW',
+      setupType: 'byTrend',
+    },
+    sharedSnapshot: {
+      candles,
+      orderBook: {
+        bestBid: 109.4,
+        bestAsk: 109.47,
+        bidVolume: 50000,
+        askVolume: 76000,
+      },
+    },
+    budgetState: 'normal',
+    regimeRouterDecision: {
+      layerName: 'marketRegimeRouter',
+      marketRegime: 'trend',
+      allowedSetups: ['byTrend'],
+      selectedPredictType: 'byTrend',
+      score: 0.77,
+      confidence: 0.73,
+    },
+    primarySignal: {
+      layerName: 'primarySignalLayer',
+      direction: 'short',
+      score: 0.78,
+      confidence: 0.74,
+      setupType: 'byTrend',
+    },
+    confirmationSignals: [{ name: 'trend_confirmation', approved: true }],
+    htfBiasDecision: {
+      layerName: 'higherTimeframeBiasEngine',
+      htfBias: 'short',
+      mode: 'full_mode',
+    },
+  }, config);
+
+  assert.equal(result.enabled, true);
+  assert.equal(result.layers.breakdownDetectionLayer.layerName, 'breakdownDetectionLayer');
+  assert.equal(result.layers.breakdownDetectionLayer.direction, 'short');
+  assert.ok(Number.isFinite(result.layers.breakdownDetectionLayer.score));
+  assert.ok(Array.isArray(result.layers.breakdownDetectionLayer.explanation.setupTypes));
+  assert.ok(result.decisionContext.metadata.breakdownDetection);
+
+  const event = toConfluenceEntryEvent({
+    context: { cycleId: 'c-6', ticker: 'DOGE-USDT', exchange: 'bingx' },
+    result,
+  });
+  assert.ok(event.payload.breakdownDetection);
+  assert.ok(event.payload.telemetry.downstreamContext.confluenceEntry.breakdownDetection);
+});
