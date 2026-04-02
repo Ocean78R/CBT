@@ -8,6 +8,14 @@
 
 ---
 
+## 2026-04-02 (supportResistanceEngine / marketLevel zones layer)
+- Изменение: добавлен новый слой `supportResistanceEngine` (внутри confluence как `marketLevelLayer`) для анализа ценовой геометрии: `swing high/low`, зоны поддержки/сопротивления, диапазон за `N` баров, `breakout context`, `retest`, `false breakout/liquidity grab`.
+- Изменение: слой интегрирован в общий block-контракт confluence (`score/confidence/softPenalty/dataQuality/reasonCodes`) и не имеет права единолично выдавать final entry.
+- Изменение: сохранена обратная совместимость через config (`confluenceEntryEngine.marketLevel.enabled`, `blockWeights.marketLevel`), legacy-flow остаётся fallback при отключении или нулевом весе слоя.
+- Изменение: добавлены расширенные runtime-логи confluence (`zonesScore/zonesConfidence/zonesDataQuality/zonesReason`) и payload для audit trail (`payload.marketLevels`, `payload.layerScores.marketLevelLayer`).
+- Связанные файлы кода: `dist/runtime/engines/supportResistanceEngine.js`, `dist/runtime/engines/confluenceEntryEngine.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/support-resistance-engine.test.js`, `tests/regression/confluence-entry-engine.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
+
 
 ## 2026-04-02 (higher timeframe bias / market structure engine)
 - Изменение: добавлен отдельный слой `higherTimeframeBiasEngine` для анализа старшего контекста (`HH/HL`, `LH/LL`, BOS, CHoCH, диапазон HTF) с выходами `htfBias`, `marketStructureState`, `structureConfidence`, `trendAlignmentScore`.

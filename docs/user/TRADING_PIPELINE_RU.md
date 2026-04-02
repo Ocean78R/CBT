@@ -360,4 +360,27 @@ Cache tiers и чтение слоями:
 ### Обратная совместимость
 - Старое поведение осталось fallback-режимом и не удалено.
 - Новый confluence-режим включается только через config.
+
+## Runtime-позиция supportResistanceEngine / marketLevelEngine (zones layer)
+- Место слоя в пайплайне:  
+  `hard-risk/portfolioRiskContour -> marketRegimeRouter -> supportResistanceEngine(zones) -> confluenceEntry/finalEntryDecision -> dynamicPositionSizing -> execution`.
+- Зависимости ранних слоёв:
+  - shared `MarketSnapshot/FeatureSnapshot` свечей (`sharedSnapshot.candles`);
+  - `marketRegime` от regime-router;
+  - `capitalRegime`/`balanceState` как внешний ограничивающий контекст.
+- Что делает слой:
+  - определяет `swing high / swing low`;
+  - строит **зоны** поддержки/сопротивления (не тонкие линии);
+  - считает диапазон `high/low` за `N` баров;
+  - определяет `breakout context`, `retest` и `false breakout / liquidity grab`.
+- Что не делает слой:
+  - не рассчитывает объёмный контекст (VWAP/volume profile);
+  - не отправляет ордера и не принимает final entry.
+- Кто главный / fallback:
+  - primary final decision остаётся за `confluenceEntryEngine.finalEntryDecisionLayer`;
+  - если `marketLevel.enabled=false` или данных недостаточно, слой возвращает `fallback/degraded`, а confluence продолжает работу по старой схеме;
+  - legacy поведение сохраняется, пока `blockWeights.marketLevel=0`.
+- Формат контракта:
+  - слой возвращает совместимый block output (`layerName/direction/score/confidence/softPenalty/vetoCandidates/dataQualityState/reasonCodes/explanation`);
+  - enrich происходит через `DecisionContext.metadata.marketLevels` без ad-hoc форматов.
 - Execution/lifecycle path позиции не изменён.

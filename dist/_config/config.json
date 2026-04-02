@@ -77,7 +77,8 @@
           "entryPermission": 0.28,
           "marketContext": 0.2,
           "primarySignal": 0.32,
-          "confirmation": 0.2
+          "confirmation": 0.2,
+          "marketLevel": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -98,6 +99,31 @@
           "minSignalsForWeak": 1,
           "htfBiasBoost": 0.08,
           "htfCounterTrendPenalty": 0.18
+        },
+        "marketLevel": {
+          "enabled": false,
+          "priceSource": "wick",
+          "lookbackBars": 120,
+          "rangeLookbackBars": 40,
+          "swingWindow": 2,
+          "minSwingPoints": 3,
+          "zoneWidthPercent": 0.2,
+          "proximityThresholdPercent": 0.35,
+          "breakoutTolerancePercent": 0.16,
+          "retestWindowBars": 6,
+          "falseBreakoutWindowBars": 3,
+          "minBreakoutBodyPercent": 0.12,
+          "scoring": {
+            "proximityScore": 0.33,
+            "retestScore": 0.24,
+            "falseBreakoutScore": 0.24,
+            "breakoutContextScore": 0.19,
+            "rangePenalty": 0.12,
+            "degradedPenalty": 0.08
+          },
+          "detection": {
+            "requireBreakoutForRetest": true
+          }
         }
       }
     },
@@ -178,7 +204,8 @@
           "entryPermission": 0.28,
           "marketContext": 0.2,
           "primarySignal": 0.32,
-          "confirmation": 0.2
+          "confirmation": 0.2,
+          "marketLevel": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -199,6 +226,31 @@
           "minSignalsForWeak": 1,
           "htfBiasBoost": 0.08,
           "htfCounterTrendPenalty": 0.18
+        },
+        "marketLevel": {
+          "enabled": false,
+          "priceSource": "wick",
+          "lookbackBars": 120,
+          "rangeLookbackBars": 40,
+          "swingWindow": 2,
+          "minSwingPoints": 3,
+          "zoneWidthPercent": 0.2,
+          "proximityThresholdPercent": 0.35,
+          "breakoutTolerancePercent": 0.16,
+          "retestWindowBars": 6,
+          "falseBreakoutWindowBars": 3,
+          "minBreakoutBodyPercent": 0.12,
+          "scoring": {
+            "proximityScore": 0.33,
+            "retestScore": 0.24,
+            "falseBreakoutScore": 0.24,
+            "breakoutContextScore": 0.19,
+            "rangePenalty": 0.12,
+            "degradedPenalty": 0.08
+          },
+          "detection": {
+            "requireBreakoutForRetest": true
+          }
         }
       }
     },
@@ -614,7 +666,8 @@
           "entryPermission": 0.28,
           "marketContext": 0.2,
           "primarySignal": 0.32,
-          "confirmation": 0.2
+          "confirmation": 0.2,
+          "marketLevel": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -635,6 +688,31 @@
           "minSignalsForWeak": 1,
           "htfBiasBoost": 0.08,
           "htfCounterTrendPenalty": 0.18
+        },
+        "marketLevel": {
+          "enabled": false,
+          "priceSource": "wick",
+          "lookbackBars": 120,
+          "rangeLookbackBars": 40,
+          "swingWindow": 2,
+          "minSwingPoints": 3,
+          "zoneWidthPercent": 0.2,
+          "proximityThresholdPercent": 0.35,
+          "breakoutTolerancePercent": 0.16,
+          "retestWindowBars": 6,
+          "falseBreakoutWindowBars": 3,
+          "minBreakoutBodyPercent": 0.12,
+          "scoring": {
+            "proximityScore": 0.33,
+            "retestScore": 0.24,
+            "falseBreakoutScore": 0.24,
+            "breakoutContextScore": 0.19,
+            "rangePenalty": 0.12,
+            "degradedPenalty": 0.08
+          },
+          "detection": {
+            "requireBreakoutForRetest": true
+          }
         }
       }
     },
@@ -714,7 +792,8 @@
           "entryPermission": 0.28,
           "marketContext": 0.2,
           "primarySignal": 0.32,
-          "confirmation": 0.2
+          "confirmation": 0.2,
+          "marketLevel": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -735,6 +814,31 @@
           "minSignalsForWeak": 1,
           "htfBiasBoost": 0.08,
           "htfCounterTrendPenalty": 0.18
+        },
+        "marketLevel": {
+          "enabled": false,
+          "priceSource": "wick",
+          "lookbackBars": 120,
+          "rangeLookbackBars": 40,
+          "swingWindow": 2,
+          "minSwingPoints": 3,
+          "zoneWidthPercent": 0.2,
+          "proximityThresholdPercent": 0.35,
+          "breakoutTolerancePercent": 0.16,
+          "retestWindowBars": 6,
+          "falseBreakoutWindowBars": 3,
+          "minBreakoutBodyPercent": 0.12,
+          "scoring": {
+            "proximityScore": 0.33,
+            "retestScore": 0.24,
+            "falseBreakoutScore": 0.24,
+            "breakoutContextScore": 0.19,
+            "rangePenalty": 0.12,
+            "degradedPenalty": 0.08
+          },
+          "detection": {
+            "requireBreakoutForRetest": true
+          }
         }
       }
     },
@@ -815,7 +919,8 @@
           "entryPermission": 0.28,
           "marketContext": 0.2,
           "primarySignal": 0.32,
-          "confirmation": 0.2
+          "confirmation": 0.2,
+          "marketLevel": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -836,6 +941,31 @@
           "minSignalsForWeak": 1,
           "htfBiasBoost": 0.08,
           "htfCounterTrendPenalty": 0.18
+        },
+        "marketLevel": {
+          "enabled": false,
+          "priceSource": "wick",
+          "lookbackBars": 120,
+          "rangeLookbackBars": 40,
+          "swingWindow": 2,
+          "minSwingPoints": 3,
+          "zoneWidthPercent": 0.2,
+          "proximityThresholdPercent": 0.35,
+          "breakoutTolerancePercent": 0.16,
+          "retestWindowBars": 6,
+          "falseBreakoutWindowBars": 3,
+          "minBreakoutBodyPercent": 0.12,
+          "scoring": {
+            "proximityScore": 0.33,
+            "retestScore": 0.24,
+            "falseBreakoutScore": 0.24,
+            "breakoutContextScore": 0.19,
+            "rangePenalty": 0.12,
+            "degradedPenalty": 0.08
+          },
+          "detection": {
+            "requireBreakoutForRetest": true
+          }
         }
       }
     },
@@ -915,7 +1045,8 @@
           "entryPermission": 0.28,
           "marketContext": 0.2,
           "primarySignal": 0.32,
-          "confirmation": 0.2
+          "confirmation": 0.2,
+          "marketLevel": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -936,6 +1067,31 @@
           "minSignalsForWeak": 1,
           "htfBiasBoost": 0.08,
           "htfCounterTrendPenalty": 0.18
+        },
+        "marketLevel": {
+          "enabled": false,
+          "priceSource": "wick",
+          "lookbackBars": 120,
+          "rangeLookbackBars": 40,
+          "swingWindow": 2,
+          "minSwingPoints": 3,
+          "zoneWidthPercent": 0.2,
+          "proximityThresholdPercent": 0.35,
+          "breakoutTolerancePercent": 0.16,
+          "retestWindowBars": 6,
+          "falseBreakoutWindowBars": 3,
+          "minBreakoutBodyPercent": 0.12,
+          "scoring": {
+            "proximityScore": 0.33,
+            "retestScore": 0.24,
+            "falseBreakoutScore": 0.24,
+            "breakoutContextScore": 0.19,
+            "rangePenalty": 0.12,
+            "degradedPenalty": 0.08
+          },
+          "detection": {
+            "requireBreakoutForRetest": true
+          }
         }
       }
     },
@@ -1026,7 +1182,8 @@
           "entryPermission": 0.28,
           "marketContext": 0.2,
           "primarySignal": 0.32,
-          "confirmation": 0.2
+          "confirmation": 0.2,
+          "marketLevel": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1047,6 +1204,31 @@
           "minSignalsForWeak": 1,
           "htfBiasBoost": 0.08,
           "htfCounterTrendPenalty": 0.18
+        },
+        "marketLevel": {
+          "enabled": false,
+          "priceSource": "wick",
+          "lookbackBars": 120,
+          "rangeLookbackBars": 40,
+          "swingWindow": 2,
+          "minSwingPoints": 3,
+          "zoneWidthPercent": 0.2,
+          "proximityThresholdPercent": 0.35,
+          "breakoutTolerancePercent": 0.16,
+          "retestWindowBars": 6,
+          "falseBreakoutWindowBars": 3,
+          "minBreakoutBodyPercent": 0.12,
+          "scoring": {
+            "proximityScore": 0.33,
+            "retestScore": 0.24,
+            "falseBreakoutScore": 0.24,
+            "breakoutContextScore": 0.19,
+            "rangePenalty": 0.12,
+            "degradedPenalty": 0.08
+          },
+          "detection": {
+            "requireBreakoutForRetest": true
+          }
         }
       }
     }

@@ -66,6 +66,9 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const confluenceMarketContext = confluenceEntryEngine.marketContext || {};
   const confluencePrimarySignal = confluenceEntryEngine.primarySignal || {};
   const confluenceConfirmation = confluenceEntryEngine.confirmation || {};
+  const confluenceMarketLevel = confluenceEntryEngine.marketLevel || {};
+  const confluenceMarketLevelScoring = confluenceMarketLevel.scoring || {};
+  const confluenceMarketLevelDetection = confluenceMarketLevel.detection || {};
 
   const normalized = {
     ...merged,
@@ -237,6 +240,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         marketContext: Number(confluenceBlockWeights.marketContext || 0.2),
         primarySignal: Number(confluenceBlockWeights.primarySignal || 0.32),
         confirmation: Number(confluenceBlockWeights.confirmation || 0.2),
+        marketLevel: Number(confluenceBlockWeights.marketLevel || 0),
       },
       thresholds: {
         fullEntryScore: Number(confluenceThresholds.fullEntryScore || 0.68),
@@ -257,6 +261,31 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         minSignalsForWeak: Number(confluenceConfirmation.minSignalsForWeak || 1),
         htfBiasBoost: Number(confluenceConfirmation.htfBiasBoost || 0.08),
         htfCounterTrendPenalty: Number(confluenceConfirmation.htfCounterTrendPenalty || 0.18),
+      },
+      marketLevel: {
+        enabled: !!confluenceMarketLevel.enabled,
+        priceSource: confluenceMarketLevel.priceSource === 'close' ? 'close' : 'wick',
+        lookbackBars: Number(confluenceMarketLevel.lookbackBars || 120),
+        rangeLookbackBars: Number(confluenceMarketLevel.rangeLookbackBars || 40),
+        swingWindow: Number(confluenceMarketLevel.swingWindow || 2),
+        minSwingPoints: Number(confluenceMarketLevel.minSwingPoints || 3),
+        zoneWidthPercent: Number(confluenceMarketLevel.zoneWidthPercent || 0.2),
+        proximityThresholdPercent: Number(confluenceMarketLevel.proximityThresholdPercent || 0.35),
+        breakoutTolerancePercent: Number(confluenceMarketLevel.breakoutTolerancePercent || 0.16),
+        retestWindowBars: Number(confluenceMarketLevel.retestWindowBars || 6),
+        falseBreakoutWindowBars: Number(confluenceMarketLevel.falseBreakoutWindowBars || 3),
+        minBreakoutBodyPercent: Number(confluenceMarketLevel.minBreakoutBodyPercent || 0.12),
+        scoring: {
+          proximityScore: Number(confluenceMarketLevelScoring.proximityScore || 0.33),
+          retestScore: Number(confluenceMarketLevelScoring.retestScore || 0.24),
+          falseBreakoutScore: Number(confluenceMarketLevelScoring.falseBreakoutScore || 0.24),
+          breakoutContextScore: Number(confluenceMarketLevelScoring.breakoutContextScore || 0.19),
+          rangePenalty: Number(confluenceMarketLevelScoring.rangePenalty || 0.12),
+          degradedPenalty: Number(confluenceMarketLevelScoring.degradedPenalty || 0.08),
+        },
+        detection: {
+          requireBreakoutForRetest: confluenceMarketLevelDetection.requireBreakoutForRetest !== false,
+        },
       },
     },
 
