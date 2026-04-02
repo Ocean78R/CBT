@@ -30,6 +30,10 @@
 ## DynamicAssetSelection для новых входов
 Блок находится в `singleSetts.tickers.dynamicAssetSelection`.
 
+- `definedAssets` (или `allowedUniverse`, если задан): верхняя граница universe из config для новых входов.
+- `enableDynamicAssetSelection`: alias-флаг уровня `singleSetts.tickers.*` (совместим с `dynamicAssetSelection.enabled`).
+- `dynamicSelectionMode`: режим shortlist; поддерживается `whitelist_only` (shortlist только внутри allowedUniverse).
+
 - `enabled`: включает динамический shortlist; при `false` остаётся статический fallback (`definedAssets`).
 - `shortlistSize`: базовый размер shortlist на цикл.
 - `lookbackBars`: глубина свечей для факторов `volatility/speed`.
@@ -45,8 +49,11 @@
 - `forecastStressSignals`: сигналы, по которым применяется tightening shortlist как внешний контекст.
 
 Приоритеты:
+- `allowedUniverse`/`definedAssets` из config — главный owner списка разрешённых тикеров.
 - `unloadMode`/`safeEntryAssets` выше dynamicAssetSelection и применяются раньше.
+- `capitalRegime` может только сужать shortlist/входы, но не расширяет allowedUniverse.
 - dynamic shortlist влияет только на **новые входы**; сопровождение уже открытых позиций не блокируется.
+- downstream-слои (`marketRegimeRouter`, `higherTimeframeBias`, `confluence`, `zones`) получают уже отфильтрованный вход и не расширяют universe.
 
 ## Market Regime Router в predict-блоке
 Блок находится в `singleSetts.predict.regimeRouter` (и в mirror-конфиге при необходимости).
