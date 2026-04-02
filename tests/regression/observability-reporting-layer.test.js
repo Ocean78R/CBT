@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { createObservabilityLayer, EVENT_CATEGORIES } = require('../../dist/runtime/observability/reportingLayer');
+const { evaluateForcedLossExit, toForcedLossExitEvent } = require('../../dist/runtime/risk/forcedLossExit');
 
 test('observability слой агрегирует отчёты по циклу/тикеру/дню и причинам veto', () => {
   const layer = createObservabilityLayer({
@@ -151,4 +152,104 @@ test('observability слой ведёт performance-метрики и делит
   assert.equal(Array.isArray(trails), true);
   const reportsAfterAudit = layer.getReports();
   assert.equal(reportsAfterAudit.performance.analytics.getAuditTrailCalls >= 1, true);
+});
+
+test('duplicateClosePrevented и protectiveActionToken попадают в structured report/audit и reconciliation trace', () => {
+  const layer = createObservabilityLayer({
+    enabled: true,
+    sampling: { decisionEventsRate: 1, diagnosticEventsRate: 1, alwaysKeepCritical: true },
+    storage: { enabled: false },
+  });
+
+  const decision = evaluateForcedLossExit({
+    context: {
+      cycleId: 'c-protective-1',
+      ticker: 'BTC-USDT',
+      exchange: 'bingx',
+      mode: 'live',
+      capitalRegime: 'NORMAL',
+      marketRegime: 'trend',
+      setupType: 'momentum',
+      positionCapabilityState: 'LEVERAGE_MISMATCH_POSITION',
+      protectiveCloseSource: 'lifecycle_close',
+      protectiveActionState: {
+        owner: 'execution_lifecycle_manager',
+        token: 'restart-token-42',
+        closeInitiated: true,
+        status: 'initiated',
+      },
+    },
+    position: {
+      side: 'LONG',
+      minutesSinceEntry: 18,
+      entryDeviationPercent: -1.5,
+      timeUnderEntryWithoutRecoveryMinutes: 14,
+      adverseTrendBars: 4,
+      adverseTrendSlope: 0.08,
+      adverseMarketConfirmed: true,
+      holdMinutesInLoss: 23,
+      pnlPercent: -1.5,
+    },
+  }, {
+    enabled: true,
+    actionMode: 'warn',
+    maxNegativeHoldMinutes: 240,
+    maxPostAveragingNegativeHoldMinutes: 120,
+    maxLossPercentOnPosition: 6,
+    maxAveragesPerPosition: 3,
+    requireAdverseMarketConfirmation: true,
+    enablePostEntryObservation: true,
+    postEntryGraceMinutes: 5,
+    postEntryObservationMinutes: 30,
+    maxTimeUnderEntryWithoutRecovery: 12,
+    earlyInvalidationLossPercent: 1.1,
+    requirePersistentAdverseTrend: true,
+    adverseTrendConfirmationBars: 3,
+    adverseTrendSlopeThreshold: 0.05,
+    actionOnEarlyInvalidation: 'force_close',
+  });
+
+  const protectiveEvent = toForcedLossExitEvent({
+    context: {
+      cycleId: 'c-protective-1',
+      ticker: 'BTC-USDT',
+      exchange: 'bingx',
+      mode: 'live',
+      capitalRegime: 'NORMAL',
+      marketRegime: 'trend',
+      setupType: 'momentum',
+      positionCapabilityState: 'LEVERAGE_MISMATCH_POSITION',
+    },
+    decision,
+  });
+  layer.ingestEvent(protectiveEvent);
+
+  layer.ingestEvent({
+    eventType: 'execution_reconciliation',
+    cycleId: 'c-protective-1',
+    ticker: 'BTC-USDT',
+    module: 'execution_contour',
+    layer: 'reconciliation',
+    finalDecision: 'accepted',
+    executionAction: 'cleanup_reconciliation',
+    protectiveActionToken: 'restart-token-42',
+    positionCapabilityState: 'LEVERAGE_MISMATCH_POSITION',
+    payload: {
+      protectiveActionToken: 'restart-token-42',
+      positionCapabilityState: 'LEVERAGE_MISMATCH_POSITION',
+    },
+  });
+
+  const reports = layer.getReports();
+  assert.equal(reports.protectiveDiagnostics.duplicateClosePrevented, 1);
+  assert.equal(reports.protectiveDiagnostics.byOwner.execution_lifecycle_manager, 1);
+  assert.equal(reports.protectiveDiagnostics.byCloseSource.lifecycle_close, 1);
+
+  const trails = layer.getAuditTrail({ cycleId: 'c-protective-1', ticker: 'BTC-USDT' });
+  assert.equal(trails.length, 1);
+  assert.equal(trails[0].stagePath.lifecycle.duplicateClosePrevented, true);
+  assert.equal(trails[0].stagePath.lifecycle.protectiveActionToken, 'restart-token-42');
+  assert.equal(trails[0].stagePath.lifecycle.protectiveActionOwner, 'execution_lifecycle_manager');
+  assert.equal(trails[0].stagePath.reconciliation.protectiveActionToken, 'restart-token-42');
+  assert.equal(trails[0].stagePath.reconciliation.positionCapabilityState, 'LEVERAGE_MISMATCH_POSITION');
 });
