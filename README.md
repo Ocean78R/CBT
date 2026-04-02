@@ -220,3 +220,31 @@ node --test tests/architecture/architecture.smoke.test.js
 - forcedLossExit остаётся fallback/secondary protection.
 
 Конфигурация управляется через `serverStopLoss.*` в `dist/_config/config.json`.
+
+---
+
+## Первый practical ML training pipeline (offline, без влияния на торговлю)
+
+Добавлен первый устойчивый и объяснимый ML-контур для оценки качества входа на основе собранного датасета.
+
+### Что делает
+- загружает `entry_features.csv` + `entry_labels.csv`;
+- очищает и готовит признаки (включая обработку пропусков);
+- обучает logistic regression для двух целей:
+  - `binaryPositiveEntry` (POSITIVE vs not POSITIVE),
+  - `multiclassEntryQuality` (NEGATIVE/NEUTRAL/POSITIVE, OVR);
+- считает метрики качества на validation;
+- сохраняет артефакты модели и training report.
+
+### Важное ограничение
+- Этот слой работает **только offline** и **не изменяет боевую торговую логику**.
+- Rule-based pipeline остаётся главным runtime-решателем.
+
+### Запуск
+```bash
+npm run ml:train:entry-quality
+```
+
+Артефакты по умолчанию:
+- `./data/ml_models/entry_quality/entry_quality_model.json`
+- `./data/ml_models/entry_quality/training_report.json`
