@@ -269,17 +269,21 @@
 ## Логи confluenceEntryEngine
 Добавлен runtime-лог:
 - `[confluenceEntry] cycle=... ticker=... exchange=... module=confluenceEntryEngine layer=entry.confluence regime=... capital=... setup=... score=... confidence=... veto=... sizing=not_evaluated execution=... fallback=... final=... mode=... runtime=... zonesScore=... zonesConfidence=... zonesDataQuality=... zonesReason=...`
+- Лог дополнен полями breakdown-слоя:
+  - `breakdownScore`, `breakdownConfidence`, `breakdownDataQuality`, `breakdownReason`, `breakdownSetups`, `breakdownMode`.
 
 И структурированное событие:
 - `eventType=confluence_entry_decision`
 - обязательные поля: `cycleId`, `ticker`, `exchange`, `module/layer`, `marketRegime`, `capitalRegime`, `setupType`, `score`, `confidence`, `vetoReason`, `sizingDecision`, `executionAction`, `fallbackAction`, `finalDecision`.
 - расширение payload для zones-layer: `payload.marketLevels`, `payload.layerScores.marketLevelLayer.*`.
+- расширение payload для bearish-continuation слоя: `payload.breakdownDetection`, `payload.layerScores.breakdownDetectionLayer.*`.
 
 ### Диагностика
 - Если `final=NO_ENTRY`, смотрите `payload.layerScores.finalEntryDecisionLayer.reasonCodes`.
 - Если veto связан с капиталом, причина будет в `vetoReason=capital_regime_halt_new_entries`.
 - Если блокировка от режима рынка, проверьте `reasonCodes` на `no_trade_regime` / `setup_not_allowed_by_regime_router`.
 - Для зон проверьте `zonesDataQuality` и `zonesReason`; при `fallback/degraded` слой не блокирует цикл и confluence продолжает работу.
+- Для breakdown проверьте `breakdownDataQuality` и `breakdownReason`; в `degraded` режиме решение остаётся безопасным и ownership у final-layer.
 
 ## Логи и события VWAP / volume profile слоя
 - Runtime-лог `[confluenceEntry]` дополнен полями:

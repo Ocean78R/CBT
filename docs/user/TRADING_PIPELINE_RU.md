@@ -342,7 +342,7 @@ Cache tiers и чтение слоями:
 
 ## Runtime-позиция confluenceEntryEngine / entryScoringEngine (многослойный вход)
 - Место слоя в runtime-пайплайне:
-  `hard-risk / portfolioRiskContour -> marketRegimeRouter -> confluenceEntryEngine(entryPermission -> marketContext -> primarySignal -> confirmation -> marketLevel -> volumeContext -> bounceDetection -> finalEntryDecision) -> dynamicPositionSizing -> execution`.
+  `hard-risk / portfolioRiskContour -> marketRegimeRouter -> confluenceEntryEngine(entryPermission -> marketContext -> primarySignal -> confirmation -> marketLevel -> volumeContext -> bounceDetection -> breakdownDetection -> finalEntryDecision) -> dynamicPositionSizing -> execution`.
 - Зависимости от более ранних слоёв:
   - `DecisionContext` (cycle/ticker/regime/capital/score/confidence/veto/metadata),
   - `balanceState` и `capitalRegime` из `portfolioRiskContour`,
@@ -400,6 +400,30 @@ Cache tiers и чтение слоями:
 - Конфликт с breakdown-логикой:
   - внутри bounce-слоя конфликт **не** финализируется;
   - конфликтные reason/veto-кандидаты передаются выше в `finalEntryDecisionLayer`.
+
+## Breakdown / Bearish Continuation Engine (новый сигнальный слой)
+- Runtime-позиция: `marketRegimeRouter -> confluenceEntryEngine(... -> breakdownDetectionLayer -> finalEntryDecisionLayer)`.
+- Зависимости ранних слоёв:
+  - `DecisionContext` (`cycleId/ticker/exchange/marketRegime/capitalRegime/setupType`);
+  - shared snapshot (`candles`, `orderBook`, готовые признаки из feature-store при наличии);
+  - `capitalRegime` как внешний ограничитель через penalties, без права ослабления risk-контуров.
+- Что делает слой:
+  - оценивает вероятность подтверждённого пробоя вниз и continuation по признакам:
+    - proximity к support/breakdown zone;
+    - pressure on support;
+    - repeated tests уровня;
+    - downside momentum expansion;
+    - volume spike на breakdown;
+    - weak rebound / weak retest снизу;
+    - failure to reclaim broken level;
+    - optional order book imbalance / ask pressure / weak bid support / spread quality.
+- Что **не** делает слой:
+  - не разрешает вход самостоятельно и не подменяет `marketRegimeRouter`;
+  - не конфликтует напрямую с bounce-слоем (конфликт уходит вверх по chain);
+  - не вмешивается в execution ownership path.
+- Fallback/degraded mode:
+  - при `breakdownDetection.enabled=false` или `blockWeights.breakdownDetection=0` поведение legacy/confluence остаётся прежним;
+  - при нехватке данных или budget-limit слой возвращает валидный `degraded` result и reason codes.
 
 ### Обратная совместимость
 - Старое поведение осталось fallback-режимом и не удалено.
