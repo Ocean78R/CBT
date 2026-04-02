@@ -84,6 +84,7 @@ test('confluenceEntryEngine: формирует FULL_ENTRY при валидны
       primarySignal: 0.28,
       confirmation: 0.2,
       marketLevel: 0.08,
+      volumeContext: 0,
     },
     marketLevel: {
       enabled: true,
@@ -152,10 +153,94 @@ test('confluenceEntryEngine: формирует FULL_ENTRY при валидны
   assert.equal(result.decision.entryAllowed, true);
   assert.equal(result.decision.finalDecision, 'FULL_ENTRY');
   assert.equal(result.layers.marketLevelLayer.layerName, 'marketLevelLayer');
+  assert.equal(result.layers.volumeContextLayer.layerName, 'volumeContextLayer');
   assert.ok(result.decisionContext.metadata.marketLevels);
+  assert.ok(result.decisionContext.metadata.volumeContext);
 
   const event = toConfluenceEntryEvent({ context: { cycleId: 'c-3', ticker: 'SOL-USDT', exchange: 'bingx' }, result });
   assert.equal(event.eventType, 'confluence_entry_decision');
   assert.equal(event.finalDecision, 'FULL_ENTRY');
   assert.ok(event.payload && event.payload.layerScores && event.payload.layerScores.finalEntryDecisionLayer);
+  assert.ok(event.payload.volumeContext);
+});
+
+test('confluenceEntryEngine: учитывает отдельный блок volumeContextLayer без замены zones', () => {
+  const config = normalizeConfluenceEntryConfig({
+    enabled: true,
+    mode: 'confluence',
+    blockWeights: {
+      entryPermission: 0.22,
+      marketContext: 0.2,
+      primarySignal: 0.24,
+      confirmation: 0.12,
+      marketLevel: 0.12,
+      volumeContext: 0.1,
+    },
+    thresholds: { fullEntryScore: 0.55, weakEntryScore: 0.42, minConfidence: 0.3 },
+    volumeContext: {
+      enabled: true,
+      vwapWindowBars: 20,
+      volumeProfile: { bins: 10 },
+      lazyEvaluation: {
+        enabled: true,
+        requireShortlistCandidate: true,
+        requirePrimaryDirection: true,
+        minPrimaryScore: 0.4,
+      },
+      refreshPolicy: { minBarsBetweenFullRecalc: 1, allowCachedReuse: false },
+    },
+  });
+
+  const candles = Array.from({ length: 30 }, (_, idx) => ({
+    timestamp: idx + 1,
+    open: 100 + idx * 0.3,
+    high: 101 + idx * 0.4,
+    low: 99 + idx * 0.25,
+    close: 100 + idx * 0.35,
+    volume: 1000 + idx * 15,
+  }));
+
+  const result = evaluateConfluenceEntry({
+    context: {
+      cycleId: 'c-4',
+      cycleIndex: 4,
+      ticker: 'BTC-USDT',
+      exchange: 'bingx',
+      marketRegime: 'trend',
+      capitalRegime: 'NORMAL',
+      balanceState: { capitalRegime: 'NORMAL' },
+      forecastRegimeShiftRisk: 'LOW',
+      setupType: 'byBarsPercents',
+    },
+    sharedSnapshot: { candles },
+    featureStoreContext: {},
+    shortlistCandidate: true,
+    budgetState: 'normal',
+    regimeRouterDecision: {
+      layerName: 'marketRegimeRouter',
+      marketRegime: 'trend',
+      allowedSetups: ['byBarsPercents'],
+      selectedPredictType: 'byBarsPercents',
+      score: 0.81,
+      confidence: 0.74,
+    },
+    primarySignal: {
+      layerName: 'primarySignalLayer',
+      direction: 'long',
+      score: 0.83,
+      confidence: 0.77,
+      setupType: 'byBarsPercents',
+    },
+    confirmationSignals: [{ name: 'trend_confirmation', approved: true }],
+    htfBiasDecision: {
+      layerName: 'higherTimeframeBiasEngine',
+      htfBias: 'long',
+      mode: 'full_mode',
+    },
+  }, config);
+
+  assert.equal(result.layers.volumeContextLayer.layerName, 'volumeContextLayer');
+  assert.ok(Number.isFinite(result.layers.volumeContextLayer.score));
+  assert.ok(result.decisionContext.metadata.volumeContext);
+  assert.ok(result.decisionContext.metadata.layerScores.volumeContextLayer);
 });

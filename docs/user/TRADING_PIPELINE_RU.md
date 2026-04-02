@@ -401,3 +401,28 @@ Cache tiers и чтение слоями:
   - слой возвращает совместимый block output (`layerName/direction/score/confidence/softPenalty/vetoCandidates/dataQualityState/reasonCodes/explanation`);
   - enrich происходит через `DecisionContext.metadata.marketLevels` без ad-hoc форматов.
 - Execution/lifecycle path позиции не изменён.
+
+## VWAP / Volume Profile Context Engine (новый контекстный слой)
+- Runtime-позиция: после дешёвых gating-слоёв (`marketRegimeRouter`, `primarySignal`, базовые confirmations) и до `finalEntryDecisionLayer`.
+- Зависимости ранних слоёв: `DecisionContext` (`cycleId/ticker/exchange/marketRegime/capitalRegime`), `sharedSnapshot.candles`, `primarySignal.direction/score`, shortlist/budget-флаги.
+- Кто главный:
+  - `hard-risk`, `capitalRegime`, `veto` и `finalEntryDecisionLayer` остаются выше;
+  - `volumeContextLayer` только добавляет отдельный block score и soft-penalty в confluence.
+- Что остаётся fallback:
+  - при `confluenceEntryEngine.volumeContext.enabled=false` слой отключён;
+  - при нехватке данных/бюджета слой возвращает `degraded/cached` результат и не ломает legacy flow.
+- Lazy evaluation:
+  1. сначала проходят дешёвые фильтры/shortlist;
+  2. только для shortlist-кандидатов считается VWAP/profile;
+  3. при low-budget используется skip/degraded mode.
+- Refresh policy:
+  - `refreshPolicy.minBarsBetweenFullRecalc` — минимум баров между полным пересчётом;
+  - `refreshPolicy.allowCachedReuse` — повторное использование кэша признаков;
+  - `refreshPolicy.forceFullRecalcEveryCycles` — принудительное обновление через N циклов.
+- Признаки слоя:
+  - VWAP по окну (`vwapWindowBars`),
+  - Anchored VWAP от локального якоря,
+  - Value Area (low/high),
+  - HVN/LVN и положение цены относительно них,
+  - дистанция цены до VWAP/Anchored VWAP.
+- Важное ограничение: слой не открывает сделки и не отправляет ордера; он только обогащает `DecisionContext.metadata.layerScores.volumeContextLayer`.

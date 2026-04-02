@@ -280,3 +280,17 @@
 - Если veto связан с капиталом, причина будет в `vetoReason=capital_regime_halt_new_entries`.
 - Если блокировка от режима рынка, проверьте `reasonCodes` на `no_trade_regime` / `setup_not_allowed_by_regime_router`.
 - Для зон проверьте `zonesDataQuality` и `zonesReason`; при `fallback/degraded` слой не блокирует цикл и confluence продолжает работу.
+
+## Логи и события VWAP / volume profile слоя
+- Runtime-лог `[confluenceEntry]` дополнен полями:
+  - `volumeScore`, `volumeConfidence`, `volumeDataQuality`, `volumeReason`, `volumeRefresh`.
+- Structured telemetry в `confluence_entry_decision.payload` теперь включает:
+  - `volumeContext` (объяснение слоя),
+  - `layerScores.volumeContextLayer` (score/confidence/penalty/reasonCodes).
+- Для audit trail это означает, что в цепочке решения видно влияние объёмного контекста без изменения ownership execution.
+
+### Диагностика degraded/cached режима
+- `volume_context_insufficient_candles` — недостаточно свечей для устойчивого профиля.
+- `lazy_skip_budget_exhausted` — слой пропущен из-за budget-aware ограничения.
+- `volume_context_cached_reuse` — признаки взяты из кэша согласно refresh policy.
+- `synthetic_volume_majority` — большая часть объёма синтетическая (нет биржевого volume), confidence понижен.

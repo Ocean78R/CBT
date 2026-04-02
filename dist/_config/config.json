@@ -78,7 +78,8 @@
           "marketContext": 0.2,
           "primarySignal": 0.32,
           "confirmation": 0.2,
-          "marketLevel": 0
+          "marketLevel": 0,
+          "volumeContext": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -123,6 +124,48 @@
           },
           "detection": {
             "requireBreakoutForRetest": true
+          }
+        },
+        "volumeContext": {
+          "enabled": false,
+          "preferSharedFeatures": true,
+          "degradeOnMissingVolume": true,
+          "vwapWindowBars": 80,
+          "anchoredVwap": {
+            "enabled": true,
+            "lookbackBars": 120,
+            "swingWindow": 3,
+            "fallbackToSessionAnchor": true
+          },
+          "valueArea": {
+            "enabled": true,
+            "valueAreaPercent": 0.7
+          },
+          "volumeProfile": {
+            "enabled": true,
+            "bins": 24,
+            "hvnPercentile": 0.82,
+            "lvnPercentile": 0.18
+          },
+          "lazyEvaluation": {
+            "enabled": true,
+            "requireShortlistCandidate": true,
+            "requirePrimaryDirection": true,
+            "minPrimaryScore": 0.4,
+            "skipWhenBudgetExceeded": true
+          },
+          "refreshPolicy": {
+            "minBarsBetweenFullRecalc": 3,
+            "allowCachedReuse": true,
+            "forceFullRecalcEveryCycles": 0
+          },
+          "scoring": {
+            "vwapAlignmentWeight": 0.32,
+            "anchoredVwapAlignmentWeight": 0.22,
+            "valueAreaWeight": 0.24,
+            "hvnLvnReactionWeight": 0.22,
+            "distancePenaltyFactor": 1.15,
+            "degradedPenalty": 0.12
           }
         }
       }
@@ -205,7 +248,8 @@
           "marketContext": 0.2,
           "primarySignal": 0.32,
           "confirmation": 0.2,
-          "marketLevel": 0
+          "marketLevel": 0,
+          "volumeContext": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -250,6 +294,48 @@
           },
           "detection": {
             "requireBreakoutForRetest": true
+          }
+        },
+        "volumeContext": {
+          "enabled": false,
+          "preferSharedFeatures": true,
+          "degradeOnMissingVolume": true,
+          "vwapWindowBars": 80,
+          "anchoredVwap": {
+            "enabled": true,
+            "lookbackBars": 120,
+            "swingWindow": 3,
+            "fallbackToSessionAnchor": true
+          },
+          "valueArea": {
+            "enabled": true,
+            "valueAreaPercent": 0.7
+          },
+          "volumeProfile": {
+            "enabled": true,
+            "bins": 24,
+            "hvnPercentile": 0.82,
+            "lvnPercentile": 0.18
+          },
+          "lazyEvaluation": {
+            "enabled": true,
+            "requireShortlistCandidate": true,
+            "requirePrimaryDirection": true,
+            "minPrimaryScore": 0.4,
+            "skipWhenBudgetExceeded": true
+          },
+          "refreshPolicy": {
+            "minBarsBetweenFullRecalc": 3,
+            "allowCachedReuse": true,
+            "forceFullRecalcEveryCycles": 0
+          },
+          "scoring": {
+            "vwapAlignmentWeight": 0.32,
+            "anchoredVwapAlignmentWeight": 0.22,
+            "valueAreaWeight": 0.24,
+            "hvnLvnReactionWeight": 0.22,
+            "distancePenaltyFactor": 1.15,
+            "degradedPenalty": 0.12
           }
         }
       }
@@ -667,7 +753,8 @@
           "marketContext": 0.2,
           "primarySignal": 0.32,
           "confirmation": 0.2,
-          "marketLevel": 0
+          "marketLevel": 0,
+          "volumeContext": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -712,6 +799,48 @@
           },
           "detection": {
             "requireBreakoutForRetest": true
+          }
+        },
+        "volumeContext": {
+          "enabled": false,
+          "preferSharedFeatures": true,
+          "degradeOnMissingVolume": true,
+          "vwapWindowBars": 80,
+          "anchoredVwap": {
+            "enabled": true,
+            "lookbackBars": 120,
+            "swingWindow": 3,
+            "fallbackToSessionAnchor": true
+          },
+          "valueArea": {
+            "enabled": true,
+            "valueAreaPercent": 0.7
+          },
+          "volumeProfile": {
+            "enabled": true,
+            "bins": 24,
+            "hvnPercentile": 0.82,
+            "lvnPercentile": 0.18
+          },
+          "lazyEvaluation": {
+            "enabled": true,
+            "requireShortlistCandidate": true,
+            "requirePrimaryDirection": true,
+            "minPrimaryScore": 0.4,
+            "skipWhenBudgetExceeded": true
+          },
+          "refreshPolicy": {
+            "minBarsBetweenFullRecalc": 3,
+            "allowCachedReuse": true,
+            "forceFullRecalcEveryCycles": 0
+          },
+          "scoring": {
+            "vwapAlignmentWeight": 0.32,
+            "anchoredVwapAlignmentWeight": 0.22,
+            "valueAreaWeight": 0.24,
+            "hvnLvnReactionWeight": 0.22,
+            "distancePenaltyFactor": 1.15,
+            "degradedPenalty": 0.12
           }
         }
       }
@@ -793,7 +922,8 @@
           "marketContext": 0.2,
           "primarySignal": 0.32,
           "confirmation": 0.2,
-          "marketLevel": 0
+          "marketLevel": 0,
+          "volumeContext": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -838,6 +968,48 @@
           },
           "detection": {
             "requireBreakoutForRetest": true
+          }
+        },
+        "volumeContext": {
+          "enabled": false,
+          "preferSharedFeatures": true,
+          "degradeOnMissingVolume": true,
+          "vwapWindowBars": 80,
+          "anchoredVwap": {
+            "enabled": true,
+            "lookbackBars": 120,
+            "swingWindow": 3,
+            "fallbackToSessionAnchor": true
+          },
+          "valueArea": {
+            "enabled": true,
+            "valueAreaPercent": 0.7
+          },
+          "volumeProfile": {
+            "enabled": true,
+            "bins": 24,
+            "hvnPercentile": 0.82,
+            "lvnPercentile": 0.18
+          },
+          "lazyEvaluation": {
+            "enabled": true,
+            "requireShortlistCandidate": true,
+            "requirePrimaryDirection": true,
+            "minPrimaryScore": 0.4,
+            "skipWhenBudgetExceeded": true
+          },
+          "refreshPolicy": {
+            "minBarsBetweenFullRecalc": 3,
+            "allowCachedReuse": true,
+            "forceFullRecalcEveryCycles": 0
+          },
+          "scoring": {
+            "vwapAlignmentWeight": 0.32,
+            "anchoredVwapAlignmentWeight": 0.22,
+            "valueAreaWeight": 0.24,
+            "hvnLvnReactionWeight": 0.22,
+            "distancePenaltyFactor": 1.15,
+            "degradedPenalty": 0.12
           }
         }
       }
@@ -920,7 +1092,8 @@
           "marketContext": 0.2,
           "primarySignal": 0.32,
           "confirmation": 0.2,
-          "marketLevel": 0
+          "marketLevel": 0,
+          "volumeContext": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -965,6 +1138,48 @@
           },
           "detection": {
             "requireBreakoutForRetest": true
+          }
+        },
+        "volumeContext": {
+          "enabled": false,
+          "preferSharedFeatures": true,
+          "degradeOnMissingVolume": true,
+          "vwapWindowBars": 80,
+          "anchoredVwap": {
+            "enabled": true,
+            "lookbackBars": 120,
+            "swingWindow": 3,
+            "fallbackToSessionAnchor": true
+          },
+          "valueArea": {
+            "enabled": true,
+            "valueAreaPercent": 0.7
+          },
+          "volumeProfile": {
+            "enabled": true,
+            "bins": 24,
+            "hvnPercentile": 0.82,
+            "lvnPercentile": 0.18
+          },
+          "lazyEvaluation": {
+            "enabled": true,
+            "requireShortlistCandidate": true,
+            "requirePrimaryDirection": true,
+            "minPrimaryScore": 0.4,
+            "skipWhenBudgetExceeded": true
+          },
+          "refreshPolicy": {
+            "minBarsBetweenFullRecalc": 3,
+            "allowCachedReuse": true,
+            "forceFullRecalcEveryCycles": 0
+          },
+          "scoring": {
+            "vwapAlignmentWeight": 0.32,
+            "anchoredVwapAlignmentWeight": 0.22,
+            "valueAreaWeight": 0.24,
+            "hvnLvnReactionWeight": 0.22,
+            "distancePenaltyFactor": 1.15,
+            "degradedPenalty": 0.12
           }
         }
       }
@@ -1046,7 +1261,8 @@
           "marketContext": 0.2,
           "primarySignal": 0.32,
           "confirmation": 0.2,
-          "marketLevel": 0
+          "marketLevel": 0,
+          "volumeContext": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1091,6 +1307,48 @@
           },
           "detection": {
             "requireBreakoutForRetest": true
+          }
+        },
+        "volumeContext": {
+          "enabled": false,
+          "preferSharedFeatures": true,
+          "degradeOnMissingVolume": true,
+          "vwapWindowBars": 80,
+          "anchoredVwap": {
+            "enabled": true,
+            "lookbackBars": 120,
+            "swingWindow": 3,
+            "fallbackToSessionAnchor": true
+          },
+          "valueArea": {
+            "enabled": true,
+            "valueAreaPercent": 0.7
+          },
+          "volumeProfile": {
+            "enabled": true,
+            "bins": 24,
+            "hvnPercentile": 0.82,
+            "lvnPercentile": 0.18
+          },
+          "lazyEvaluation": {
+            "enabled": true,
+            "requireShortlistCandidate": true,
+            "requirePrimaryDirection": true,
+            "minPrimaryScore": 0.4,
+            "skipWhenBudgetExceeded": true
+          },
+          "refreshPolicy": {
+            "minBarsBetweenFullRecalc": 3,
+            "allowCachedReuse": true,
+            "forceFullRecalcEveryCycles": 0
+          },
+          "scoring": {
+            "vwapAlignmentWeight": 0.32,
+            "anchoredVwapAlignmentWeight": 0.22,
+            "valueAreaWeight": 0.24,
+            "hvnLvnReactionWeight": 0.22,
+            "distancePenaltyFactor": 1.15,
+            "degradedPenalty": 0.12
           }
         }
       }
@@ -1183,7 +1441,8 @@
           "marketContext": 0.2,
           "primarySignal": 0.32,
           "confirmation": 0.2,
-          "marketLevel": 0
+          "marketLevel": 0,
+          "volumeContext": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1228,6 +1487,48 @@
           },
           "detection": {
             "requireBreakoutForRetest": true
+          }
+        },
+        "volumeContext": {
+          "enabled": false,
+          "preferSharedFeatures": true,
+          "degradeOnMissingVolume": true,
+          "vwapWindowBars": 80,
+          "anchoredVwap": {
+            "enabled": true,
+            "lookbackBars": 120,
+            "swingWindow": 3,
+            "fallbackToSessionAnchor": true
+          },
+          "valueArea": {
+            "enabled": true,
+            "valueAreaPercent": 0.7
+          },
+          "volumeProfile": {
+            "enabled": true,
+            "bins": 24,
+            "hvnPercentile": 0.82,
+            "lvnPercentile": 0.18
+          },
+          "lazyEvaluation": {
+            "enabled": true,
+            "requireShortlistCandidate": true,
+            "requirePrimaryDirection": true,
+            "minPrimaryScore": 0.4,
+            "skipWhenBudgetExceeded": true
+          },
+          "refreshPolicy": {
+            "minBarsBetweenFullRecalc": 3,
+            "allowCachedReuse": true,
+            "forceFullRecalcEveryCycles": 0
+          },
+          "scoring": {
+            "vwapAlignmentWeight": 0.32,
+            "anchoredVwapAlignmentWeight": 0.22,
+            "valueAreaWeight": 0.24,
+            "hvnLvnReactionWeight": 0.22,
+            "distancePenaltyFactor": 1.15,
+            "degradedPenalty": 0.12
           }
         }
       }

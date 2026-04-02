@@ -2,6 +2,7 @@
 
 const { classifyDecision, createDecisionContext } = require('../shared/decisionContract');
 const { evaluateSupportResistance } = require('./supportResistanceEngine');
+const { evaluateVwapProfileLayer } = require('./vwapProfileEngine');
 
 function clamp01(value) {
   if (!Number.isFinite(value)) return 0;
@@ -17,6 +18,7 @@ function normalizeConfig(raw = {}) {
   const marketContext = raw.marketContext || {};
   const primarySignal = raw.primarySignal || {};
   const marketLevel = raw.marketLevel || {};
+  const volumeContext = raw.volumeContext || {};
 
   return {
     enabled: !!raw.enabled,
@@ -29,6 +31,7 @@ function normalizeConfig(raw = {}) {
       primarySignal: Number(blockWeights.primarySignal ?? 0.32),
       confirmation: Number(blockWeights.confirmation ?? 0.2),
       marketLevel: Number(blockWeights.marketLevel ?? 0),
+      volumeContext: Number(blockWeights.volumeContext ?? 0),
     },
     thresholds: {
       fullEntryScore: Number(thresholds.fullEntryScore ?? 0.68),
@@ -73,6 +76,49 @@ function normalizeConfig(raw = {}) {
       },
       detection: {
         requireBreakoutForRetest: ((marketLevel.detection || {}).requireBreakoutForRetest) !== false,
+      },
+    },
+    volumeContext: {
+      enabled: !!volumeContext.enabled,
+      // Русский комментарий: слой VWAP/profile включается отдельно и остаётся усилителем, не заменяет zones.
+      preferSharedFeatures: volumeContext.preferSharedFeatures !== false,
+      degradeOnMissingVolume: volumeContext.degradeOnMissingVolume !== false,
+      vwapWindowBars: Number(volumeContext.vwapWindowBars ?? 80),
+      anchoredVwap: {
+        enabled: ((volumeContext.anchoredVwap || {}).enabled) !== false,
+        lookbackBars: Number(((volumeContext.anchoredVwap || {}).lookbackBars) ?? 120),
+        swingWindow: Number(((volumeContext.anchoredVwap || {}).swingWindow) ?? 3),
+        fallbackToSessionAnchor: ((volumeContext.anchoredVwap || {}).fallbackToSessionAnchor) !== false,
+      },
+      valueArea: {
+        enabled: ((volumeContext.valueArea || {}).enabled) !== false,
+        valueAreaPercent: Number(((volumeContext.valueArea || {}).valueAreaPercent) ?? 0.7),
+      },
+      volumeProfile: {
+        enabled: ((volumeContext.volumeProfile || {}).enabled) !== false,
+        bins: Number(((volumeContext.volumeProfile || {}).bins) ?? 24),
+        hvnPercentile: Number(((volumeContext.volumeProfile || {}).hvnPercentile) ?? 0.82),
+        lvnPercentile: Number(((volumeContext.volumeProfile || {}).lvnPercentile) ?? 0.18),
+      },
+      lazyEvaluation: {
+        enabled: ((volumeContext.lazyEvaluation || {}).enabled) !== false,
+        requireShortlistCandidate: ((volumeContext.lazyEvaluation || {}).requireShortlistCandidate) !== false,
+        requirePrimaryDirection: ((volumeContext.lazyEvaluation || {}).requirePrimaryDirection) !== false,
+        minPrimaryScore: Number(((volumeContext.lazyEvaluation || {}).minPrimaryScore) ?? 0.4),
+        skipWhenBudgetExceeded: ((volumeContext.lazyEvaluation || {}).skipWhenBudgetExceeded) !== false,
+      },
+      refreshPolicy: {
+        minBarsBetweenFullRecalc: Number(((volumeContext.refreshPolicy || {}).minBarsBetweenFullRecalc) ?? 3),
+        allowCachedReuse: ((volumeContext.refreshPolicy || {}).allowCachedReuse) !== false,
+        forceFullRecalcEveryCycles: Number(((volumeContext.refreshPolicy || {}).forceFullRecalcEveryCycles) ?? 0),
+      },
+      scoring: {
+        vwapAlignmentWeight: Number(((volumeContext.scoring || {}).vwapAlignmentWeight) ?? 0.32),
+        anchoredVwapAlignmentWeight: Number(((volumeContext.scoring || {}).anchoredVwapAlignmentWeight) ?? 0.22),
+        valueAreaWeight: Number(((volumeContext.scoring || {}).valueAreaWeight) ?? 0.24),
+        hvnLvnReactionWeight: Number(((volumeContext.scoring || {}).hvnLvnReactionWeight) ?? 0.22),
+        distancePenaltyFactor: Number(((volumeContext.scoring || {}).distancePenaltyFactor) ?? 1.15),
+        degradedPenalty: Number(((volumeContext.scoring || {}).degradedPenalty) ?? 0.12),
       },
     },
   };
@@ -360,6 +406,7 @@ function combineLayerScores(layers, config) {
     ['primarySignalLayer', weights.primarySignal],
     ['confirmationLayer', weights.confirmation],
     ['marketLevelLayer', weights.marketLevel],
+    ['volumeContextLayer', weights.volumeContext],
   ];
 
   let weightedScore = 0;
@@ -461,6 +508,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
         primarySignalLayer: createLayerResult('primarySignalLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
         confirmationLayer: createLayerResult('confirmationLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
         marketLevelLayer: createLayerResult('marketLevelLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
+        volumeContextLayer: createLayerResult('volumeContextLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
         finalEntryDecisionLayer: createLayerResult('finalEntryDecisionLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       },
       decision: {
@@ -488,6 +536,14 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
   layers.primarySignalLayer = evaluatePrimarySignalLayer(input, config);
   layers.confirmationLayer = evaluateConfirmationLayer(input, config);
   layers.marketLevelLayer = evaluateMarketLevelLayer(input, config);
+  layers.volumeContextLayer = evaluateVwapProfileLayer({
+    context,
+    sharedSnapshot: input.sharedSnapshot || {},
+    featureStoreContext: input.featureStoreContext || {},
+    primarySignal: input.primarySignal || {},
+    shortlistCandidate: input.shortlistCandidate !== false,
+    budgetState: input.budgetState || 'normal',
+  }, config.volumeContext || {});
   layers.finalEntryDecisionLayer = evaluateFinalEntryDecisionLayer(input, config, layers);
 
   const final = layers.finalEntryDecisionLayer;
@@ -511,6 +567,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       { source: 'primarySignalLayer', value: layers.primarySignalLayer.softPenalty },
       { source: 'confirmationLayer', value: layers.confirmationLayer.softPenalty },
       { source: 'marketLevelLayer', value: layers.marketLevelLayer.softPenalty },
+      { source: 'volumeContextLayer', value: layers.volumeContextLayer.softPenalty },
     ],
     metadata: {
       layerScores: layers,
@@ -525,6 +582,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       fallbackAction: entryAllowed ? 'none' : 'legacy_entry_flow',
       sizingDecision: 'not_evaluated',
       marketLevels: layers.marketLevelLayer ? layers.marketLevelLayer.explanation : {},
+      volumeContext: layers.volumeContextLayer ? layers.volumeContextLayer.explanation : {},
     },
   });
 
@@ -574,6 +632,7 @@ function toConfluenceEntryEvent(input = {}) {
       layerScores,
       decision,
       marketLevels: (layerScores.marketLevelLayer || {}).explanation || {},
+      volumeContext: (layerScores.volumeContextLayer || {}).explanation || {},
       // Русский комментарий: совместимый downstream-контекст для audit trail/reporting без ad-hoc форматов.
       telemetry: {
         downstreamContext: {
@@ -584,6 +643,7 @@ function toConfluenceEntryEvent(input = {}) {
             confidence: Number.isFinite(decision.confidence) ? decision.confidence : 0,
             veto: decision.veto || null,
             reasonCodes: Array.isArray(decision.reasonCodes) ? decision.reasonCodes : [],
+            volumeContext: (layerScores.volumeContextLayer || {}).explanation || {},
           },
         },
       },

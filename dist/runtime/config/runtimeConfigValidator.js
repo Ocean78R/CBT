@@ -67,8 +67,15 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const confluencePrimarySignal = confluenceEntryEngine.primarySignal || {};
   const confluenceConfirmation = confluenceEntryEngine.confirmation || {};
   const confluenceMarketLevel = confluenceEntryEngine.marketLevel || {};
+  const confluenceVolumeContext = confluenceEntryEngine.volumeContext || {};
   const confluenceMarketLevelScoring = confluenceMarketLevel.scoring || {};
   const confluenceMarketLevelDetection = confluenceMarketLevel.detection || {};
+  const confluenceVolumeContextAnchoredVwap = confluenceVolumeContext.anchoredVwap || {};
+  const confluenceVolumeContextValueArea = confluenceVolumeContext.valueArea || {};
+  const confluenceVolumeContextVolumeProfile = confluenceVolumeContext.volumeProfile || {};
+  const confluenceVolumeContextLazyEvaluation = confluenceVolumeContext.lazyEvaluation || {};
+  const confluenceVolumeContextRefreshPolicy = confluenceVolumeContext.refreshPolicy || {};
+  const confluenceVolumeContextScoring = confluenceVolumeContext.scoring || {};
 
   const normalized = {
     ...merged,
@@ -241,6 +248,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         primarySignal: Number(confluenceBlockWeights.primarySignal || 0.32),
         confirmation: Number(confluenceBlockWeights.confirmation || 0.2),
         marketLevel: Number(confluenceBlockWeights.marketLevel || 0),
+        volumeContext: Number(confluenceBlockWeights.volumeContext || 0),
       },
       thresholds: {
         fullEntryScore: Number(confluenceThresholds.fullEntryScore || 0.68),
@@ -285,6 +293,48 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         },
         detection: {
           requireBreakoutForRetest: confluenceMarketLevelDetection.requireBreakoutForRetest !== false,
+        },
+      },
+      volumeContext: {
+        enabled: !!confluenceVolumeContext.enabled,
+        preferSharedFeatures: confluenceVolumeContext.preferSharedFeatures !== false,
+        degradeOnMissingVolume: confluenceVolumeContext.degradeOnMissingVolume !== false,
+        vwapWindowBars: Number(confluenceVolumeContext.vwapWindowBars || 80),
+        anchoredVwap: {
+          enabled: confluenceVolumeContextAnchoredVwap.enabled !== false,
+          lookbackBars: Number(confluenceVolumeContextAnchoredVwap.lookbackBars || 120),
+          swingWindow: Number(confluenceVolumeContextAnchoredVwap.swingWindow || 3),
+          fallbackToSessionAnchor: confluenceVolumeContextAnchoredVwap.fallbackToSessionAnchor !== false,
+        },
+        valueArea: {
+          enabled: confluenceVolumeContextValueArea.enabled !== false,
+          valueAreaPercent: Number(confluenceVolumeContextValueArea.valueAreaPercent || 0.7),
+        },
+        volumeProfile: {
+          enabled: confluenceVolumeContextVolumeProfile.enabled !== false,
+          bins: Number(confluenceVolumeContextVolumeProfile.bins || 24),
+          hvnPercentile: Number(confluenceVolumeContextVolumeProfile.hvnPercentile || 0.82),
+          lvnPercentile: Number(confluenceVolumeContextVolumeProfile.lvnPercentile || 0.18),
+        },
+        lazyEvaluation: {
+          enabled: confluenceVolumeContextLazyEvaluation.enabled !== false,
+          requireShortlistCandidate: confluenceVolumeContextLazyEvaluation.requireShortlistCandidate !== false,
+          requirePrimaryDirection: confluenceVolumeContextLazyEvaluation.requirePrimaryDirection !== false,
+          minPrimaryScore: Number(confluenceVolumeContextLazyEvaluation.minPrimaryScore || 0.4),
+          skipWhenBudgetExceeded: confluenceVolumeContextLazyEvaluation.skipWhenBudgetExceeded !== false,
+        },
+        refreshPolicy: {
+          minBarsBetweenFullRecalc: Number(confluenceVolumeContextRefreshPolicy.minBarsBetweenFullRecalc || 3),
+          allowCachedReuse: confluenceVolumeContextRefreshPolicy.allowCachedReuse !== false,
+          forceFullRecalcEveryCycles: Number(confluenceVolumeContextRefreshPolicy.forceFullRecalcEveryCycles || 0),
+        },
+        scoring: {
+          vwapAlignmentWeight: Number(confluenceVolumeContextScoring.vwapAlignmentWeight || 0.32),
+          anchoredVwapAlignmentWeight: Number(confluenceVolumeContextScoring.anchoredVwapAlignmentWeight || 0.22),
+          valueAreaWeight: Number(confluenceVolumeContextScoring.valueAreaWeight || 0.24),
+          hvnLvnReactionWeight: Number(confluenceVolumeContextScoring.hvnLvnReactionWeight || 0.22),
+          distancePenaltyFactor: Number(confluenceVolumeContextScoring.distancePenaltyFactor || 1.15),
+          degradedPenalty: Number(confluenceVolumeContextScoring.degradedPenalty || 0.12),
         },
       },
     },
