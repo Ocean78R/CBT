@@ -44,6 +44,11 @@
 
 Запрещено создавать ad-hoc форматы решений вне этого контракта.
 
+Дополнение для `marketRegimeRouter`:
+- слой обязан возвращать совместимый объект (`layerName`, `direction`, `score`, `confidence`, `softPenalty`, `vetoCandidates`, `dataQualityState`, `reasonCodes`, `explanation`);
+- слой может предлагать `allowedSetups/selectedPredictType` в `metadata`, но не имеет права финализировать вход вместо `finalEntryDecisionEngine`;
+- при `capitalRegime/balanceState=HALT_NEW_ENTRIES` слой формирует `vetoCandidates` типа `capital_prohibition`, не отправляя ордера и не вмешиваясь в sizing.
+
 ## 4) Shared слой данных: MarketSnapshot / FeatureSnapshot / FeatureStore
 
 ### MarketSnapshot

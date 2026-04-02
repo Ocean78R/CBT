@@ -127,6 +127,83 @@ test('predict logic корректно отрабатывает byBarsPercents',
   assert.equal(warning, '');
 });
 
+test('marketRegimeRouter: trend режим выбирает trend-сетап и сохраняет совместимость с byBarsPercents', async () => {
+  const bullishBars = [
+    { openPrice: 100, closePrice: 104, lowPrice: 99, highPrice: 105, deltaOpenClose: 4, deltaLowHigh: 6, percentsLowHigh: 6 },
+    { openPrice: 104, closePrice: 108, lowPrice: 103, highPrice: 109, deltaOpenClose: 4, deltaLowHigh: 6, percentsLowHigh: 5.8 },
+    { openPrice: 108, closePrice: 112, lowPrice: 107, highPrice: 113, deltaOpenClose: 4, deltaLowHigh: 6, percentsLowHigh: 5.5 },
+  ];
+  const connector = new MockConnector(types, {
+    klineByInterval: {
+      [types.KLineInterval.Week1]: bullishBars,
+      [types.KLineInterval.Day1]: bullishBars,
+      [types.KLineInterval.Hour4]: bullishBars,
+    },
+  });
+  const predictor = new PricePredictor(connector);
+
+  const [side] = await predictor.predict('BTC-USDT', {
+    predictType: types.PredictType.byBarsPercents,
+    regimeRouter: { enabled: true, allowFallbackInFlatRegime: false },
+    dangerPercentsWeek1: 99,
+    dangerPercentsDay1: 99,
+    dangerPercentsHour4: 99,
+  }, {
+    cycleId: 'cycle-trend',
+    exchange: 'mock',
+    capitalRegime: 'NORMAL',
+    balanceState: 'NORMAL',
+  });
+
+  assert.equal(side, types.PositionSide.long);
+});
+
+test('marketRegimeRouter: no-trade flat режим не открывает вход при отключённом fallback в flat', async () => {
+  const flatBars = [
+    { openPrice: 100, closePrice: 100.05, lowPrice: 99.95, highPrice: 100.07, deltaOpenClose: 0.05, deltaLowHigh: 0.12, percentsLowHigh: 0.12 },
+    { openPrice: 100.05, closePrice: 100.02, lowPrice: 99.98, highPrice: 100.08, deltaOpenClose: -0.03, deltaLowHigh: 0.1, percentsLowHigh: 0.1 },
+    { openPrice: 100.02, closePrice: 100.01, lowPrice: 99.99, highPrice: 100.04, deltaOpenClose: -0.01, deltaLowHigh: 0.05, percentsLowHigh: 0.05 },
+  ];
+  const connector = new MockConnector(types, {
+    klineByInterval: {
+      [types.KLineInterval.Week1]: flatBars,
+      [types.KLineInterval.Day1]: flatBars,
+      [types.KLineInterval.Hour4]: flatBars,
+    },
+  });
+  const predictor = new PricePredictor(connector);
+
+  const [side] = await predictor.predict('BTC-USDT', {
+    predictType: types.PredictType.byBarsPercents,
+    regimeRouter: { enabled: true, allowFallbackInFlatRegime: false },
+    dangerPercentsWeek1: 99,
+    dangerPercentsDay1: 99,
+    dangerPercentsHour4: 99,
+  });
+
+  assert.equal(side, types.PositionSide.none);
+});
+
+test('marketRegimeRouter: capital prohibition режет допустимые сетапы без обхода final entry layer', async () => {
+  const connector = new MockConnector(types);
+  const predictor = new PricePredictor(connector);
+
+  const [side] = await predictor.predict('BTC-USDT', {
+    predictType: types.PredictType.byBarsPercents,
+    regimeRouter: { enabled: true, allowFallbackInFlatRegime: true },
+    dangerPercentsWeek1: 99,
+    dangerPercentsDay1: 99,
+    dangerPercentsHour4: 99,
+  }, {
+    cycleId: 'cycle-capital',
+    exchange: 'mock',
+    capitalRegime: 'HALT_NEW_ENTRIES',
+    balanceState: 'HALT_NEW_ENTRIES',
+  });
+
+  assert.equal(side, types.PositionSide.none);
+});
+
 test('speedFilter как конфиг-хук не ломает вход (fallback текущей логики)', async () => {
   const connector = new MockConnector(types);
   const strategy = makeStrategy(connector, makeConfig({

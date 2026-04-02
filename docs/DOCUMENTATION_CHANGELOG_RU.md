@@ -160,3 +160,11 @@
 - Изменение: добавлен CLI-скрипт для повторного обучения и безопасные защиты при недостатке данных (`skipped_insufficient_data`, `skipped_bad_split`).
 - Связанные файлы кода: `dist/runtime/ml/entryQualityTrainingPipeline.js`, `scripts/ml/train-entry-quality.js`, `tests/regression/ml-entry-quality-training.test.js`, `package.json`.
 - Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`.
+## 2026-04-02 (market regime router + маршрутизация entry-сетапов)
+- Изменение: добавлен классификатор рыночного режима в signal-layer с режимами `trend`, `mean_reversion`, `breakout_rejection`, `no_trade_flat`.
+- Изменение: добавлен router, который сначала определяет режим рынка, затем выбирает допустимый `predictType`; `byBarsPercents` сохранён как legacy fallback и базовый trend-сетап.
+- Изменение: router учитывает `balanceState/capitalRegime` как внешний runtime-контекст и формирует `capital_prohibition`/ограничения сетапов без обхода `finalEntryDecisionEngine`.
+- Изменение: добавлены новые runtime/structured логи роутера (`entry_decision/danger_gate`, `entry_decision/route_selected`, `[marketRegimeRouter] ...`) в совместимом формате audit trail.
+- Изменение: обновлён config-блок `singleSetts.predict.regimeRouter` с master-флагом, fallback и порогами классификации.
+- Связанные файлы кода: `dist/index.js`, `dist/_config/config.json`, `tests/regression/single-strategy.regression.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`, `docs/ARCHITECTURE_CONTRACT_RU.md`.
