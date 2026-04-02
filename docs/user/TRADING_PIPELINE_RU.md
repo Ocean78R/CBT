@@ -50,6 +50,27 @@
 - `no-trade regime` — режим «не торговать».
 - `capital prohibition` — запрет входа по капиталу/марже.
 
+## Market Regime Router (новый слой маршрутизации режимов)
+- Runtime-позиция: **после universe/unload filters и до confluence/final entry logic**.
+- Зависимости ранних слоёв: `MarketSnapshot` (свечи W1/D1/H4), `cycleId/exchange`, `balanceState/capitalRegime`.
+- Что делает:
+  1. Классифицирует режим рынка: `trend | mean_reversion | breakout_rejection | no_trade_flat`.
+  2. Возвращает совместимый результат в общий контракт (`layerName/direction/score/confidence/softPenalty/vetoCandidates/dataQualityState/reasonCodes`).
+  3. Разрешает/ограничивает допустимые типы сетапов (`allowedSetups`) и выбирает `selectedPredictType`.
+- Что **не делает**:
+  - не рассчитывает размер позиции;
+  - не отправляет ордера;
+  - не принимает финальный veto вместо `finalEntryDecisionEngine`.
+- Fallback-поведение:
+  - если `predict.regimeRouter.enabled=false`, используется legacy `predictType`;
+  - `byBarsPercents` остаётся fallback-режимом (`fallbackPredictType`) и также используется как trend-сетап по умолчанию;
+  - при неполных данных роутер отдаёт `dataQualityState=degraded` и безопасно возвращается к fallback.
+- Разграничение понятий:
+  - `marketRegimeRouter` — классифицирует **текущий режим и допустимые сетапы**;
+  - `higher timeframe bias` — только направленный контекст старших ТФ, не равен режиму торговли;
+  - `no-trade regime` — режим рынка, где входы по сетапам отключаются;
+  - `capital prohibition` — запрет по состоянию капитала (`balanceState/capitalRegime`), который может блокировать вход даже при валидном рыночном режиме.
+
 ## Runtime-позиция execution contour
 - Место в пайплайне: **после approved entry/sizing и до прямого вызова connector**.
 - Зависимости: готовое решение от risk/entry/sizing слоёв; сам execution contour не принимает торговых решений.

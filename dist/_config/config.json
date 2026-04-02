@@ -101,6 +101,20 @@
         },
         "predict": {
           "predictType": "byBarsPercents",
+          "regimeRouter": {
+            "enabled": true,
+            "fallbackPredictType": "byBarsPercents",
+            "trendPredictType": "byBarsPercents",
+            "meanReversionPredictType": "byBarsAverage",
+            "breakoutRejectionPredictType": "byPercents",
+            "allowFallbackInFlatRegime": false,
+            "thresholds": {
+              "trendDeltaAbsMin": 1.5,
+              "flatRangePercentMax": 2.5,
+              "breakoutRangePercentMin": 4.2,
+              "meanReversionRangePercentMin": 2.8
+            }
+          },
           "speedFilter": {
             "enabled": true,
             "lookbackBars": 4,
@@ -918,6 +932,20 @@
     ],
     "predict": {
       "predictType": "byBarsPercents",
+      "regimeRouter": {
+        "enabled": true,
+        "fallbackPredictType": "byBarsPercents",
+        "trendPredictType": "byBarsPercents",
+        "meanReversionPredictType": "byBarsAverage",
+        "breakoutRejectionPredictType": "byPercents",
+        "allowFallbackInFlatRegime": false,
+        "thresholds": {
+          "trendDeltaAbsMin": 1.5,
+          "flatRangePercentMax": 2.5,
+          "breakoutRangePercentMin": 4.2,
+          "meanReversionRangePercentMin": 2.8
+        }
+      },
       "allowedLongAssets": null,
       "allowedShortAssets": [
         "BTC",

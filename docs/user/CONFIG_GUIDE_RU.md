@@ -48,6 +48,25 @@
 - `unloadMode`/`safeEntryAssets` выше dynamicAssetSelection и применяются раньше.
 - dynamic shortlist влияет только на **новые входы**; сопровождение уже открытых позиций не блокируется.
 
+## Market Regime Router в predict-блоке
+Блок находится в `singleSetts.predict.regimeRouter` (и в mirror-конфиге при необходимости).
+
+- `enabled`: master-флаг нового роутера рыночного режима.
+- `fallbackPredictType`: legacy fallback (по умолчанию `byBarsPercents`).
+- `trendPredictType`: сетап для режима `trend`.
+- `meanReversionPredictType`: сетап для режима `mean_reversion`.
+- `breakoutRejectionPredictType`: сетап для режима `breakout_rejection`.
+- `allowFallbackInFlatRegime`: разрешать ли fallback-вход в `no_trade_flat` (рекомендуется `false`).
+- `thresholds.trendDeltaAbsMin`: минимум суммарного импульса для тренда.
+- `thresholds.flatRangePercentMax`: потолок диапазона для `no_trade_flat`.
+- `thresholds.breakoutRangePercentMin`: порог расширения диапазона для `breakout_rejection`.
+- `thresholds.meanReversionRangePercentMin`: порог волатильности для `mean_reversion`.
+
+Важно:
+- роутер не подменяет `finalEntryDecisionEngine` и не делает sizing;
+- в режиме `enabled=false` сохраняется прежнее поведение по `predictType`;
+- `byBarsPercents` сохранён как fallback и как базовый trend-сетап.
+
 ## Какие параметры опасно менять без понимания логики
 - hard-risk/hard-safety ограничения,
 - параметры stop-loss/forced-exit политики,

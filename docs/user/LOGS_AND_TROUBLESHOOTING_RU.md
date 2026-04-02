@@ -116,6 +116,19 @@
 
 Журнал сделок сохраняется в CSV и используется для метрик: `winRate`, `avgWin`, `avgLoss`, `expectancy`, статистика усреднений, распределение по времени суток, дню недели и типу сигнала.
 
+## Логи market regime router
+Новые фазы событий `entry_decision`:
+- `danger_gate` — вход заблокирован на этапе safety-диапазона свечей;
+- `route_selected` — режим классифицирован, выбран допустимый сетап.
+
+Новый runtime-лог:
+- префикс `[marketRegimeRouter]` с полями `cycle/ticker/exchange/module/layer/regime/capital/setup/score/confidence/veto/sizing/execution/fallback/final`.
+
+Что важно проверить в диагностике:
+1. `marketRegime` и `selectedPredictType` соответствуют текущей волатильности/структуре свечей.
+2. `capitalRegime` отражён в `allowedSetups` (защитные режимы должны сжимать доступные сетапы).
+3. При `no_trade_flat` итог должен быть `final=reject`, если `allowFallbackInFlatRegime=false`.
+
 ## Единый observability/reporting и audit trail
 Добавлен единый слой агрегированных отчётов и audit trail поверх структурированных событий runtime-контрактов.
 
