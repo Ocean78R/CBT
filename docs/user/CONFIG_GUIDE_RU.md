@@ -104,6 +104,30 @@
 - при нехватке данных/бюджета слой отдаёт `degraded` результат и fallback reason-codes;
 - ownership финального решения остаётся у `finalEntryDecisionLayer`.
 
+## Конфиг breakdown / bearish continuation слоя в confluenceEntryEngine
+Блок находится в `confluenceEntryEngine.breakdownDetection`.
+
+- `confluenceEntryEngine.blockWeights.breakdownDetection`: вес breakdown-блока в общей агрегированной оценке.
+- `breakdownDetection.enabled`: включает слой вероятного пробоя поддержки и bearish continuation (сам вход не открывает).
+- `breakdownDetection.allowedRegimes`: в каких market regime слой активируется.
+- `breakdownDetection.noTradeRegimes`: режимы, где слой отдаёт no-trade результат и veto-кандидат.
+- `breakdownDetection.lookbackBars/minCandlesForAnalysis`: глубина истории и минимальный объём данных.
+- `breakdownDetection.supportLookbackBars/supportProximityPercent`: параметры поиска зоны поддержки и оценки proximity.
+- `breakdownDetection.pressureLookbackBars`: окно давления на поддержку.
+- `breakdownDetection.repeatedTestsWindowBars/repeatedTestsTolerancePercent`: правила подсчёта повторных тестов уровня.
+- `breakdownDetection.momentumLookbackBars`: окно оценки расширения нисходящего импульса.
+- `breakdownDetection.breakdownConfirmationBars/reclaimTolerancePercent`: подтверждение закрепления ниже уровня и провала возврата.
+- `breakdownDetection.thresholds.*`: пороги setup-tag/strong-score/confidence/coverage/microstructure-gating.
+- `breakdownDetection.setupTypes.*`: включение типов bearish setup.
+- `breakdownDetection.weights.*`: веса групп признаков в итоговом breakdown-score.
+- `breakdownDetection.microstructure.*`: lazy/budget-aware policy для order-book проверки.
+- `breakdownDetection.capitalRegimePenalties.*`: как защитные режимы капитала снижают вклад breakdown в confluence.
+
+Важно:
+- breakdown-слой не подменяет market regime router и final decision слой;
+- при нехватке данных возвращает `dataQualityState=degraded` без ложной уверенности;
+- конфликт breakdown vs bounce не решается внутри слоя и передаётся выше в `finalEntryDecisionLayer`.
+
 ## Какие параметры опасно менять без понимания логики
 - hard-risk/hard-safety ограничения,
 - параметры stop-loss/forced-exit политики,
