@@ -8,6 +8,14 @@
 
 ---
 
+## 2026-04-02 (protective close runtime owner/dedup corrective step)
+- Изменение: формализован runtime-owner protective close: `server_stop_loss_manager` (primary при server initiated/confirmed close) и `execution_lifecycle_manager` (локальный lifecycle owner-path).
+- Изменение: добавлен dedup/correlation token `protectiveActionToken` и политика безопасного no-op (`duplicateClosePrevented`) для повторных конфликтующих close попыток.
+- Изменение: расширены structured fields/logging (`protectiveActionOwner`, `protectiveActionToken`, `duplicateClosePrevented`, `closeSource`) и связаны execution/lifecycle/reconciliation ссылки в user docs.
+- Изменение: добавлены интеграционные регрессии на race/order сценарии между server SL и local forced/protective close.
+- Связанные файлы кода: `dist/runtime/risk/forcedLossExit.js`, `dist/runtime/engines/index.js`, `tests/regression/forced-loss-exit-early-invalidation.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`, `docs/audits/earlyInvalidationExit-consistency-2026-04-02.md`.
+
 ## 2026-04-02 (dynamicAssetSelection shortlist для новых входов)
 - Изменение: добавлен конфиг-управляемый слой `singleSetts.tickers.dynamicAssetSelection` с whitelist=`definedAssets` и runtime-shortlist для новых входов.
 - Изменение: реализовано ранжирование тикеров по факторам `volatility/speed/tradeQuality/averagingPenalty/realizedPnl/liquidity` с сохранением статического fallback-режима.

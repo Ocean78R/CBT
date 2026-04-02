@@ -66,6 +66,7 @@
 ## Server stop-loss manager (BingX)
 - Runtime-позиция слоя: `execution -> serverStopLossManager -> serverTakeProfitManager -> lifecycle`.
 - Зависимости: активная позиция из `positionProvider`, результат execution owner-path, `capitalRegime` из unload mode.
+- Runtime-owner protective close: `server_stop_loss_manager` (primary owner, если server SL close уже initiated/confirmed).
 - После `openNewPosition` manager создаёт серверный `STOP_MARKET` ордер с reduce-only/close-only семантикой.
 - После averaging manager пересоздаёт SL для whole-position (v1), чтобы объём защиты соответствовал новой позиции.
 - При закрытии позиции и при `position_absent_reconcile` выполняется cleanup сиротских SL только через manager-слой.
@@ -76,6 +77,11 @@
 - Внутренний порядок: `postEntryObservation/earlyInvalidationExit` -> `forcedLossExit/stuckPositionProtection` (fallback).
 - Зависимости: `serverStopLoss` статус, контекст `capitalRegime`, market-regime, position-metrics, optional `portfolioForecastEngine` hints.
 - Ownership: модуль только формирует `ownershipAction` (`position_reduce_request` / `position_force_close_request`), а фактическое действие делает `execution_lifecycle_manager` + reconciliation.
+- Runtime-owner protective close:
+  - `server_stop_loss_manager` — если server-side close уже initiated/confirmed;
+  - `execution_lifecycle_manager` — если действие выполняется локально через lifecycle close.
+- Dedup token: `protectiveActionToken` пробрасывается между risk/execution/lifecycle/reconciliation и предотвращает повторный конфликтующий close.
+- Dedup policy: при `serverStopLoss.closeInitiated|closeConfirmed` локальный `force_close` становится no-op (`duplicateClosePrevented=true`), ownership остаётся у server owner.
 - Fallback: если `enablePostEntryObservation=false`, ранний уровень полностью отключён, legacy forced/stuck продолжает работать без rollback.
 - Приоритет: выше averaging, но не заменяет primary server stop-loss.
 

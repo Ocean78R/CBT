@@ -122,3 +122,144 @@ test('regimeTightening для CAPITAL_PRESERVATION ужесточает ранн
   assert.equal(decision.triggerStage, 'early_invalidation_exit');
   assert.equal(decision.earlyInvalidation.diagnostics.capitalRegime, 'CAPITAL_PRESERVATION');
 });
+
+test('server SL срабатывает раньше local forced action и локальный close дедуплицируется', () => {
+  const decision = evaluateForcedLossExit({
+    context: {
+      cycleId: 'c-200',
+      ticker: 'BTC-USDT',
+      capitalRegime: 'NORMAL',
+      serverStopLossState: {
+        status: 'close_confirmed',
+        closeInitiated: true,
+        closeConfirmed: true,
+        protectiveActionToken: 'srv-token-1',
+      },
+    },
+    position: {
+      side: 'LONG',
+      minutesSinceEntry: 14,
+      entryDeviationPercent: -1.7,
+      timeUnderEntryWithoutRecoveryMinutes: 13,
+      adverseTrendBars: 4,
+      adverseTrendSlope: 0.08,
+      adverseMarketConfirmed: true,
+      holdMinutesInLoss: 20,
+      pnlPercent: -1.7,
+    },
+  }, buildConfig());
+
+  assert.equal(decision.triggered, true);
+  assert.equal(decision.duplicateClosePrevented, true);
+  assert.equal(decision.protectiveActionOwner, 'server_stop_loss_manager');
+  assert.equal(decision.protectiveActionToken, 'srv-token-1');
+  assert.equal(decision.closeSource, 'early_invalidation');
+  assert.equal(decision.ownershipAction, null);
+});
+
+test('local forced close начинает закрытие, затем server-side close state корректно переводит owner', () => {
+  const decision = evaluateForcedLossExit({
+    context: {
+      cycleId: 'c-201',
+      ticker: 'ETH-USDT',
+      capitalRegime: 'NORMAL',
+      protectiveActionState: {
+        owner: 'execution_lifecycle_manager',
+        token: 'local-token-1',
+        closeInitiated: true,
+        status: 'initiated',
+      },
+      serverStopLossState: {
+        status: 'triggered',
+        closeInitiated: true,
+        closeConfirmed: false,
+      },
+    },
+    position: {
+      side: 'LONG',
+      minutesSinceEntry: 17,
+      entryDeviationPercent: -1.4,
+      timeUnderEntryWithoutRecoveryMinutes: 14,
+      adverseTrendBars: 4,
+      adverseTrendSlope: 0.09,
+      adverseMarketConfirmed: true,
+      holdMinutesInLoss: 19,
+      pnlPercent: -1.4,
+    },
+  }, buildConfig());
+
+  assert.equal(decision.duplicateClosePrevented, true);
+  assert.equal(decision.protectiveActionOwner, 'server_stop_loss_manager');
+  assert.equal(decision.protectiveActionToken, 'local-token-1');
+  assert.equal(decision.runtimeOwnership.serverStopLoss.closeInitiated, true);
+  assert.equal(decision.ownershipAction, null);
+});
+
+test('mismatch/reconciliation после protective close остаётся в lifecycle owner-path', () => {
+  const decision = evaluateForcedLossExit({
+    context: {
+      cycleId: 'c-202',
+      ticker: 'SOL-USDT',
+      capitalRegime: 'NORMAL',
+      protectiveCloseSource: 'lifecycle_close',
+      protectiveActionState: {
+        owner: 'execution_lifecycle_manager',
+        token: 'recon-token-1',
+        closeConfirmed: true,
+        status: 'confirmed',
+      },
+    },
+    position: {
+      side: 'LONG',
+      minutesSinceEntry: 9,
+      entryDeviationPercent: -2.2,
+      timeUnderEntryWithoutRecoveryMinutes: 15,
+      adverseTrendBars: 5,
+      adverseTrendSlope: 0.1,
+      adverseMarketConfirmed: true,
+      holdMinutesInLoss: 30,
+      pnlPercent: -2.2,
+    },
+  }, buildConfig());
+
+  assert.equal(decision.closeSource, 'lifecycle_close');
+  assert.equal(decision.protectiveActionOwner, 'execution_lifecycle_manager');
+  assert.equal(decision.protectiveActionToken, 'recon-token-1');
+  assert.equal(decision.duplicateClosePrevented, true);
+  assert.equal(decision.runtimeOwnership.lifecycleOwner, 'execution_lifecycle_manager');
+});
+
+test('repeated close attempt безопасно дедуплицируется по protective token', () => {
+  const input = {
+    context: {
+      cycleId: 'c-203',
+      ticker: 'XRP-USDT',
+      capitalRegime: 'NORMAL',
+      protectiveActionState: {
+        owner: 'execution_lifecycle_manager',
+        token: 'repeat-token-1',
+        closeInitiated: true,
+      },
+    },
+    position: {
+      side: 'LONG',
+      minutesSinceEntry: 16,
+      entryDeviationPercent: -1.8,
+      timeUnderEntryWithoutRecoveryMinutes: 14,
+      adverseTrendBars: 4,
+      adverseTrendSlope: 0.09,
+      adverseMarketConfirmed: true,
+      holdMinutesInLoss: 17,
+      pnlPercent: -1.8,
+    },
+  };
+
+  const firstDecision = evaluateForcedLossExit(input, buildConfig());
+  const repeatedDecision = evaluateForcedLossExit(input, buildConfig());
+
+  assert.equal(firstDecision.protectiveActionToken, 'repeat-token-1');
+  assert.equal(repeatedDecision.protectiveActionToken, 'repeat-token-1');
+  assert.equal(firstDecision.duplicateClosePrevented, true);
+  assert.equal(repeatedDecision.duplicateClosePrevented, true);
+  assert.equal(repeatedDecision.ownershipAction, null);
+});
