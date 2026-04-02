@@ -6,6 +6,11 @@ const { toCapitalStressForecastEvent } = require('../risk/capitalStressForecastE
 const { createObservabilityLayer } = require('../observability/reportingLayer');
 const { createPaperTradingExecutor } = require('../execution/paperTrading');
 const { createMlDatasetBuilder } = require('../analytics/mlDatasetBuilder');
+const {
+  evaluateHigherTimeframeBiasWithCache,
+  applyHtfBiasToEntryDecision,
+  toHigherTimeframeBiasEvent,
+} = require('./higherTimeframeBiasEngine');
 
 function emitObservabilityEvent(strategy, event) {
   const layer = strategy && strategy.observabilityLayer;
@@ -127,6 +132,39 @@ function createEngines(strategy) {
       closePosition: (ticker, activePosition, profit) => paperExecutor.closePosition(ticker, activePosition, profit, (argTicker, argPosition, argProfit) => strategy.closePositionLegacy(argTicker, argPosition, argProfit)),
       getPaperReport: () => paperExecutor.getReport(),
       isPaperMode: () => paperExecutor.isEnabled(),
+    },
+    htfBiasEngine: {
+      // Русский комментарий: слой HTF-bias даёт только контекст до finalEntryDecision и не может единолично разрешать вход.
+      evaluate: (input, runtimeConfig, runtime = {}) => {
+        const htfConfig = runtimeConfig && runtimeConfig.higherTimeframeBiasEngine
+          ? runtimeConfig.higherTimeframeBiasEngine
+          : {};
+        const decision = evaluateHigherTimeframeBiasWithCache(input, htfConfig, runtime);
+
+        if (strategy.emitStructuredEvent) {
+          const event = toHigherTimeframeBiasEvent({
+            context: input && input.context ? input.context : {},
+            decision,
+          });
+          strategy.emitStructuredEvent(event);
+          emitObservabilityEvent(strategy, event);
+        }
+
+        if (strategy.log && typeof strategy.log === 'function') {
+          const ctx = input && input.context ? input.context : {};
+          strategy.log(`[higherTimeframeBias] cycle=${ctx.cycleId || 'n/a'} ticker=${ctx.ticker || 'n/a'} exchange=${ctx.exchange || 'n/a'} module=higherTimeframeBiasEngine layer=signal.htfStructure regime=${ctx.marketRegime || 'unknown'} capital=${ctx.capitalRegime || 'NORMAL'} setup=${ctx.setupType || 'unknown_setup'} score=${Number.isFinite(decision.score) ? decision.score : 0} confidence=${Number.isFinite(decision.confidence) ? decision.confidence : 0} veto=none sizing=${ctx.sizingDecision || 'not_evaluated'} execution=context_only fallback=${decision.mode === 'degraded_mode' ? 'legacy_entry_flow' : 'none'} final=${decision.htfBias || 'neutral'} structure=${decision.marketStructureState || 'unknown'} trendAlignment=${Number.isFinite(decision.trendAlignmentScore) ? decision.trendAlignmentScore : 0} dataQuality=${decision.dataQualityState || 'degraded'} mode=${decision.mode || 'unknown'}`);
+        }
+
+        return decision;
+      },
+
+      // Русский комментарий: интеграция через soft penalty/boost в confluence/final decision, без hard-veto и без bypass risk-слоёв.
+      enrichEntryDecision: (entryDecision, biasDecision, runtimeConfig) => {
+        const htfConfig = runtimeConfig && runtimeConfig.higherTimeframeBiasEngine
+          ? runtimeConfig.higherTimeframeBiasEngine
+          : {};
+        return applyHtfBiasToEntryDecision({ entryDecision }, biasDecision, htfConfig);
+      },
     },
     analyticsEngine: {
       emitStructuredEvent: (...args) => strategy.emitStructuredEvent(...args),

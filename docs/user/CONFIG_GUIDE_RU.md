@@ -368,3 +368,28 @@ Runtime-позиция слоя:
 Защиты:
 - если выборка меньше `minSamples`, обучение пропускается безопасно;
 - если после split недостаточно train/validation, обучение пропускается безопасно.
+
+## Конфиг higherTimeframeBiasEngine / marketStructureEngine
+Блок находится на уровне exchange-конфига: `higherTimeframeBiasEngine`.
+
+- `enabled`: включает HTF-context слой; при `false` полностью сохраняется legacy fallback.
+- `higherTimeframe`: старший ТФ для структуры (например, `4h`, `1d`).
+- `lookbackBars`: глубина свечей старшего ТФ.
+- `swingWindow`: окно поиска swing high/low для HH/HL/LH/LL.
+- `minimumStructurePoints`: минимум валидных точек структуры.
+- `breakOfStructureThresholdPercent`: порог BOS в процентах.
+- `shiftConfirmationBars`: подтверждение CHoCH/shift структуры.
+- `trendWeights.*`: веса вклада признаков структуры в общий `trendAlignmentScore`.
+- `rangeWeights.*`: зоны старшего диапазона (`premium/discount/neutral`).
+- `confidence.*`: границы confidence + деградация в limited/cached режиме.
+- `alignmentPenalties.*`: penalty/boost, который применяется только в confluence/final decision.
+- `slowerRefresh.enabled`: включить редкий пересчёт HTF-структуры.
+- `slowerRefresh.minBarsBetweenRefresh`: минимум новых HTF-баров между полными пересчётами.
+- `slowerRefresh.forceRefreshEveryCycles`: принудительный refresh раз в N циклов.
+- `slowerRefresh.useFeatureStoreCache`: кэшировать HTF-выходы в `FeatureStore.slowerRefreshContextCache`.
+
+Важно:
+- слой не подменяет `marketRegimeRouter` и не определяет setup type;
+- слой не может ослаблять `capitalRegime`/risk contour;
+- влияние ограничено только контекстным score-adjustment перед `finalEntryDecision`.
+

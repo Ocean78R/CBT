@@ -8,6 +8,17 @@
 
 ---
 
+
+## 2026-04-02 (higher timeframe bias / market structure engine)
+- Изменение: добавлен отдельный слой `higherTimeframeBiasEngine` для анализа старшего контекста (`HH/HL`, `LH/LL`, BOS, CHoCH, диапазон HTF) с выходами `htfBias`, `marketStructureState`, `structureConfidence`, `trendAlignmentScore`.
+- Изменение: слой интегрирован как context-only перед `confluence/finalEntryDecision` через soft-penalty/boost и не может единолично разрешать вход; hard-risk/capital-veto остаются выше.
+- Изменение: добавлен `slower-refresh` режим с кэшированием HTF-структуры в `FeatureStore.slowerRefreshContextCache` (`full/cached/degraded` режимы качества данных).
+- Изменение: добавлены runtime-логи `[higherTimeframeBias]` и structured событие `higher_timeframe_bias_decision` для observability/audit trail.
+- Изменение: добавлен config-блок `higherTimeframeBiasEngine` в runtime validator и `dist/_config/config.json`.
+- Связанные файлы кода: `dist/runtime/engines/higherTimeframeBiasEngine.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/higher-timeframe-bias-engine.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
+
+
 ## 2026-04-02 (execution/reconciliation leverage mismatch corrective patch)
 - Изменение: execution/reconciliation расширен для explicit special states (`NORMAL_POSITION`, `LEVERAGE_MISMATCH_POSITION`, `LEGACY_RESTRICTED_POSITION`) с проверкой `leverage + position mode + reduce-only assumptions`.
 - Изменение: добавлена структурированная передача restricted-state в `PositionState`, `DecisionContext.metadata` и `lifecycleContext` без смены ownership path.

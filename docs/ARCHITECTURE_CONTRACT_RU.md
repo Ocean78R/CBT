@@ -231,3 +231,14 @@ CBT/
   - governor не меняет decision ownership risk/entry/execution/lifecycle,
   - execution-critical path имеет приоритет через reserve-budget и отдельные priorities,
   - fallback: `enabled=false` или `mode=monitor_only`.
+
+## higherTimeframeBiasEngine / marketStructureEngine (контракт интеграции)
+- Runtime-позиция: после `marketRegimeRouter` и до `confluence/finalEntryDecision`.
+- Допустимые входные зависимости: `DecisionContext`, `MarketSnapshot/FeatureSnapshot` (`sharedSnapshot.htfCandles`), `balanceState/capitalRegime`, outputs regime-router.
+- Запрещено:
+  - открывать/закрывать позиции напрямую;
+  - подменять `marketRegimeRouter` или определять setup type в обход router;
+  - формировать hard-veto вне общего risk/capital ownership path.
+- Обязательный формат выхода: совместимый decision-contract (`layerName/direction/score/confidence/softPenalty/vetoCandidates/dataQualityState/reasonCodes`) + поля контекста (`htfBias/marketStructureState/structureConfidence/trendAlignmentScore`).
+- Fallback-контракт: при нехватке данных `dataQualityState=degraded` и нейтральный bias; при slower-refresh reuse `dataQualityState=cached`.
+

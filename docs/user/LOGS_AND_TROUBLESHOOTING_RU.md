@@ -244,3 +244,24 @@
 2. Проверить появление файлов `entry_features.csv`, `entry_labels.csv`, `entry_pending_state.json`.
 3. Проверить, что при закрытии paper-позиции создаётся запись label.
 4. Проверить, что при рестарте pending-состояние поднимается из `entry_pending_state.json`.
+
+## Логи и события higherTimeframeBiasEngine
+Новые runtime-логи:
+- префикс `[higherTimeframeBias]` с полями:
+  `cycle/ticker/exchange/module/layer/regime/capital/setup/score/confidence/veto/sizing/execution/fallback/final/structure/trendAlignment/dataQuality/mode`.
+
+Новое structured событие:
+- `higher_timeframe_bias_decision` (`module=higherTimeframeBiasEngine`, `layer=signal.htfStructure`).
+
+Минимальные поля для audit trail / trade journal:
+- `cycleId`, `ticker`, `exchange`,
+- `module/layer`, `marketRegime`, `capitalRegime`, `setupType`,
+- `score`, `confidence`, `vetoReason`,
+- `sizingDecision`, `executionAction`, `fallbackAction`, `finalDecision`,
+- `payload.htfBias`, `payload.marketStructureState`, `payload.structureConfidence`, `payload.trendAlignmentScore`, `payload.dataQualityState`.
+
+Диагностика degraded/cached режима:
+1. Если `dataQuality=degraded`, проверьте наличие `sharedSnapshot.htfCandles` и минимум структурных точек.
+2. Если `mode=cached_mode`, проверьте `slowerRefresh` настройки и факт появления нового HTF-бара.
+3. Проверяйте, что даже при `htfBias=bullish|bearish` итоговый вход остаётся под контролем risk/capital/veto слоёв.
+

@@ -29,6 +29,44 @@
         "predict": {
           "predictType": "random"
         }
+      },
+      "higherTimeframeBiasEngine": {
+        "enabled": false,
+        "higherTimeframe": "4h",
+        "lookbackBars": 120,
+        "swingWindow": 2,
+        "minimumStructurePoints": 4,
+        "breakOfStructureThresholdPercent": 0.12,
+        "shiftConfirmationBars": 2,
+        "trendWeights": {
+          "hhhl": 0.45,
+          "lhll": 0.45,
+          "bos": 0.35,
+          "choch": 0.25
+        },
+        "rangeWeights": {
+          "premiumZoneUpper": 0.7,
+          "discountZoneLower": 0.3,
+          "neutralBandLow": 0.4,
+          "neutralBandHigh": 0.6
+        },
+        "confidence": {
+          "min": 0.2,
+          "max": 0.95,
+          "degradeOnLimitedData": 0.65,
+          "degradeOnCachedData": 0.8
+        },
+        "alignmentPenalties": {
+          "counterTrendSoftPenalty": 0.22,
+          "weakAlignmentPenalty": 0.1,
+          "strongAlignmentBoost": 0.08
+        },
+        "slowerRefresh": {
+          "enabled": true,
+          "minBarsBetweenRefresh": 1,
+          "forceRefreshEveryCycles": 0,
+          "useFeatureStoreCache": true
+        }
       }
     },
     "bitget": {
@@ -59,6 +97,44 @@
         },
         "predict": {
           "predictType": "random"
+        }
+      },
+      "higherTimeframeBiasEngine": {
+        "enabled": false,
+        "higherTimeframe": "4h",
+        "lookbackBars": 120,
+        "swingWindow": 2,
+        "minimumStructurePoints": 4,
+        "breakOfStructureThresholdPercent": 0.12,
+        "shiftConfirmationBars": 2,
+        "trendWeights": {
+          "hhhl": 0.45,
+          "lhll": 0.45,
+          "bos": 0.35,
+          "choch": 0.25
+        },
+        "rangeWeights": {
+          "premiumZoneUpper": 0.7,
+          "discountZoneLower": 0.3,
+          "neutralBandLow": 0.4,
+          "neutralBandHigh": 0.6
+        },
+        "confidence": {
+          "min": 0.2,
+          "max": 0.95,
+          "degradeOnLimitedData": 0.65,
+          "degradeOnCachedData": 0.8
+        },
+        "alignmentPenalties": {
+          "counterTrendSoftPenalty": 0.22,
+          "weakAlignmentPenalty": 0.1,
+          "strongAlignmentBoost": 0.08
+        },
+        "slowerRefresh": {
+          "enabled": true,
+          "minBarsBetweenRefresh": 1,
+          "forceRefreshEveryCycles": 0,
+          "useFeatureStoreCache": true
         }
       }
     },
@@ -426,6 +502,44 @@
           "mlInference",
           "analytics"
         ]
+      },
+      "higherTimeframeBiasEngine": {
+        "enabled": false,
+        "higherTimeframe": "4h",
+        "lookbackBars": 120,
+        "swingWindow": 2,
+        "minimumStructurePoints": 4,
+        "breakOfStructureThresholdPercent": 0.12,
+        "shiftConfirmationBars": 2,
+        "trendWeights": {
+          "hhhl": 0.45,
+          "lhll": 0.45,
+          "bos": 0.35,
+          "choch": 0.25
+        },
+        "rangeWeights": {
+          "premiumZoneUpper": 0.7,
+          "discountZoneLower": 0.3,
+          "neutralBandLow": 0.4,
+          "neutralBandHigh": 0.6
+        },
+        "confidence": {
+          "min": 0.2,
+          "max": 0.95,
+          "degradeOnLimitedData": 0.65,
+          "degradeOnCachedData": 0.8
+        },
+        "alignmentPenalties": {
+          "counterTrendSoftPenalty": 0.22,
+          "weakAlignmentPenalty": 0.1,
+          "strongAlignmentBoost": 0.08
+        },
+        "slowerRefresh": {
+          "enabled": true,
+          "minBarsBetweenRefresh": 1,
+          "forceRefreshEveryCycles": 0,
+          "useFeatureStoreCache": true
+        }
       }
     },
     "htx": {
@@ -455,6 +569,44 @@
         },
         "predict": {
           "predictType": "random"
+        }
+      },
+      "higherTimeframeBiasEngine": {
+        "enabled": false,
+        "higherTimeframe": "4h",
+        "lookbackBars": 120,
+        "swingWindow": 2,
+        "minimumStructurePoints": 4,
+        "breakOfStructureThresholdPercent": 0.12,
+        "shiftConfirmationBars": 2,
+        "trendWeights": {
+          "hhhl": 0.45,
+          "lhll": 0.45,
+          "bos": 0.35,
+          "choch": 0.25
+        },
+        "rangeWeights": {
+          "premiumZoneUpper": 0.7,
+          "discountZoneLower": 0.3,
+          "neutralBandLow": 0.4,
+          "neutralBandHigh": 0.6
+        },
+        "confidence": {
+          "min": 0.2,
+          "max": 0.95,
+          "degradeOnLimitedData": 0.65,
+          "degradeOnCachedData": 0.8
+        },
+        "alignmentPenalties": {
+          "counterTrendSoftPenalty": 0.22,
+          "weakAlignmentPenalty": 0.1,
+          "strongAlignmentBoost": 0.08
+        },
+        "slowerRefresh": {
+          "enabled": true,
+          "minBarsBetweenRefresh": 1,
+          "forceRefreshEveryCycles": 0,
+          "useFeatureStoreCache": true
         }
       }
     },
@@ -487,6 +639,44 @@
         "predict": {
           "predictType": "random"
         }
+      },
+      "higherTimeframeBiasEngine": {
+        "enabled": false,
+        "higherTimeframe": "4h",
+        "lookbackBars": 120,
+        "swingWindow": 2,
+        "minimumStructurePoints": 4,
+        "breakOfStructureThresholdPercent": 0.12,
+        "shiftConfirmationBars": 2,
+        "trendWeights": {
+          "hhhl": 0.45,
+          "lhll": 0.45,
+          "bos": 0.35,
+          "choch": 0.25
+        },
+        "rangeWeights": {
+          "premiumZoneUpper": 0.7,
+          "discountZoneLower": 0.3,
+          "neutralBandLow": 0.4,
+          "neutralBandHigh": 0.6
+        },
+        "confidence": {
+          "min": 0.2,
+          "max": 0.95,
+          "degradeOnLimitedData": 0.65,
+          "degradeOnCachedData": 0.8
+        },
+        "alignmentPenalties": {
+          "counterTrendSoftPenalty": 0.22,
+          "weakAlignmentPenalty": 0.1,
+          "strongAlignmentBoost": 0.08
+        },
+        "slowerRefresh": {
+          "enabled": true,
+          "minBarsBetweenRefresh": 1,
+          "forceRefreshEveryCycles": 0,
+          "useFeatureStoreCache": true
+        }
       }
     },
     "bybit": {
@@ -516,6 +706,44 @@
         },
         "predict": {
           "predictType": "random"
+        }
+      },
+      "higherTimeframeBiasEngine": {
+        "enabled": false,
+        "higherTimeframe": "4h",
+        "lookbackBars": 120,
+        "swingWindow": 2,
+        "minimumStructurePoints": 4,
+        "breakOfStructureThresholdPercent": 0.12,
+        "shiftConfirmationBars": 2,
+        "trendWeights": {
+          "hhhl": 0.45,
+          "lhll": 0.45,
+          "bos": 0.35,
+          "choch": 0.25
+        },
+        "rangeWeights": {
+          "premiumZoneUpper": 0.7,
+          "discountZoneLower": 0.3,
+          "neutralBandLow": 0.4,
+          "neutralBandHigh": 0.6
+        },
+        "confidence": {
+          "min": 0.2,
+          "max": 0.95,
+          "degradeOnLimitedData": 0.65,
+          "degradeOnCachedData": 0.8
+        },
+        "alignmentPenalties": {
+          "counterTrendSoftPenalty": 0.22,
+          "weakAlignmentPenalty": 0.1,
+          "strongAlignmentBoost": 0.08
+        },
+        "slowerRefresh": {
+          "enabled": true,
+          "minBarsBetweenRefresh": 1,
+          "forceRefreshEveryCycles": 0,
+          "useFeatureStoreCache": true
         }
       }
     },
@@ -557,6 +785,44 @@
             "LTC"
           ],
           "randomCount": 0
+        }
+      },
+      "higherTimeframeBiasEngine": {
+        "enabled": false,
+        "higherTimeframe": "4h",
+        "lookbackBars": 120,
+        "swingWindow": 2,
+        "minimumStructurePoints": 4,
+        "breakOfStructureThresholdPercent": 0.12,
+        "shiftConfirmationBars": 2,
+        "trendWeights": {
+          "hhhl": 0.45,
+          "lhll": 0.45,
+          "bos": 0.35,
+          "choch": 0.25
+        },
+        "rangeWeights": {
+          "premiumZoneUpper": 0.7,
+          "discountZoneLower": 0.3,
+          "neutralBandLow": 0.4,
+          "neutralBandHigh": 0.6
+        },
+        "confidence": {
+          "min": 0.2,
+          "max": 0.95,
+          "degradeOnLimitedData": 0.65,
+          "degradeOnCachedData": 0.8
+        },
+        "alignmentPenalties": {
+          "counterTrendSoftPenalty": 0.22,
+          "weakAlignmentPenalty": 0.1,
+          "strongAlignmentBoost": 0.08
+        },
+        "slowerRefresh": {
+          "enabled": true,
+          "minBarsBetweenRefresh": 1,
+          "forceRefreshEveryCycles": 0,
+          "useFeatureStoreCache": true
         }
       }
     }
