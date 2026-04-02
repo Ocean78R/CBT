@@ -275,3 +275,87 @@ test('leverage mismatch не блокирует безопасное закры�
 
   assert.equal(connector.orders.filter((x) => x.type === 'close').length, 1);
 });
+
+test('reconciliation на sync детектирует leverage mismatch и сохраняет restricted snapshot', async () => {
+  const mismatchPosition = {
+    symbolUnified: 'BTC-USDT',
+    side: types.PositionSide.long,
+    entryPrice: 100,
+    initialMargin: 10,
+    leverage: 11,
+    unrealizedPnl: -1,
+    percentage: -10,
+    contracts: 1,
+  };
+  const connector = new MockConnector(types, { positionsByTicker: { 'BTC-USDT': [mismatchPosition] }, availableMargin: 1000 });
+  const strategy = makeStrategy(connector, makeConfig({
+    logger: { runtime: { enabled: true } },
+    executionContour: { leverageMismatchRestrictionEnabled: true, reconcileOnLoopStart: true },
+  }));
+
+  await strategy.reconcileExecutionState('BTC-USDT');
+
+  const positionId = strategy.getPositionId('BTC-USDT', mismatchPosition);
+  const profile = strategy.positionCapabilityRegistry.get(positionId);
+  const snapshot = strategy.reconciliationSnapshots.get('BTC-USDT');
+  assert.equal(profile.positionCapabilityState, 'LEVERAGE_MISMATCH_POSITION');
+  assert.equal(snapshot.hasRestrictedPositions, true);
+  assert.equal(snapshot.restrictedPositionsCount, 1);
+});
+
+test('после рестарта mismatch-позиция восстанавливается как restricted, а не normal', async () => {
+  const mismatchPosition = {
+    symbolUnified: 'BTC-USDT',
+    side: types.PositionSide.long,
+    entryPrice: 100,
+    initialMargin: 10,
+    leverage: 15,
+    unrealizedPnl: -2,
+    percentage: -20,
+    contracts: 1,
+  };
+  const connector = new MockConnector(types, { positionsByTicker: { 'BTC-USDT': [mismatchPosition] }, availableMargin: 1000 });
+  const config = makeConfig({
+    logger: { runtime: { enabled: true } },
+    executionContour: { leverageMismatchRestrictionEnabled: true, reconcileOnLoopStart: true },
+  });
+  const strategyBeforeRestart = makeStrategy(connector, config);
+  await strategyBeforeRestart.processSingleTicker('BTC-USDT');
+  const strategyAfterRestart = makeStrategy(connector, config);
+
+  await strategyAfterRestart.processSingleTicker('BTC-USDT');
+
+  const positionId = strategyAfterRestart.getPositionId('BTC-USDT', mismatchPosition);
+  const profile = strategyAfterRestart.positionCapabilityRegistry.get(positionId);
+  assert.equal(profile.positionCapabilityState, 'LEVERAGE_MISMATCH_POSITION');
+});
+
+test('structured propagation positionCapabilityState идёт в PositionState / DecisionContext / lifecycle context', async () => {
+  const mismatchPosition = {
+    symbolUnified: 'BTC-USDT',
+    side: types.PositionSide.long,
+    entryPrice: 100,
+    initialMargin: 10,
+    leverage: 12,
+    unrealizedPnl: -2,
+    percentage: -20,
+    contracts: 1,
+  };
+  const connector = new MockConnector(types, { positionsByTicker: { 'BTC-USDT': [mismatchPosition] }, availableMargin: 1000 });
+  const strategy = makeStrategy(connector, makeConfig({
+    logger: { runtime: { enabled: true } },
+    executionContour: { leverageMismatchRestrictionEnabled: true, reconcileOnLoopStart: true },
+  }));
+
+  await strategy.processSingleTicker('BTC-USDT');
+
+  const lifecycleEvent = (strategy.cycleJournal['BTC-USDT'] || []).find((event) => event.phase === 'position_state');
+  const capabilityEvent = (strategy.cycleJournal['BTC-USDT'] || []).find((event) => event.phase === 'position_capability_state');
+  const capitalRegimeEvent = (strategy.cycleJournal['BTC-USDT'] || []).find((event) => event.phase === 'capital_regime');
+  assert.equal(mismatchPosition.positionCapabilityState, 'LEVERAGE_MISMATCH_POSITION');
+  assert.equal(lifecycleEvent.payload.positionCapabilityState, 'LEVERAGE_MISMATCH_POSITION');
+  assert.equal(capabilityEvent.payload.positionCapabilityState, 'LEVERAGE_MISMATCH_POSITION');
+  assert.equal(capabilityEvent.payload.allowedActions.includes('reduce_only_close'), true);
+  assert.equal(capabilityEvent.payload.blockedActions.includes('averaging'), true);
+  assert.equal(capitalRegimeEvent.payload.decisionContext.metadata.executionRestrictions.hasRestrictedPositions, true);
+});
