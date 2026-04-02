@@ -8,6 +8,14 @@
 
 ---
 
+## 2026-04-02 (breakdown / bearish continuation layer в confluence)
+- Изменение: добавлен отдельный слой `breakdownEngine` для оценки вероятного пробоя поддержки и продолжения нисходящего движения (pressure/tests/momentum/volume/retest/reclaim + optional microstructure).
+- Изменение: слой подключён в `confluenceEntryEngine` как `breakdownDetectionLayer` между `bounceDetectionLayer` и `finalEntryDecisionLayer`; final ownership решения остаётся у `finalEntryDecisionLayer`.
+- Изменение: добавлен config-блок `confluenceEntryEngine.breakdownDetection` + новый вес `blockWeights.breakdownDetection`; по умолчанию сохранён fallback (`enabled=false`, вес `0`).
+- Изменение: runtime-лог `[confluenceEntry]` и structured payload расширены breakdown-полями (`payload.breakdownDetection`, `telemetry.downstreamContext.confluenceEntry.breakdownDetection`).
+- Связанные файлы кода: `dist/runtime/engines/breakdownEngine.js`, `dist/runtime/engines/confluenceEntryEngine.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/confluence-entry-engine.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
+
 ## 2026-04-02 (bounce/rebound detection layer в confluence)
 - Изменение: добавлен отдельный слой `bounceDetectionEngine` для оценки вероятного отскока (zone proximity, swing context, liquidity grab, momentum slowdown, exhaustion/divergence, volume absorption, optional microstructure).
 - Изменение: слой подключён в `confluenceEntryEngine` как `bounceDetectionLayer` между контекстными блоками и `finalEntryDecisionLayer`; ownership final entry остаётся у confluence final layer.
