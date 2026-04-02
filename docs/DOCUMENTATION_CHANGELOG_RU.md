@@ -179,3 +179,12 @@
 - Изменение: обновлён config-блок `singleSetts.predict.regimeRouter` с master-флагом, fallback и порогами классификации.
 - Связанные файлы кода: `dist/index.js`, `dist/_config/config.json`, `tests/regression/single-strategy.regression.test.js`.
 - Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`, `docs/ARCHITECTURE_CONTRACT_RU.md`.
+
+## 2026-04-02 (confluenceEntryEngine: многослойная архитектура входа)
+- Изменение: добавлен новый слой `confluenceEntryEngine/entryScoringEngine` с блоками `entryPermissionLayer`, `marketContextLayer`, `primarySignalLayer`, `confirmationLayer`, `finalEntryDecisionLayer`.
+- Изменение: реализован единый совместимый контракт block scores (`layerName/direction/score/confidence/softPenalty/vetoCandidates/dataQualityState/reasonCodes/explanation`) и обогащение `DecisionContext.metadata.layerScores`.
+- Изменение: добавлен config-блок `confluenceEntryEngine` (master-флаг, mode, thresholds, blockWeights, penalties/confirmation), legacy режим оставлен fallback.
+- Изменение: добавлены runtime-логи `[confluenceEntry] ...` и structured event `confluence_entry_decision` для observability/audit trail/trade journal.
+- Изменение: интеграция выполнена без изменения execution/lifecycle ownership path; confluence не выполняет sizing и не отправляет ордера.
+- Связанные файлы кода: `dist/runtime/engines/confluenceEntryEngine.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/confluence-entry-engine.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.

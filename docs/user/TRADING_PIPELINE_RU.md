@@ -322,3 +322,42 @@ Cache tiers и чтение слоями:
 - Нейтральный HTF-контекст даёт мягкое ослабление уверенности, но не формирует hard-veto.
 - Финальное решение всё равно остаётся за `confluence/finalEntryDecision` с приоритетом risk/capital-veto слоёв.
 
+
+## Runtime-позиция confluenceEntryEngine / entryScoringEngine (многослойный вход)
+- Место слоя в runtime-пайплайне:
+  `hard-risk / portfolioRiskContour -> marketRegimeRouter -> confluenceEntryEngine(entryPermission -> marketContext -> primarySignal -> confirmation -> finalEntryDecision) -> dynamicPositionSizing -> execution`.
+- Зависимости от более ранних слоёв:
+  - `DecisionContext` (cycle/ticker/regime/capital/score/confidence/veto/metadata),
+  - `balanceState` и `capitalRegime` из `portfolioRiskContour`,
+  - `forecastRegimeShiftRisk` и `forecastSignals` как внешний контекст,
+  - `marketRegimeRouter` (допустимые сетапы/no-trade),
+  - shared HTF-context (`higherTimeframeBiasEngine`) для confirmation.
+- Кто главный:
+  - `finalEntryDecisionLayer` внутри confluence — единственная точка итоговой интерпретации veto в confluence-стеке;
+  - `marketRegimeRouter` и `capitalRegime` выше confluence и не могут быть ослаблены.
+- Что fallback:
+  - при `confluenceEntryEngine.enabled=false` или `mode=legacy_fallback` сохраняется старый single-signal flow;
+  - при нехватке данных layer возвращает `dataQualityState=degraded` и безопасное `NO_ENTRY`/fallback.
+- Как переключается режим:
+  - `confluenceEntryEngine.enabled` + `confluenceEntryEngine.mode=confluence`.
+
+### Блоки нового входа
+1. `entryPermissionLayer`
+   - учитывает `balanceState/capitalRegime` и forecast-риск;
+   - может дать `capital_prohibition` до вычисления итогового score.
+2. `marketContextLayer`
+   - использует результат regime-router;
+   - не может разрешить вход при `no_trade` или запрещённом setup.
+3. `primarySignalLayer`
+   - принимает основной сигнал (в текущей интеграции — адаптер legacy-сигнала),
+   - формирует независимый partial score/confidence.
+4. `confirmationLayer`
+   - учитывает подтверждения и HTF bias (boost/penalty, без sizing/исполнения).
+5. `finalEntryDecisionLayer`
+   - агрегирует веса/штрафы, интерпретирует veto-контракт,
+   - возвращает `FULL_ENTRY | WEAK_ENTRY | NO_ENTRY`.
+
+### Обратная совместимость
+- Старое поведение осталось fallback-режимом и не удалено.
+- Новый confluence-режим включается только через config.
+- Execution/lifecycle path позиции не изменён.

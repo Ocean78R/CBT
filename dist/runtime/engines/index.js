@@ -11,6 +11,10 @@ const {
   applyHtfBiasToEntryDecision,
   toHigherTimeframeBiasEvent,
 } = require('./higherTimeframeBiasEngine');
+const {
+  evaluateConfluenceEntry,
+  toConfluenceEntryEvent,
+} = require('./confluenceEntryEngine');
 
 function emitObservabilityEvent(strategy, event) {
   const layer = strategy && strategy.observabilityLayer;
@@ -25,7 +29,81 @@ function createEngines(strategy) {
 
   return {
     signalEngine: {
-      predictPriceDirection: (ticker) => strategy.predictPriceDirectionLegacy(ticker),
+      // Русский комментарий: confluence режим стоит после regime-router и до sizing/execution; legacy остаётся fallback.
+      predictPriceDirection: async (ticker) => {
+        const legacyResult = await strategy.predictPriceDirectionLegacy(ticker);
+        const [legacySide, legacyWarning] = Array.isArray(legacyResult)
+          ? legacyResult
+          : ['none', 'legacy_predictor_result_invalid'];
+
+        const confluenceConfig = (
+          (strategy && strategy.config && strategy.config.confluenceEntryEngine)
+          || (((strategy || {}).setts || {}).predict || {}).confluenceEntryEngine
+          || {}
+        );
+
+        const context = {
+          cycleId: strategy.currentCycleId || 'n/a',
+          ticker,
+          exchange: strategy.connectorName || 'n/a',
+          marketRegime: (((strategy.currentRuntimeContext || {}).decisionContext || {}).metadata || {}).marketRegime || 'unknown',
+          capitalRegime: (strategy.currentRuntimeContext || {}).capitalRegime || 'NORMAL',
+          balanceState: (strategy.currentRuntimeContext || {}).balanceState || null,
+          forecastRegimeShiftRisk: ((strategy.currentRuntimeContext || {}).balanceState || {}).forecastRegimeShiftRisk || null,
+          setupType: ((((strategy || {}).setts || {}).predict || {}).predictType) || 'unknown',
+          mode: strategy.runtimeEngines && strategy.runtimeEngines.executionEngine && strategy.runtimeEngines.executionEngine.isPaperMode && strategy.runtimeEngines.executionEngine.isPaperMode()
+            ? 'paper'
+            : 'live',
+        };
+
+        const confluenceInput = {
+          context,
+          regimeRouterDecision: (((strategy.currentRuntimeContext || {}).decisionContext || {}).metadata || {}).marketRegimeRouter || {},
+          primarySignal: {
+            layerName: 'legacyPrimarySignalAdapter',
+            direction: legacySide,
+            score: legacySide === 'none' ? 0 : 0.62,
+            confidence: legacySide === 'none' ? 0.54 : 0.66,
+            setupType: context.setupType,
+            dataQualityState: 'cached',
+          },
+          confirmationSignals: [],
+          htfBiasDecision: ((strategy.currentRuntimeContext || {}).htfBiasDecision) || {},
+        };
+
+        const confluenceResult = evaluateConfluenceEntry(confluenceInput, confluenceConfig);
+        if (strategy.currentRuntimeContext) {
+          strategy.currentRuntimeContext.confluenceEntry = confluenceResult;
+          if (strategy.currentRuntimeContext.decisionContext && confluenceResult && confluenceResult.decisionContext) {
+            strategy.currentRuntimeContext.decisionContext.metadata = {
+              ...(strategy.currentRuntimeContext.decisionContext.metadata || {}),
+              confluenceEntry: confluenceResult.decision,
+              confluenceLayers: confluenceResult.layers,
+            };
+          }
+        }
+
+        if (strategy.emitStructuredEvent && confluenceResult.enabled) {
+          const event = toConfluenceEntryEvent({ context, result: confluenceResult });
+          strategy.emitStructuredEvent(event);
+          emitObservabilityEvent(strategy, event);
+        }
+
+        if (strategy.log && typeof strategy.log === 'function') {
+          const decision = (confluenceResult && confluenceResult.decision) || {};
+          strategy.log(`[confluenceEntry] cycle=${context.cycleId || 'n/a'} ticker=${ticker || 'n/a'} exchange=${context.exchange || 'n/a'} module=confluenceEntryEngine layer=entry.confluence regime=${context.marketRegime || 'unknown'} capital=${context.capitalRegime || 'NORMAL'} setup=${context.setupType || 'unknown'} score=${Number.isFinite(decision.score) ? decision.score : 0} confidence=${Number.isFinite(decision.confidence) ? decision.confidence : 0} veto=${decision.veto ? decision.veto.reason : 'none'} sizing=not_evaluated execution=${decision.entryAllowed ? 'forward_to_execution' : 'skip_entry'} fallback=${decision.entryAllowed ? 'none' : 'legacy_entry_flow'} final=${decision.finalDecision || 'LEGACY_FALLBACK'} mode=${confluenceResult.mode || 'legacy_fallback'} runtime=${confluenceResult.decisionContext && confluenceResult.decisionContext.metadata ? confluenceResult.decisionContext.metadata.runtimeMode || 'unknown' : 'unknown'}`);
+        }
+
+        if (confluenceResult && confluenceResult.enabled && confluenceResult.decision && confluenceResult.decision.entryAllowed) {
+          return [legacySide, legacyWarning];
+        }
+
+        if (confluenceResult && confluenceResult.enabled && confluenceResult.decision && !confluenceResult.decision.entryAllowed) {
+          return ['none', `Confluence blocked entry: ${(confluenceResult.decision.reasonCodes || []).join(',') || 'final_decision_no_entry'}`];
+        }
+
+        return legacyResult;
+      },
     },
     riskEngine: {
       processExistingPosition: (ticker, freeBalance, activePosition, checkLeverage) => strategy.processExistingPositionLegacy(ticker, freeBalance, activePosition, checkLeverage),

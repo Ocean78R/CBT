@@ -265,3 +265,16 @@
 2. Если `mode=cached_mode`, проверьте `slowerRefresh` настройки и факт появления нового HTF-бара.
 3. Проверяйте, что даже при `htfBias=bullish|bearish` итоговый вход остаётся под контролем risk/capital/veto слоёв.
 
+
+## Логи confluenceEntryEngine
+Добавлен runtime-лог:
+- `[confluenceEntry] cycle=... ticker=... exchange=... module=confluenceEntryEngine layer=entry.confluence regime=... capital=... setup=... score=... confidence=... veto=... sizing=not_evaluated execution=... fallback=... final=... mode=... runtime=...`
+
+И структурированное событие:
+- `eventType=confluence_entry_decision`
+- обязательные поля: `cycleId`, `ticker`, `exchange`, `module/layer`, `marketRegime`, `capitalRegime`, `setupType`, `score`, `confidence`, `vetoReason`, `sizingDecision`, `executionAction`, `fallbackAction`, `finalDecision`.
+
+### Диагностика
+- Если `final=NO_ENTRY`, смотрите `payload.layerScores.finalEntryDecisionLayer.reasonCodes`.
+- Если veto связан с капиталом, причина будет в `vetoReason=capital_regime_halt_new_entries`.
+- Если блокировка от режима рынка, проверьте `reasonCodes` на `no_trade_regime` / `setup_not_allowed_by_regime_router`.
