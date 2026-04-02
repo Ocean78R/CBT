@@ -108,6 +108,11 @@ function createObservabilityLayer(rawConfig = {}, deps = {}) {
     vetoReasons: {},
     executionEvents: {},
     protectiveEvents: {},
+    protectiveDiagnostics: {
+      duplicateClosePrevented: 0,
+      byOwner: {},
+      byCloseSource: {},
+    },
     regimeChanges: {},
     mlDecisions: {},
     modeSplit: { paper: 0, live: 0 },
@@ -217,6 +222,11 @@ function createObservabilityLayer(rawConfig = {}, deps = {}) {
     if (event.vetoReason) increment(reports.vetoReasons, event.vetoReason);
     if (category === EVENT_CATEGORIES.EXECUTION) increment(reports.executionEvents, event.executionAction || 'none');
     if (category === EVENT_CATEGORIES.PROTECTIVE) increment(reports.protectiveEvents, event.finalDecision || 'none');
+    if (category === EVENT_CATEGORIES.PROTECTIVE) {
+      if (event.duplicateClosePrevented === true) reports.protectiveDiagnostics.duplicateClosePrevented += 1;
+      if (event.protectiveActionOwner) increment(reports.protectiveDiagnostics.byOwner, event.protectiveActionOwner);
+      if (event.closeSource) increment(reports.protectiveDiagnostics.byCloseSource, event.closeSource);
+    }
     if (category === EVENT_CATEGORIES.REGIME) {
       const regime = event.capitalRegime
         || (event.payload && event.payload.balanceState ? event.payload.balanceState.capitalRegime : null);
@@ -261,7 +271,25 @@ function createObservabilityLayer(rawConfig = {}, deps = {}) {
       current.stagePath.sizing = downstream.dynamicPositionSizing || {};
     }
     if (category === EVENT_CATEGORIES.EXECUTION) current.stagePath.execution = { action: event.executionAction || 'none', module: event.module || 'unknown' };
-    if (category === EVENT_CATEGORIES.LIFECYCLE || category === EVENT_CATEGORIES.PROTECTIVE) current.stagePath.lifecycle = { decision: event.finalDecision || 'unknown' };
+    if (category === EVENT_CATEGORIES.LIFECYCLE || category === EVENT_CATEGORIES.PROTECTIVE) {
+      current.stagePath.lifecycle = {
+        decision: event.finalDecision || 'unknown',
+        duplicateClosePrevented: event.duplicateClosePrevented === true,
+        protectiveActionOwner: event.protectiveActionOwner || null,
+        protectiveActionToken: event.protectiveActionToken || null,
+        closeSource: event.closeSource || null,
+      };
+    }
+    if (String(event.layer || '').toLowerCase().includes('reconciliation')) {
+      current.stagePath.reconciliation = {
+        module: event.module || 'unknown',
+        action: event.executionAction || null,
+        protectiveActionToken: event.protectiveActionToken || (event.payload && event.payload.protectiveActionToken) || null,
+        positionCapabilityState: event.positionCapabilityState
+          || (event.payload && event.payload.positionCapabilityState)
+          || null,
+      };
+    }
 
     current.latestFinalDecision = event.finalDecision || current.latestFinalDecision;
     current.chain.push({
@@ -270,6 +298,10 @@ function createObservabilityLayer(rawConfig = {}, deps = {}) {
       module: event.module || 'unknown',
       eventType: event.eventType || 'unknown',
       finalDecision: event.finalDecision || 'unknown',
+      duplicateClosePrevented: event.duplicateClosePrevented === true,
+      protectiveActionOwner: event.protectiveActionOwner || null,
+      protectiveActionToken: event.protectiveActionToken || null,
+      closeSource: event.closeSource || null,
     });
 
     if (current.chain.length > 100) current.chain = current.chain.slice(current.chain.length - 100);
@@ -342,6 +374,11 @@ function createObservabilityLayer(rawConfig = {}, deps = {}) {
       vetoReasons: { ...reports.vetoReasons },
       executionEvents: { ...reports.executionEvents },
       protectiveEvents: { ...reports.protectiveEvents },
+      protectiveDiagnostics: {
+        duplicateClosePrevented: reports.protectiveDiagnostics.duplicateClosePrevented,
+        byOwner: { ...reports.protectiveDiagnostics.byOwner },
+        byCloseSource: { ...reports.protectiveDiagnostics.byCloseSource },
+      },
       regimeChanges: { ...reports.regimeChanges },
       mlDecisions: { ...reports.mlDecisions },
       modeSplit: { ...reports.modeSplit },

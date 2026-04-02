@@ -80,12 +80,14 @@
 3. Если включён `forecastInfluence.requireStressSignal`, отсутствие stress-signal должно давать `finalDecision=no_action`.
 4. Для early-level смотрите диагностику: `timeSinceEntryMin`, `deviationPct`, `adverseZoneMin`, `adverseTrendConfirmed`, `scenarioBroken`.
 5. Если `duplicateClosePrevented=true`, проверяйте chain по `protectiveActionToken`: server SL/state -> lifecycle reconcile -> отсутствие повторного close-ордера.
+6. Роли в protective path фиксированы в docs/runtime-контракте: owner = `server_stop_loss_manager|execution_lifecycle_manager`, fallback = legacy forced/stuck/local polling close, decision-layer = `forcedLossExit` (только решение и событие).
 
 
 ## Логи restricted-state по leverage mismatch
 Для событий `reconciliation`, `position_capability_state`, `blocked_action` теперь логируются поля:
 `expectedLeverage`, `actualLeverage`, `leverageMismatchDetected`, `positionCapabilityState`, `allowedActions`, `blockedActions`.
 Это же попадает в audit trail/cycle journal через `emitStructuredEvent` в слоях `execution_contour` и `risk_decision`.
+Для `LEVERAGE_MISMATCH_POSITION` dedup-owner path тот же: token/owner пишутся в protective + reconciliation trace, а risky actions остаются заблокированы.
 
 ## События portfolio risk contour
 Добавлено структурированное событие `portfolio_risk_contour_decision` (layer `risk.portfolioContour`).

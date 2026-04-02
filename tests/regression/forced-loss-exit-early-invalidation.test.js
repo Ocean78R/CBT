@@ -263,3 +263,40 @@ test('repeated close attempt безопасно дедуплицируется �
   assert.equal(repeatedDecision.duplicateClosePrevented, true);
   assert.equal(repeatedDecision.ownershipAction, null);
 });
+
+test('после рестарта protectiveActionToken берётся из reconciliation state и сохраняет dedup owner-path', () => {
+  const decision = evaluateForcedLossExit({
+    context: {
+      cycleId: 'c-204-after-restart',
+      ticker: 'BNB-USDT',
+      capitalRegime: 'NORMAL',
+      positionCapabilityState: 'LEVERAGE_MISMATCH_POSITION',
+      protectiveCloseSource: 'lifecycle_close',
+      protectiveActionState: {
+        owner: 'execution_lifecycle_manager',
+        token: 'restart-recon-token-1',
+        closeInitiated: true,
+        status: 'initiated',
+      },
+    },
+    position: {
+      side: 'LONG',
+      minutesSinceEntry: 22,
+      entryDeviationPercent: -1.9,
+      timeUnderEntryWithoutRecoveryMinutes: 15,
+      adverseTrendBars: 4,
+      adverseTrendSlope: 0.08,
+      adverseMarketConfirmed: true,
+      holdMinutesInLoss: 25,
+      pnlPercent: -1.9,
+      positionCapabilityState: 'LEVERAGE_MISMATCH_POSITION',
+    },
+  }, buildConfig());
+
+  assert.equal(decision.duplicateClosePrevented, true);
+  assert.equal(decision.protectiveActionOwner, 'execution_lifecycle_manager');
+  assert.equal(decision.protectiveActionToken, 'restart-recon-token-1');
+  assert.equal(decision.closeSource, 'lifecycle_close');
+  assert.equal(decision.runtimeOwnership.lifecycleOwner, 'execution_lifecycle_manager');
+  assert.equal(decision.ownershipAction, null);
+});

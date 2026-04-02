@@ -80,6 +80,10 @@
 - Runtime-owner protective close:
   - `server_stop_loss_manager` — если server-side close уже initiated/confirmed;
   - `execution_lifecycle_manager` — если действие выполняется локально через lifecycle close.
+- Явное разделение ролей:
+  - **Owner (primary execution owner):** `server_stop_loss_manager` при server initiated/confirmed close, иначе `execution_lifecycle_manager`.
+  - **Fallback:** legacy forced/stuck + local polling close, если server SL недоступен или ранний слой отключён.
+  - **Только decision-layer:** `forcedLossExit`/`postEntryObservation` принимает решение и эмитит structured event, но не отправляет ордера напрямую.
 - Dedup token: `protectiveActionToken` пробрасывается между risk/execution/lifecycle/reconciliation и предотвращает повторный конфликтующий close.
 - Dedup policy: при `serverStopLoss.closeInitiated|closeConfirmed` локальный `force_close` становится no-op (`duplicateClosePrevented=true`), ownership остаётся у server owner.
 - Fallback: если `enablePostEntryObservation=false`, ранний уровень полностью отключён, legacy forced/stuck продолжает работать без rollback.
@@ -92,6 +96,7 @@
 - Поддерживаемые состояния: `NORMAL_POSITION`, `LEVERAGE_MISMATCH_POSITION`, `LEGACY_RESTRICTED_POSITION`.
 - Для `LEVERAGE_MISMATCH_POSITION` allowed actions: `reduce_only_close`, `profit_close`, `protective_forced_close`, `cleanup_reconciliation`, `partial_reduce_safe`.
 - Для `LEVERAGE_MISMATCH_POSITION` blocked actions: `averaging`, `leverage_sensitive_sizing_updates`, `normal_compatibility_required_actions`.
+- Dedup-owner path для restricted state не меняется: protective close остаётся в том же ownership/dedup контуре (`execution_lifecycle_manager` + `protectiveActionToken` + reconciliation trace).
 - Fallback: при отключении `executionContour.leverageMismatchRestrictionEnabled` поведение возвращается к legacy guard без capability-state маршрутизации.
 
 ## Portfolio Risk Contour (уровень портфеля/счёта)

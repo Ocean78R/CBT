@@ -8,6 +8,14 @@
 
 ---
 
+## 2026-04-02 (protective dedup/audit trace hardening)
+- Изменение: в observability-reporting добавлены агрегированные protective-метрики отчёта (`protectiveDiagnostics.duplicateClosePrevented`, `byOwner`, `byCloseSource`) для явной проверки, что `duplicateClosePrevented=true` попадает не только в логи, но и в report events.
+- Изменение: в audit/postmortem trace расширен lifecycle/reconciliation stage: сохраняются `protectiveActionOwner`, `protectiveActionToken`, `duplicateClosePrevented`, `closeSource`, включая рестартный reconciliation-кейс.
+- Изменение: добавлены регрессии на restart/reconciliation token continuity и restricted `LEVERAGE_MISMATCH_POSITION` через тот же dedup-owner path.
+- Изменение: в user docs явно зафиксированы роли owner/fallback/decision-layer для protective close.
+- Связанные файлы кода: `dist/runtime/observability/reportingLayer.js`, `tests/regression/observability-reporting-layer.test.js`, `tests/regression/forced-loss-exit-early-invalidation.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
+
 ## 2026-04-02 (protective close runtime owner/dedup corrective step)
 - Изменение: формализован runtime-owner protective close: `server_stop_loss_manager` (primary при server initiated/confirmed close) и `execution_lifecycle_manager` (локальный lifecycle owner-path).
 - Изменение: добавлен dedup/correlation token `protectiveActionToken` и политика безопасного no-op (`duplicateClosePrevented`) для повторных конфликтующих close попыток.
