@@ -399,6 +399,99 @@ test('приоритет unloadMode.safeEntryAssets выше dynamic shortlist',
   assert.match(decision.reason, /safeEntryAssets/);
 });
 
+test('contract: safeEntryAssets не расширяет allowedUniverse', () => {
+  const connector = new MockConnector(types);
+  const strategy = makeStrategy(connector, makeConfig());
+  const runtimeContext = {
+    allowedUniverseTickers: ['BTC-USDT'],
+    balanceState: 'NORMAL',
+    unloadModeEnabled: true,
+    safeEntryAssets: ['BTC', 'SOL'],
+    entryLimits: {},
+    dynamicAssetSelection: null,
+  };
+  strategy.evaluateNewEntryAllowance('BTC-USDT', runtimeContext);
+  assert.deepEqual(runtimeContext.safeEntryUniverse, ['BTC-USDT']);
+  assert.equal(runtimeContext.safeEntryFilterResult.safeEntryAssetsDoesNotExpandAllowedUniverse, true);
+});
+
+test('contract: dynamicShortlist не обходит safeEntryAssets при unload/safe mode', () => {
+  const connector = new MockConnector(types);
+  const strategy = makeStrategy(connector, makeConfig({
+    singleSetts: { tickers: { dynamicAssetSelection: { enabled: true } } },
+  }));
+  const runtimeContext = {
+    allowedUniverseTickers: ['BTC-USDT', 'SOL-USDT'],
+    balanceState: 'NORMAL',
+    unloadModeEnabled: true,
+    safeEntryAssets: ['BTC'],
+    entryLimits: {},
+    dynamicAssetSelection: { explanation: { shortlist: ['SOL-USDT'] } },
+  };
+  const decision = strategy.evaluateNewEntryAllowance('SOL-USDT', runtimeContext);
+  assert.equal(decision.allowed, false);
+  assert.match(decision.reason, /safeEntryAssets/);
+  assert.deepEqual(runtimeContext.newEntryEligibleUniverse, []);
+});
+
+test('contract: already-open position lifecycle независим от safeEntryAssets и dynamicShortlist', async () => {
+  const profitableEth = {
+    symbolUnified: 'ETH-USDT',
+    side: types.PositionSide.long,
+    entryPrice: 100,
+    initialMargin: 10,
+    leverage: 25,
+    unrealizedPnl: 2,
+    percentage: 10,
+    contracts: 1,
+  };
+  const connector = new MockConnector(types, { positionsByTicker: { 'ETH-USDT': [profitableEth] } });
+  const strategy = makeStrategy(connector, makeConfig({
+    unloadMode: { enabled: true, safeEntryAssets: ['BTC'] },
+    singleSetts: { tickers: { dynamicAssetSelection: { enabled: true, shortlistSize: 1 } } },
+  }));
+  strategy.dynamicEntryShortlist = { explanation: { shortlist: ['BTC-USDT'] } };
+
+  await strategy.processSingleTicker('ETH-USDT');
+  assert.equal(connector.orders.filter((x) => x.type === 'close').length, 1);
+});
+
+test('contract: downstream layers читают только newEntryEligibleUniverse и не владеют фильтрами universe', () => {
+  const connector = new MockConnector(types);
+  const strategy = makeStrategy(connector, makeConfig({
+    singleSetts: { tickers: { dynamicAssetSelection: { enabled: true } } },
+  }));
+  const runtimeContext = {
+    allowedUniverseTickers: ['BTC-USDT', 'ETH-USDT'],
+    balanceState: 'NORMAL',
+    unloadModeEnabled: false,
+    safeEntryAssets: [],
+    entryLimits: {},
+    dynamicAssetSelection: { explanation: { shortlist: ['BTC-USDT'] } },
+  };
+  strategy.evaluateNewEntryAllowance('BTC-USDT', runtimeContext);
+  assert.deepEqual(runtimeContext.newEntryEligibleUniverse, ['BTC-USDT']);
+  assert.deepEqual(runtimeContext.allowedUniverseTickers, ['BTC-USDT', 'ETH-USDT']);
+});
+
+test('contract: fallback валиден при выключенных dynamic selection и unload mode', () => {
+  const connector = new MockConnector(types);
+  const strategy = makeStrategy(connector, makeConfig({
+    singleSetts: { tickers: { dynamicAssetSelection: { enabled: false } } },
+  }));
+  const runtimeContext = {
+    allowedUniverseTickers: ['BTC-USDT', 'ETH-USDT'],
+    balanceState: 'NORMAL',
+    unloadModeEnabled: false,
+    safeEntryAssets: ['BTC'],
+    entryLimits: {},
+    dynamicAssetSelection: null,
+  };
+  const decision = strategy.evaluateNewEntryAllowance('ETH-USDT', runtimeContext);
+  assert.equal(decision.allowed, true);
+  assert.deepEqual(runtimeContext.newEntryEligibleUniverse, ['BTC-USDT', 'ETH-USDT']);
+});
+
 test('базовый flow открытия и закрытия позиции', async () => {
   const connector = new MockConnector(types, { positionsByTicker: { 'BTC-USDT': [] } });
   const strategy = makeStrategy(connector);

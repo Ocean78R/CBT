@@ -12,7 +12,7 @@
 - Изменение: зафиксирована семантика `allowedUniverse` (config owner, alias через `definedAssets`) и `dynamicShortlist` (runtime-подмножество для новых входов); dynamic selection теперь работает только в режиме `whitelist_only`.
 - Изменение: добавлена жёсткая иерархия приоритета: `allowedUniverse -> unload/safeEntryAssets/hard restrictions -> capitalRegime -> dynamicShortlist -> downstream layers`.
 - Изменение: dynamic selection не переписывает config runtime-значения и не расширяет universe; при `dynamicAssetSelection.enabled=false` сохранён fallback (прямое использование config-universe).
-- Изменение: lifecycle уже открытых позиций не зависит от текущего shortlist; добавлены structured events для отклонений/override (`tickerRejectedBecauseOutsideUniverse`, `tickerRejectedByDynamicSelection`, `tickerKeptForLifecycleDespiteNoShortlist`, `allowedUniverseSize`, `shortlistSize`).
+- Изменение: lifecycle уже открытых позиций не зависит от текущего shortlist; добавлены/уточнены structured events для иерархии ownership (`tickerRejectedBecauseOutsideAllowedUniverse`, `tickerRejectedBecauseNotInSafeEntryAssets`, `tickerRejectedByUnloadMode`, `tickerRejectedByCapitalRegime`, `tickerRejectedByDynamicShortlist`, `tickerKeptForLifecycleBecausePositionAlreadyOpen`, `finalNewEntryEligibleUniverseSize`).
 - Изменение: добавлены регрессии контракта на ownership/universe-shortlist/lifecycle совместимость.
 - Связанные файлы кода: `dist/index.js`, `dist/_config/config.json`, `tests/regression/single-strategy.regression.test.js`.
 - Связанные разделы docs: `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/TRADING_PIPELINE_RU.md`.

@@ -53,6 +53,13 @@
 - `unloadMode`/`safeEntryAssets` выше dynamicAssetSelection и применяются раньше.
 - `capitalRegime` может только сужать shortlist/входы, но не расширяет allowedUniverse.
 - dynamic shortlist влияет только на **новые входы**; сопровождение уже открытых позиций не блокируется.
+- Runtime-иерархия фильтрации новых входов фиксирована:
+  `allowedUniverse -> unload/safeEntryAssets/hard safety -> capitalRegime -> dynamicShortlist -> downstream signal stack`.
+- Контракты ownership:
+  - `safeEntryAssets` только сужает и никогда не расширяет `allowedUniverse`;
+  - `dynamicShortlist` всегда подмножество `allowedUniverse`/`safeEntryUniverse`;
+  - `newEntryEligibleUniverse` используется downstream-слоями как read-only input;
+  - `lifecycleScope`/`openPositionScope` уже открытых позиций живёт отдельно от new-entry фильтров.
 - downstream-слои (`marketRegimeRouter`, `higherTimeframeBias`, `confluence`, `zones`) получают уже отфильтрованный вход и не расширяют universe.
 
 ## Market Regime Router в predict-блоке

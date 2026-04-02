@@ -28,6 +28,21 @@
 - `dynamicAssetSelection` формирует runtime-`dynamicShortlist` **внутри allowedUniverse** и только для новых входов; слой использует shared market snapshot + trade journal и не владеет execution side-effects.
 - `dynamicAssetSelection` учитывает `balanceState/capitalRegime` и forecast stress-hints как внешний контекст: при ухудшении режима shortlist сжимается.
 - Приоритеты жёстко фиксированы: `allowedUniverse -> hard restrictions/safeEntryAssets/unload -> capitalRegime -> dynamicShortlist -> regime/router/confluence/zones -> sizing/execution`.
+- Формальные runtime-области ownership:
+  - `allowedUniverse` — верхняя граница тикеров, которые вообще могут попасть в pipeline новых входов;
+  - `safeEntryUniverse`/`safeEntryFilterResult` — сужение `allowedUniverse` только для safe/unload режима;
+  - `dynamicShortlist` — runtime shortlist только внутри уже суженного scope;
+  - `newEntryEligibleUniverse` — финальный входной набор для downstream-сигнальных слоёв (шаги 24–27 читают его как input-only);
+  - `lifecycleScope/openPositionScope` — отдельный контур сопровождения уже открытых позиций, не зависящий от shortlist/new-entry фильтров.
+- Правило инварианта: `safeEntryAssets` никогда не расширяет `allowedUniverse`, а `dynamicShortlist` не может обойти `safeEntryAssets` и unload-гейты.
+- Structured события отказов и lifecycle override:
+  - `tickerRejectedBecauseOutsideAllowedUniverse`
+  - `tickerRejectedBecauseNotInSafeEntryAssets`
+  - `tickerRejectedByUnloadMode`
+  - `tickerRejectedByCapitalRegime`
+  - `tickerRejectedByDynamicShortlist`
+  - `tickerKeptForLifecycleBecausePositionAlreadyOpen`
+  - `finalNewEntryEligibleUniverseSize`
 
 ## Как работает открытие позиции
 1. Сбор market/account данных.
