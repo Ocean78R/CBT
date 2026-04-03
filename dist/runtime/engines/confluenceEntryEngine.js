@@ -303,6 +303,23 @@ function createLayerResult(layerName, payload = {}) {
   };
 }
 
+function resolveSessionTimeContextScore(layer = {}) {
+  const explanation = layer.explanation || {};
+  if (Number.isFinite(Number(explanation.timeContextScore))) return Number(explanation.timeContextScore);
+  if (Number.isFinite(Number(layer.timeContextScore))) return Number(layer.timeContextScore);
+  return clamp01((Number(layer.score) || 0) - (Number(layer.softPenalty) || 0));
+}
+
+function resolveTimeBasedEntryRestriction(layer = {}) {
+  const explanation = layer.explanation || {};
+  if (explanation.timeBasedEntryRestriction === true) return true;
+  const vetoCandidates = Array.isArray(layer.vetoCandidates) ? layer.vetoCandidates : [];
+  return vetoCandidates.some((item) => {
+    const type = item && item.type ? String(item.type) : '';
+    return type === 'no_trade_regime' || type === 'capital_prohibition';
+  });
+}
+
 function evaluateEntryPermissionLayer(input, config) {
   const context = input.context || {};
   const balanceState = context.balanceState || input.balanceState || {};
@@ -813,7 +830,12 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
     vetoCandidates: sessionFilterResult.vetoCandidates,
     dataQualityState: sessionFilterResult.dataQualityState || 'degraded',
     reasonCodes: sessionFilterResult.reasonCodes,
-    explanation: sessionFilterResult.explanation || {},
+    explanation: {
+      ...(sessionFilterResult.explanation || {}),
+      timeContextScore: Number.isFinite(sessionFilterResult.timeContextScore) ? sessionFilterResult.timeContextScore : 0,
+      sessionState: sessionFilterResult.sessionState || ((sessionFilterResult.explanation || {}).sessionState) || 'OFF_HOURS',
+      timeBasedEntryRestriction: sessionFilterResult.timeBasedEntryRestriction === true,
+    },
   });
   layers.finalEntryDecisionLayer = evaluateFinalEntryDecisionLayer(input, config, layers);
 
@@ -863,11 +885,9 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       derivativesContext: layers.derivativesContextLayer ? layers.derivativesContextLayer.explanation : {},
       confirmationContext: layers.confirmationLayer ? layers.confirmationLayer.explanation : {},
       sessionContext: layers.sessionFilterLayer ? layers.sessionFilterLayer.explanation : {},
-      timeContextScore: Number.isFinite((layers.sessionFilterLayer || {}).score) ? layers.sessionFilterLayer.score : 0,
+      timeContextScore: resolveSessionTimeContextScore(layers.sessionFilterLayer || {}),
       sessionState: ((layers.sessionFilterLayer || {}).explanation || {}).sessionState || 'OFF_HOURS',
-      timeBasedEntryRestriction: Array.isArray((layers.sessionFilterLayer || {}).vetoCandidates)
-        ? layers.sessionFilterLayer.vetoCandidates.some((x) => x && x.reason && String(x.reason).includes('restricted'))
-        : false,
+      timeBasedEntryRestriction: resolveTimeBasedEntryRestriction(layers.sessionFilterLayer || {}),
     },
   });
 
@@ -923,6 +943,9 @@ function toConfluenceEntryEvent(input = {}) {
       derivativesContext: (layerScores.derivativesContextLayer || {}).explanation || {},
       confirmationContext: (layerScores.confirmationLayer || {}).explanation || {},
       sessionContext: (layerScores.sessionFilterLayer || {}).explanation || {},
+      timeContextScore: resolveSessionTimeContextScore(layerScores.sessionFilterLayer || {}),
+      sessionState: ((layerScores.sessionFilterLayer || {}).explanation || {}).sessionState || 'OFF_HOURS',
+      timeBasedEntryRestriction: resolveTimeBasedEntryRestriction(layerScores.sessionFilterLayer || {}),
       // Русский комментарий: совместимый downstream-контекст для audit trail/reporting без ad-hoc форматов.
       telemetry: {
         downstreamContext: {
@@ -939,11 +962,9 @@ function toConfluenceEntryEvent(input = {}) {
             derivativesContext: (layerScores.derivativesContextLayer || {}).explanation || {},
             confirmationContext: (layerScores.confirmationLayer || {}).explanation || {},
             sessionContext: (layerScores.sessionFilterLayer || {}).explanation || {},
-            timeContextScore: Number.isFinite(((layerScores.sessionFilterLayer || {}).score)) ? layerScores.sessionFilterLayer.score : 0,
+            timeContextScore: resolveSessionTimeContextScore(layerScores.sessionFilterLayer || {}),
             sessionState: ((layerScores.sessionFilterLayer || {}).explanation || {}).sessionState || 'OFF_HOURS',
-            timeBasedEntryRestriction: Array.isArray((layerScores.sessionFilterLayer || {}).vetoCandidates)
-              ? layerScores.sessionFilterLayer.vetoCandidates.some((x) => x && x.reason && String(x.reason).includes('restricted'))
-              : false,
+            timeBasedEntryRestriction: resolveTimeBasedEntryRestriction(layerScores.sessionFilterLayer || {}),
           },
         },
       },

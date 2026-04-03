@@ -4,6 +4,8 @@
 - Изменение: добавлен config-блок `confluenceEntryEngine.sessionFilter` + вес `blockWeights.sessionFilter`, при `enabled=false` сохранён legacy fallback без изменения торгового поведения.
 - Изменение: добавлены runtime-логи `[confluenceEntry]` и structured поля `sessionContext/timeContextScore/sessionState/timeBasedEntryRestriction` для observability/audit trail/trade journal.
 - Изменение: добавлены регрессионные тесты для standalone session-filter и интеграции в confluence.
+- Изменение: уточнён расчёт `timeContextScore` в `DecisionContext/structured event` как net-оценка time-layer (`score-softPenalty`) с приоритетом explicit поля `timeContextScore`.
+- Изменение: `timeBasedEntryRestriction` теперь корректно учитывает не только restricted-window (`no_trade_regime`), но и strict-capital сценарий (`capital_prohibition`).
 - Связанные файлы кода: `dist/runtime/engines/sessionFilterEngine.js`, `dist/runtime/engines/confluenceEntryEngine.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/session-filter-engine.test.js`.
 - Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`.
 
