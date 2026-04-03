@@ -67,7 +67,14 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const confluencePrimarySignal = confluenceEntryEngine.primarySignal || {};
   const confluenceConfirmation = confluenceEntryEngine.confirmation || {};
   const confluenceMarketLevel = confluenceEntryEngine.marketLevel || {};
+  const confluenceConfirmationEngine = confluenceEntryEngine.confirmationEngine || {};
   const confluenceVolumeContext = confluenceEntryEngine.volumeContext || {};
+  const confluenceConfirmationEngineWeights = confluenceConfirmationEngine.weights || {};
+  const confluenceConfirmationEngineCostSplit = confluenceConfirmationEngine.costSplit || {};
+  const confluenceConfirmationEngineTechnical = confluenceConfirmationEngine.technical || {};
+  const confluenceConfirmationEngineMicrostructure = confluenceConfirmationEngine.microstructure || {};
+  const confluenceConfirmationEngineTechnicalWeights = confluenceConfirmationEngineTechnical.weights || {};
+  const confluenceConfirmationEngineMicroWeights = confluenceConfirmationEngineMicrostructure.weights || {};
   const confluenceBounceDetection = confluenceEntryEngine.bounceDetection || {};
   const confluenceBreakdownDetection = confluenceEntryEngine.breakdownDetection || {};
   const confluenceDerivativesContext = confluenceEntryEngine.derivativesContext || {};
@@ -288,6 +295,70 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         minSignalsForWeak: Number(confluenceConfirmation.minSignalsForWeak || 1),
         htfBiasBoost: Number(confluenceConfirmation.htfBiasBoost || 0.08),
         htfCounterTrendPenalty: Number(confluenceConfirmation.htfCounterTrendPenalty || 0.18),
+      },
+      confirmationEngine: {
+        enabled: !!confluenceConfirmationEngine.enabled,
+        weights: {
+          technical: Number(confluenceConfirmationEngineWeights.technical || 0.62),
+          microstructure: Number(confluenceConfirmationEngineWeights.microstructure || 0.38),
+        },
+        costSplit: {
+          minCheapScoreForMicro: Number(confluenceConfirmationEngineCostSplit.minCheapScoreForMicro || 0.42),
+          skipMicroWhenBudgetExceeded: confluenceConfirmationEngineCostSplit.skipMicroWhenBudgetExceeded !== false,
+        },
+        technical: {
+          minCandles: Number(confluenceConfirmationEngineTechnical.minCandles || 30),
+          volumeAveragePeriod: Number(confluenceConfirmationEngineTechnical.volumeAveragePeriod || 20),
+          volumeSpikeThreshold: Number(confluenceConfirmationEngineTechnical.volumeSpikeThreshold || 1.6),
+          volumeConfirmationThreshold: Number(confluenceConfirmationEngineTechnical.volumeConfirmationThreshold || 1.1),
+          weights: {
+            volume: Number(confluenceConfirmationEngineTechnicalWeights.volume || 0.2),
+            rsi: Number(confluenceConfirmationEngineTechnicalWeights.rsi || 0.14),
+            stochasticRsi: Number(confluenceConfirmationEngineTechnicalWeights.stochasticRsi || 0.12),
+            mfi: Number(confluenceConfirmationEngineTechnicalWeights.mfi || 0.12),
+            cci: Number(confluenceConfirmationEngineTechnicalWeights.cci || 0.12),
+            divergence: Number(confluenceConfirmationEngineTechnicalWeights.divergence || 0.12),
+          },
+          rsi: typeof confluenceConfirmationEngineTechnical.rsi === 'object' && confluenceConfirmationEngineTechnical.rsi
+            ? confluenceConfirmationEngineTechnical.rsi
+            : {},
+          stochasticRsi: typeof confluenceConfirmationEngineTechnical.stochasticRsi === 'object' && confluenceConfirmationEngineTechnical.stochasticRsi
+            ? confluenceConfirmationEngineTechnical.stochasticRsi
+            : {},
+          mfi: typeof confluenceConfirmationEngineTechnical.mfi === 'object' && confluenceConfirmationEngineTechnical.mfi
+            ? confluenceConfirmationEngineTechnical.mfi
+            : {},
+          cci: typeof confluenceConfirmationEngineTechnical.cci === 'object' && confluenceConfirmationEngineTechnical.cci
+            ? confluenceConfirmationEngineTechnical.cci
+            : {},
+          divergence: typeof confluenceConfirmationEngineTechnical.divergence === 'object' && confluenceConfirmationEngineTechnical.divergence
+            ? confluenceConfirmationEngineTechnical.divergence
+            : {},
+        },
+        microstructure: {
+          depthLevels: Number(confluenceConfirmationEngineMicrostructure.depthLevels || 8),
+          softPenaltyOnMissingData: Number(confluenceConfirmationEngineMicrostructure.softPenaltyOnMissingData || 0.06),
+          weights: {
+            imbalance: Number(confluenceConfirmationEngineMicroWeights.imbalance || 0.36),
+            spread: Number(confluenceConfirmationEngineMicroWeights.spread || 0.28),
+            bookPressure: Number(confluenceConfirmationEngineMicroWeights.bookPressure || 0.36),
+          },
+          imbalance: typeof confluenceConfirmationEngineMicrostructure.imbalance === 'object' && confluenceConfirmationEngineMicrostructure.imbalance
+            ? confluenceConfirmationEngineMicrostructure.imbalance
+            : {},
+          spread: typeof confluenceConfirmationEngineMicrostructure.spread === 'object' && confluenceConfirmationEngineMicrostructure.spread
+            ? confluenceConfirmationEngineMicrostructure.spread
+            : {},
+          bookPressure: typeof confluenceConfirmationEngineMicrostructure.bookPressure === 'object' && confluenceConfirmationEngineMicrostructure.bookPressure
+            ? confluenceConfirmationEngineMicrostructure.bookPressure
+            : {},
+          liquidityWall: typeof confluenceConfirmationEngineMicrostructure.liquidityWall === 'object' && confluenceConfirmationEngineMicrostructure.liquidityWall
+            ? confluenceConfirmationEngineMicrostructure.liquidityWall
+            : {},
+        },
+        capitalRegimePenalties: typeof confluenceConfirmationEngine.capitalRegimePenalties === 'object' && confluenceConfirmationEngine.capitalRegimePenalties
+          ? confluenceConfirmationEngine.capitalRegimePenalties
+          : {},
       },
       marketLevel: {
         enabled: !!confluenceMarketLevel.enabled,

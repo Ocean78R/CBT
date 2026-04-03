@@ -557,3 +557,144 @@ test('confluenceEntryEngine: derivativesContextLayer возвращает degrad
   assert.ok((result.layers.derivativesContextLayer.reasonCodes || []).includes('derivatives_data_missing'));
   assert.ok(['FULL_ENTRY', 'WEAK_ENTRY', 'NO_ENTRY'].includes(result.decision.finalDecision));
 });
+
+test('confluenceEntryEngine: confirmationEngine разделяет technical/microstructure и не принимает final decision самостоятельно', () => {
+  const config = normalizeConfluenceEntryConfig({
+    enabled: true,
+    mode: 'confluence',
+    blockWeights: {
+      entryPermission: 0.22,
+      marketContext: 0.18,
+      primarySignal: 0.3,
+      confirmation: 0.2,
+      marketLevel: 0.1,
+    },
+    thresholds: { fullEntryScore: 0.62, weakEntryScore: 0.46, minConfidence: 0.3 },
+    confirmationEngine: {
+      enabled: true,
+      costSplit: {
+        minCheapScoreForMicro: 0.2,
+        skipMicroWhenBudgetExceeded: true,
+      },
+      capitalRegimePenalties: {
+        DEFENSIVE: 0.05,
+      },
+    },
+  });
+
+  const candles = Array.from({ length: 48 }, (_, i) => ({
+    timestamp: i + 1,
+    open: 100 + i * 0.2,
+    high: 101 + i * 0.2,
+    low: 99 + i * 0.18,
+    close: 100 + i * 0.23,
+    volume: 900 + i * 20,
+  }));
+
+  const result = evaluateConfluenceEntry({
+    context: {
+      cycleId: 'c-confirm-1',
+      cycleIndex: 11,
+      ticker: 'BTC-USDT',
+      exchange: 'bingx',
+      marketRegime: 'trend',
+      capitalRegime: 'DEFENSIVE',
+      balanceState: { capitalRegime: 'DEFENSIVE' },
+      setupType: 'byBarsPercents',
+    },
+    budgetState: 'normal',
+    sharedSnapshot: {
+      candles,
+      orderBook: {
+        bids: [[120, 20], [119.9, 18], [119.8, 16], [119.7, 14]],
+        asks: [[120.1, 14], [120.2, 12], [120.3, 10], [120.4, 9]],
+      },
+    },
+    regimeRouterDecision: {
+      layerName: 'marketRegimeRouter',
+      marketRegime: 'trend',
+      allowedSetups: ['byBarsPercents'],
+      selectedPredictType: 'byBarsPercents',
+      score: 0.78,
+      confidence: 0.71,
+    },
+    primarySignal: {
+      layerName: 'primarySignalLayer',
+      direction: 'long',
+      score: 0.84,
+      confidence: 0.74,
+      setupType: 'byBarsPercents',
+    },
+  }, config);
+
+  assert.equal(result.layers.confirmationLayer.layerName, 'confirmationLayer');
+  assert.equal(result.layers.confirmationLayer.explanation.confirmationEngineEnabled, true);
+  assert.ok(result.layers.confirmationLayer.explanation.technical.signals.length > 0);
+  assert.ok(result.layers.confirmationLayer.explanation.microstructure.signals.length > 0);
+  assert.ok(Number.isFinite(result.layers.confirmationLayer.softPenalty));
+  assert.ok(result.decision.finalDecision !== 'LEGACY_FALLBACK');
+});
+
+test('confluenceEntryEngine: confirmationEngine возвращает валидный degraded/missing при отсутствии стакана', () => {
+  const config = normalizeConfluenceEntryConfig({
+    enabled: true,
+    mode: 'confluence',
+    confirmationEngine: {
+      enabled: true,
+      costSplit: {
+        minCheapScoreForMicro: 0.2,
+      },
+    },
+  });
+
+  const candles = Array.from({ length: 40 }, (_, i) => ({
+    timestamp: i + 1,
+    open: 200 - i * 0.2,
+    high: 201 - i * 0.18,
+    low: 198 - i * 0.21,
+    close: 199 - i * 0.19,
+    volume: 1200 + (i % 5) * 15,
+  }));
+
+  const result = evaluateConfluenceEntry({
+    context: {
+      cycleId: 'c-confirm-2',
+      cycleIndex: 12,
+      ticker: 'ETH-USDT',
+      exchange: 'bingx',
+      marketRegime: 'trend',
+      capitalRegime: 'NORMAL',
+      balanceState: { capitalRegime: 'NORMAL' },
+      setupType: 'byBarsPercents',
+    },
+    sharedSnapshot: {
+      candles,
+    },
+    regimeRouterDecision: {
+      layerName: 'marketRegimeRouter',
+      marketRegime: 'trend',
+      allowedSetups: ['byBarsPercents'],
+      selectedPredictType: 'byBarsPercents',
+      score: 0.72,
+      confidence: 0.69,
+    },
+    primarySignal: {
+      layerName: 'primarySignalLayer',
+      direction: 'short',
+      score: 0.79,
+      confidence: 0.72,
+      setupType: 'byBarsPercents',
+    },
+  }, config);
+
+  assert.equal(result.layers.confirmationLayer.explanation.confirmationEngineEnabled, true);
+  assert.ok(['degraded', 'missing', 'full'].includes(result.layers.confirmationLayer.dataQualityState));
+  assert.ok(result.layers.confirmationLayer.explanation.microstructure.missingData);
+
+  const event = toConfluenceEntryEvent({
+    context: { cycleId: 'c-confirm-2', ticker: 'ETH-USDT', exchange: 'bingx' },
+    result,
+  });
+  assert.ok(event.payload.confirmationContext);
+  assert.ok(event.payload.telemetry.downstreamContext.confluenceEntry.confirmationContext);
+});

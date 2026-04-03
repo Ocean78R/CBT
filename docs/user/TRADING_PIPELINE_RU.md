@@ -502,3 +502,17 @@ Cache tiers и чтение слоями:
   - HVN/LVN и положение цены относительно них,
   - дистанция цены до VWAP/Anchored VWAP.
 - Важное ограничение: слой не открывает сделки и не отправляет ордера; он только обогащает `DecisionContext.metadata.layerScores.volumeContextLayer`.
+
+## Runtime-позиция confirmationEngine (technical + microstructure confluence)
+- Место в пайплайне: `marketRegimeRouter -> confluenceEntry(entryPermission -> marketContext -> primarySignal -> confirmation[technical cheap -> microstructure expensive] -> finalEntryDecision) -> sizing -> execution`.
+- Зависимости от более ранних слоёв:
+  - `capitalRegime/balanceState` (внешний runtime-контекст, без ослабления ограничений);
+  - `primarySignal.direction` (если направления нет, confirmations не могут «создать» вход);
+  - `sharedSnapshot.candles` для technical-части;
+  - `sharedSnapshot.orderBook` для microstructure-части.
+- Fallback/безопасность:
+  - при `confluenceEntryEngine.confirmationEngine.enabled=false` действует прежний `confirmationSignals` fallback;
+  - при отсутствии стакана или budget-limit microstructure возвращает `missing/degraded`, а цикл продолжается;
+  - expensive-stage запускается только после cheap-stage (`costSplit.minCheapScoreForMicro`) и при доступном budget.
+- Роль слоя:
+  - только усиление/ослабление базовой идеи (`score/confidence/softPenalty`), без final-entry ownership.
