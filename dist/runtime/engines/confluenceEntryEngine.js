@@ -6,6 +6,7 @@ const { evaluateVwapProfileLayer } = require('./vwapProfileEngine');
 const { evaluateBounceDetection } = require('./bounceDetectionEngine');
 const { evaluateBreakdown } = require('./breakdownEngine');
 const { evaluateDerivativesContext } = require('./derivativesContextEngine');
+const { evaluateConfirmationEngine } = require('./confirmationEngine');
 
 function clamp01(value) {
   if (!Number.isFinite(value)) return 0;
@@ -18,6 +19,7 @@ function normalizeConfig(raw = {}) {
   const blockWeights = raw.blockWeights || {};
   const thresholds = raw.thresholds || {};
   const confirmation = raw.confirmation || {};
+  const confirmationEngine = raw.confirmationEngine || {};
   const marketContext = raw.marketContext || {};
   const primarySignal = raw.primarySignal || {};
   const marketLevel = raw.marketLevel || {};
@@ -61,6 +63,63 @@ function normalizeConfig(raw = {}) {
       minSignalsForWeak: Number(confirmation.minSignalsForWeak ?? 1),
       htfBiasBoost: Number(confirmation.htfBiasBoost ?? 0.08),
       htfCounterTrendPenalty: Number(confirmation.htfCounterTrendPenalty ?? 0.18),
+    },
+    confirmationEngine: {
+      enabled: !!confirmationEngine.enabled,
+      weights: {
+        technical: Number(((confirmationEngine.weights || {}).technical) ?? 0.62),
+        microstructure: Number(((confirmationEngine.weights || {}).microstructure) ?? 0.38),
+      },
+      costSplit: {
+        minCheapScoreForMicro: Number(((confirmationEngine.costSplit || {}).minCheapScoreForMicro) ?? 0.42),
+        skipMicroWhenBudgetExceeded: ((confirmationEngine.costSplit || {}).skipMicroWhenBudgetExceeded) !== false,
+      },
+      technical: {
+        minCandles: Number(((confirmationEngine.technical || {}).minCandles) ?? 30),
+        volumeAveragePeriod: Number(((confirmationEngine.technical || {}).volumeAveragePeriod) ?? 20),
+        volumeSpikeThreshold: Number(((confirmationEngine.technical || {}).volumeSpikeThreshold) ?? 1.6),
+        volumeConfirmationThreshold: Number(((confirmationEngine.technical || {}).volumeConfirmationThreshold) ?? 1.1),
+        weights: typeof ((confirmationEngine.technical || {}).weights) === 'object' && ((confirmationEngine.technical || {}).weights)
+          ? confirmationEngine.technical.weights
+          : {},
+        rsi: typeof ((confirmationEngine.technical || {}).rsi) === 'object' && ((confirmationEngine.technical || {}).rsi
+          ? confirmationEngine.technical.rsi
+          : {}),
+        stochasticRsi: typeof ((confirmationEngine.technical || {}).stochasticRsi) === 'object' && ((confirmationEngine.technical || {}).stochasticRsi
+          ? confirmationEngine.technical.stochasticRsi
+          : {}),
+        mfi: typeof ((confirmationEngine.technical || {}).mfi) === 'object' && ((confirmationEngine.technical || {}).mfi
+          ? confirmationEngine.technical.mfi
+          : {}),
+        cci: typeof ((confirmationEngine.technical || {}).cci) === 'object' && ((confirmationEngine.technical || {}).cci
+          ? confirmationEngine.technical.cci
+          : {}),
+        divergence: typeof ((confirmationEngine.technical || {}).divergence) === 'object' && ((confirmationEngine.technical || {}).divergence
+          ? confirmationEngine.technical.divergence
+          : {}),
+      },
+      microstructure: {
+        depthLevels: Number(((confirmationEngine.microstructure || {}).depthLevels) ?? 8),
+        softPenaltyOnMissingData: Number(((confirmationEngine.microstructure || {}).softPenaltyOnMissingData) ?? 0.06),
+        weights: typeof ((confirmationEngine.microstructure || {}).weights) === 'object' && ((confirmationEngine.microstructure || {}).weights)
+          ? confirmationEngine.microstructure.weights
+          : {},
+        imbalance: typeof ((confirmationEngine.microstructure || {}).imbalance) === 'object' && ((confirmationEngine.microstructure || {}).imbalance
+          ? confirmationEngine.microstructure.imbalance
+          : {}),
+        spread: typeof ((confirmationEngine.microstructure || {}).spread) === 'object' && ((confirmationEngine.microstructure || {}).spread
+          ? confirmationEngine.microstructure.spread
+          : {}),
+        bookPressure: typeof ((confirmationEngine.microstructure || {}).bookPressure) === 'object' && ((confirmationEngine.microstructure || {}).bookPressure
+          ? confirmationEngine.microstructure.bookPressure
+          : {}),
+        liquidityWall: typeof ((confirmationEngine.microstructure || {}).liquidityWall) === 'object' && ((confirmationEngine.microstructure || {}).liquidityWall
+          ? confirmationEngine.microstructure.liquidityWall
+          : {}),
+      },
+      capitalRegimePenalties: typeof confirmationEngine.capitalRegimePenalties === 'object' && confirmationEngine.capitalRegimePenalties
+        ? confirmationEngine.capitalRegimePenalties
+        : {},
     },
     marketLevel: {
       enabled: !!marketLevel.enabled,
@@ -386,25 +445,40 @@ function evaluateConfirmationLayer(input, config) {
   const confirmationSignals = Array.isArray(input.confirmationSignals) ? input.confirmationSignals : [];
   const primaryDirection = normalizeDirection(((input.primarySignal || {}).direction || (input.primarySignal || {}).side));
 
-  let score = 0.35;
-  let confidence = 0.45;
-  let softPenalty = 0;
-  const reasonCodes = [];
-  const vetoCandidates = [];
-  let confirmationsApproved = 0;
+  const confirmationEngineResult = evaluateConfirmationEngine({
+    context: input.context || {},
+    sharedSnapshot: input.sharedSnapshot || {},
+    featureStoreContext: input.featureStoreContext || {},
+    direction: primaryDirection,
+    budgetState: input.budgetState || 'normal',
+  }, config.confirmationEngine || {});
 
-  confirmationSignals.forEach((signal) => {
-    if (!signal) return;
-    if (signal.approved === true) {
-      confirmationsApproved += 1;
-      score += 0.18;
-      confidence += 0.1;
-      reasonCodes.push(`confirmation:${signal.name || 'unnamed'}:approved`);
-    } else if (signal.approved === false) {
-      softPenalty = clamp01(softPenalty + 0.08);
-      reasonCodes.push(`confirmation:${signal.name || 'unnamed'}:rejected`);
-    }
-  });
+  let score = confirmationEngineResult.enabled ? confirmationEngineResult.score : 0.35;
+  let confidence = confirmationEngineResult.enabled ? confirmationEngineResult.confidence : 0.45;
+  let softPenalty = confirmationEngineResult.enabled ? confirmationEngineResult.softPenalty : 0;
+  const reasonCodes = Array.isArray(confirmationEngineResult.reasonCodes) ? [...confirmationEngineResult.reasonCodes] : [];
+  const vetoCandidates = [];
+
+  let confirmationsApproved = 0;
+  if (!confirmationEngineResult.enabled) {
+    confirmationSignals.forEach((signal) => {
+      if (!signal) return;
+      if (signal.approved === true) {
+        confirmationsApproved += 1;
+        score += 0.18;
+        confidence += 0.1;
+        reasonCodes.push(`confirmation:${signal.name || 'unnamed'}:approved`);
+      } else if (signal.approved === false) {
+        softPenalty = clamp01(softPenalty + 0.08);
+        reasonCodes.push(`confirmation:${signal.name || 'unnamed'}:rejected`);
+      }
+    });
+  } else {
+    const technicalSignals = (((confirmationEngineResult || {}).technical || {}).explanation || {}).signals || [];
+    const microSignals = (((confirmationEngineResult || {}).microstructure || {}).explanation || {}).signals || [];
+    confirmationsApproved = technicalSignals.concat(microSignals).filter((x) => x && x.approved === true).length;
+    reasonCodes.push('confirmation_engine_applied');
+  }
 
   if (htfBias.layerName) {
     const htfDirection = normalizeDirection(htfBias.htfBias || htfBias.direction);
@@ -436,13 +510,19 @@ function evaluateConfirmationLayer(input, config) {
     confidence,
     softPenalty,
     vetoCandidates,
-    dataQualityState: htfBias.layerName ? 'full' : 'degraded',
+    dataQualityState: confirmationEngineResult.enabled
+      ? (confirmationEngineResult.dataQualityState || 'degraded')
+      : (htfBias.layerName ? 'full' : 'degraded'),
     reasonCodes,
     explanation: {
       confirmationsApproved,
       confirmationSignalsCount: confirmationSignals.length,
+      confirmationEngineEnabled: confirmationEngineResult.enabled === true,
       htfMode: htfBias.mode || 'unavailable',
-      // Русский комментарий: подтверждения влияют только на качество входа, не на sizing/execution.
+      technical: confirmationEngineResult.technical ? (confirmationEngineResult.technical.explanation || {}) : {},
+      microstructure: confirmationEngineResult.microstructure ? (confirmationEngineResult.microstructure.explanation || {}) : {},
+      confirmationEngineMode: (confirmationEngineResult.explanation || {}).mode || 'legacy_fallback',
+      // Русский комментарий: confirmations влияют только на quality-score и штрафы, но не открывают сделку без primary signal + final layer.
       scope: 'entry_quality_only',
     },
   });
@@ -554,6 +634,7 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
       sizingDecision: 'not_evaluated',
       marketLevels: (layers.marketLevelLayer || {}).explanation || {},
       derivativesContext: (layers.derivativesContextLayer || {}).explanation || {},
+      confirmationContext: (layers.confirmationLayer || {}).explanation || {},
     },
   });
 
@@ -732,6 +813,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       bounceDetection: layers.bounceDetectionLayer ? layers.bounceDetectionLayer.explanation : {},
       breakdownDetection: layers.breakdownDetectionLayer ? layers.breakdownDetectionLayer.explanation : {},
       derivativesContext: layers.derivativesContextLayer ? layers.derivativesContextLayer.explanation : {},
+      confirmationContext: layers.confirmationLayer ? layers.confirmationLayer.explanation : {},
     },
   });
 
@@ -785,6 +867,7 @@ function toConfluenceEntryEvent(input = {}) {
       bounceDetection: (layerScores.bounceDetectionLayer || {}).explanation || {},
       breakdownDetection: (layerScores.breakdownDetectionLayer || {}).explanation || {},
       derivativesContext: (layerScores.derivativesContextLayer || {}).explanation || {},
+      confirmationContext: (layerScores.confirmationLayer || {}).explanation || {},
       // Русский комментарий: совместимый downstream-контекст для audit trail/reporting без ad-hoc форматов.
       telemetry: {
         downstreamContext: {
@@ -799,6 +882,7 @@ function toConfluenceEntryEvent(input = {}) {
             bounceDetection: (layerScores.bounceDetectionLayer || {}).explanation || {},
             breakdownDetection: (layerScores.breakdownDetectionLayer || {}).explanation || {},
             derivativesContext: (layerScores.derivativesContextLayer || {}).explanation || {},
+            confirmationContext: (layerScores.confirmationLayer || {}).explanation || {},
           },
         },
       },
