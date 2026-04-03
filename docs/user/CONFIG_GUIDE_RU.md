@@ -148,6 +148,26 @@
 - старое поведение остаётся fallback при выключенном флаге;
 - hard-risk и capital prohibition остаются выше derivatives logic.
 
+## Конфиг session filter / time context слоя в confluenceEntryEngine
+Блок находится в `confluenceEntryEngine.sessionFilter`.
+
+- `confluenceEntryEngine.blockWeights.sessionFilter`: вес time/session блока в итоговом confluence-score.
+- `sessionFilter.enabled`: включает отдельный слой time-of-day / session-context.
+- `sessionFilter.timezone`: таймзона для определения часа и активной сессии (обычно `UTC`).
+- `sessionFilter.noTradeOnRestrictedWindows`: разрешает поднимать `no_trade` veto-кандидат в запрещённых окнах.
+- `sessionFilter.baseScore/baseConfidence`: базовая оценка и уверенность слоя.
+- `sessionFilter.sessions[]`: правила определения сессии (`sessionState`, часы, multiplier/confidence).
+- `sessionFilter.goodWindows[]`: окна повышенного качества входа (boost score/confidence).
+- `sessionFilter.chaoticWindows[]`: окна повышенной хаотичности (penalty/confidence down).
+- `sessionFilter.restrictedWindows[]`: окна, где можно полностью запрещать вход через `timeBasedEntryRestriction`.
+- `sessionFilter.capitalRegimeInfluence.*`: как `capitalRegime` усиливает time-ограничения (penalty/strict mode).
+- `sessionFilter.refreshPolicy.*`: cadence и кэширование (`minCyclesBetweenRefresh`, `allowCachedReuse`, `cacheKey`).
+
+Важно:
+- слой не заменяет `marketRegimeRouter` и не является final-decision слоем;
+- слой не выполняет execution actions и не открывает позицию;
+- при `enabled=false` старая торговая логика остаётся без изменений.
+
 ## Какие параметры опасно менять без понимания логики
 - hard-risk/hard-safety ограничения,
 - параметры stop-loss/forced-exit политики,

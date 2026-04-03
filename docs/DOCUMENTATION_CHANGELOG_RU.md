@@ -1,3 +1,12 @@
+## 2026-04-03 (sessionFilterEngine / timeContextEngine layer)
+- Изменение: добавлен отдельный слой `sessionFilterEngine` (`timeContextEngine`) для оценки времени суток и рыночной сессии с выходами `timeContextScore`, `sessionState`, `timeBasedEntryRestriction`.
+- Изменение: слой интегрирован в `confluenceEntryEngine` как context/permission-блок `sessionFilterLayer` между контекстными слоями и `finalEntryDecisionLayer`; слой не открывает сделки и не подменяет regime-router.
+- Изменение: добавлен config-блок `confluenceEntryEngine.sessionFilter` + вес `blockWeights.sessionFilter`, при `enabled=false` сохранён legacy fallback без изменения торгового поведения.
+- Изменение: добавлены runtime-логи `[confluenceEntry]` и structured поля `sessionContext/timeContextScore/sessionState/timeBasedEntryRestriction` для observability/audit trail/trade journal.
+- Изменение: добавлены регрессионные тесты для standalone session-filter и интеграции в confluence.
+- Связанные файлы кода: `dist/runtime/engines/sessionFilterEngine.js`, `dist/runtime/engines/confluenceEntryEngine.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/session-filter-engine.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`.
+
 ## 2026-04-03 (confirmationEngine: technical + microstructure confluence confirmations)
 - Изменение: добавлен отдельный слой `confirmationEngine` с разделением на `technical` (cheap) и `microstructure` (expensive) подтверждения внутри `confluenceEntryEngine.confirmationLayer`.
 - Изменение: реализованы сигналы `volume spike`, `volume vs average`, `RSI`, `Stochastic RSI`, `MFI`, `CCI`, `basic divergence`, `order book imbalance`, `spread quality`, `book pressure/liquidity wall` с graceful degraded/missing режимом.

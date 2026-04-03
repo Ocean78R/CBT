@@ -82,7 +82,8 @@
           "volumeContext": 0,
           "bounceDetection": 0,
           "breakdownDetection": 0,
-          "derivativesContext": 0
+          "derivativesContext": 0,
+          "sessionFilter": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -416,6 +417,34 @@
             "CAPITAL_PRESERVATION": 0.1,
             "HALT_NEW_ENTRIES": 0.2
           }
+        },
+        "sessionFilter": {
+          "enabled": false,
+          "timezone": "UTC",
+          "noTradeOnRestrictedWindows": true,
+          "baseScore": 0.6,
+          "baseConfidence": 0.62,
+          "degradedPenaltyOnMissingTime": 0.08,
+          "sessions": [],
+          "goodWindows": [],
+          "chaoticWindows": [],
+          "restrictedWindows": [],
+          "capitalRegimeInfluence": {
+            "mode": "penalty_only",
+            "protectivePenaltyByRegime": {},
+            "strictNoTradeRegimes": [
+              "HALT_NEW_ENTRIES"
+            ],
+            "tightenRestrictedWindowRegimes": [
+              "CAPITAL_PRESERVATION",
+              "HALT_NEW_ENTRIES"
+            ]
+          },
+          "refreshPolicy": {
+            "minCyclesBetweenRefresh": 2,
+            "allowCachedReuse": true,
+            "cacheKey": "session_filter_engine"
+          }
         }
       }
     },
@@ -500,7 +529,8 @@
           "marketLevel": 0,
           "volumeContext": 0,
           "bounceDetection": 0,
-          "breakdownDetection": 0
+          "breakdownDetection": 0,
+          "sessionFilter": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -701,6 +731,34 @@
             "DEFENSIVE": 0.1,
             "CAPITAL_PRESERVATION": 0.16,
             "HALT_NEW_ENTRIES": 0.28
+          }
+        },
+        "sessionFilter": {
+          "enabled": false,
+          "timezone": "UTC",
+          "noTradeOnRestrictedWindows": true,
+          "baseScore": 0.6,
+          "baseConfidence": 0.62,
+          "degradedPenaltyOnMissingTime": 0.08,
+          "sessions": [],
+          "goodWindows": [],
+          "chaoticWindows": [],
+          "restrictedWindows": [],
+          "capitalRegimeInfluence": {
+            "mode": "penalty_only",
+            "protectivePenaltyByRegime": {},
+            "strictNoTradeRegimes": [
+              "HALT_NEW_ENTRIES"
+            ],
+            "tightenRestrictedWindowRegimes": [
+              "CAPITAL_PRESERVATION",
+              "HALT_NEW_ENTRIES"
+            ]
+          },
+          "refreshPolicy": {
+            "minCyclesBetweenRefresh": 2,
+            "allowCachedReuse": true,
+            "cacheKey": "session_filter_engine"
           }
         }
       }
@@ -1121,7 +1179,8 @@
           "marketLevel": 0,
           "volumeContext": 0,
           "bounceDetection": 0,
-          "breakdownDetection": 0
+          "breakdownDetection": 0,
+          "sessionFilter": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1322,6 +1381,34 @@
             "DEFENSIVE": 0.1,
             "CAPITAL_PRESERVATION": 0.16,
             "HALT_NEW_ENTRIES": 0.28
+          }
+        },
+        "sessionFilter": {
+          "enabled": false,
+          "timezone": "UTC",
+          "noTradeOnRestrictedWindows": true,
+          "baseScore": 0.6,
+          "baseConfidence": 0.62,
+          "degradedPenaltyOnMissingTime": 0.08,
+          "sessions": [],
+          "goodWindows": [],
+          "chaoticWindows": [],
+          "restrictedWindows": [],
+          "capitalRegimeInfluence": {
+            "mode": "penalty_only",
+            "protectivePenaltyByRegime": {},
+            "strictNoTradeRegimes": [
+              "HALT_NEW_ENTRIES"
+            ],
+            "tightenRestrictedWindowRegimes": [
+              "CAPITAL_PRESERVATION",
+              "HALT_NEW_ENTRIES"
+            ]
+          },
+          "refreshPolicy": {
+            "minCyclesBetweenRefresh": 2,
+            "allowCachedReuse": true,
+            "cacheKey": "session_filter_engine"
           }
         }
       }
@@ -1406,7 +1493,8 @@
           "marketLevel": 0,
           "volumeContext": 0,
           "bounceDetection": 0,
-          "breakdownDetection": 0
+          "breakdownDetection": 0,
+          "sessionFilter": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1607,6 +1695,34 @@
             "DEFENSIVE": 0.1,
             "CAPITAL_PRESERVATION": 0.16,
             "HALT_NEW_ENTRIES": 0.28
+          }
+        },
+        "sessionFilter": {
+          "enabled": false,
+          "timezone": "UTC",
+          "noTradeOnRestrictedWindows": true,
+          "baseScore": 0.6,
+          "baseConfidence": 0.62,
+          "degradedPenaltyOnMissingTime": 0.08,
+          "sessions": [],
+          "goodWindows": [],
+          "chaoticWindows": [],
+          "restrictedWindows": [],
+          "capitalRegimeInfluence": {
+            "mode": "penalty_only",
+            "protectivePenaltyByRegime": {},
+            "strictNoTradeRegimes": [
+              "HALT_NEW_ENTRIES"
+            ],
+            "tightenRestrictedWindowRegimes": [
+              "CAPITAL_PRESERVATION",
+              "HALT_NEW_ENTRIES"
+            ]
+          },
+          "refreshPolicy": {
+            "minCyclesBetweenRefresh": 2,
+            "allowCachedReuse": true,
+            "cacheKey": "session_filter_engine"
           }
         }
       }
@@ -1692,7 +1808,8 @@
           "marketLevel": 0,
           "volumeContext": 0,
           "bounceDetection": 0,
-          "breakdownDetection": 0
+          "breakdownDetection": 0,
+          "sessionFilter": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1893,6 +2010,34 @@
             "DEFENSIVE": 0.1,
             "CAPITAL_PRESERVATION": 0.16,
             "HALT_NEW_ENTRIES": 0.28
+          }
+        },
+        "sessionFilter": {
+          "enabled": false,
+          "timezone": "UTC",
+          "noTradeOnRestrictedWindows": true,
+          "baseScore": 0.6,
+          "baseConfidence": 0.62,
+          "degradedPenaltyOnMissingTime": 0.08,
+          "sessions": [],
+          "goodWindows": [],
+          "chaoticWindows": [],
+          "restrictedWindows": [],
+          "capitalRegimeInfluence": {
+            "mode": "penalty_only",
+            "protectivePenaltyByRegime": {},
+            "strictNoTradeRegimes": [
+              "HALT_NEW_ENTRIES"
+            ],
+            "tightenRestrictedWindowRegimes": [
+              "CAPITAL_PRESERVATION",
+              "HALT_NEW_ENTRIES"
+            ]
+          },
+          "refreshPolicy": {
+            "minCyclesBetweenRefresh": 2,
+            "allowCachedReuse": true,
+            "cacheKey": "session_filter_engine"
           }
         }
       }
@@ -1977,7 +2122,8 @@
           "marketLevel": 0,
           "volumeContext": 0,
           "bounceDetection": 0,
-          "breakdownDetection": 0
+          "breakdownDetection": 0,
+          "sessionFilter": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -2178,6 +2324,34 @@
             "DEFENSIVE": 0.1,
             "CAPITAL_PRESERVATION": 0.16,
             "HALT_NEW_ENTRIES": 0.28
+          }
+        },
+        "sessionFilter": {
+          "enabled": false,
+          "timezone": "UTC",
+          "noTradeOnRestrictedWindows": true,
+          "baseScore": 0.6,
+          "baseConfidence": 0.62,
+          "degradedPenaltyOnMissingTime": 0.08,
+          "sessions": [],
+          "goodWindows": [],
+          "chaoticWindows": [],
+          "restrictedWindows": [],
+          "capitalRegimeInfluence": {
+            "mode": "penalty_only",
+            "protectivePenaltyByRegime": {},
+            "strictNoTradeRegimes": [
+              "HALT_NEW_ENTRIES"
+            ],
+            "tightenRestrictedWindowRegimes": [
+              "CAPITAL_PRESERVATION",
+              "HALT_NEW_ENTRIES"
+            ]
+          },
+          "refreshPolicy": {
+            "minCyclesBetweenRefresh": 2,
+            "allowCachedReuse": true,
+            "cacheKey": "session_filter_engine"
           }
         }
       }
@@ -2273,7 +2447,8 @@
           "marketLevel": 0,
           "volumeContext": 0,
           "bounceDetection": 0,
-          "breakdownDetection": 0
+          "breakdownDetection": 0,
+          "sessionFilter": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -2474,6 +2649,34 @@
             "DEFENSIVE": 0.1,
             "CAPITAL_PRESERVATION": 0.16,
             "HALT_NEW_ENTRIES": 0.28
+          }
+        },
+        "sessionFilter": {
+          "enabled": false,
+          "timezone": "UTC",
+          "noTradeOnRestrictedWindows": true,
+          "baseScore": 0.6,
+          "baseConfidence": 0.62,
+          "degradedPenaltyOnMissingTime": 0.08,
+          "sessions": [],
+          "goodWindows": [],
+          "chaoticWindows": [],
+          "restrictedWindows": [],
+          "capitalRegimeInfluence": {
+            "mode": "penalty_only",
+            "protectivePenaltyByRegime": {},
+            "strictNoTradeRegimes": [
+              "HALT_NEW_ENTRIES"
+            ],
+            "tightenRestrictedWindowRegimes": [
+              "CAPITAL_PRESERVATION",
+              "HALT_NEW_ENTRIES"
+            ]
+          },
+          "refreshPolicy": {
+            "minCyclesBetweenRefresh": 2,
+            "allowCachedReuse": true,
+            "cacheKey": "session_filter_engine"
           }
         }
       }
