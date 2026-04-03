@@ -1,3 +1,11 @@
+## 2026-04-03 (confirmationEngine: technical + microstructure confluence confirmations)
+- Изменение: добавлен отдельный слой `confirmationEngine` с разделением на `technical` (cheap) и `microstructure` (expensive) подтверждения внутри `confluenceEntryEngine.confirmationLayer`.
+- Изменение: реализованы сигналы `volume spike`, `volume vs average`, `RSI`, `Stochastic RSI`, `MFI`, `CCI`, `basic divergence`, `order book imbalance`, `spread quality`, `book pressure/liquidity wall` с graceful degraded/missing режимом.
+- Изменение: добавлен config-блок `confluenceEntryEngine.confirmationEngine` (веса, cost-split, technical/microstructure thresholds, capitalRegime penalties) с сохранением legacy fallback при `enabled=false`.
+- Изменение: расширены runtime-логи `[confluenceEntry]` и structured event `confluence_entry_decision` полями confirmation-контекста для audit trail/observability/trade journal.
+- Изменение: обновлены регрессионные тесты confluence на новую confirmation-логику и обработку отсутствующих данных.
+- Связанные файлы кода: `dist/runtime/engines/confirmationEngine.js`, `dist/runtime/engines/confluenceEntryEngine.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/confluence-entry-engine.test.js`.
+
 # Журнал изменений пользовательской документации
 
 ## Формат записи

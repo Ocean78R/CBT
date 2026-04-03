@@ -581,3 +581,19 @@ Runtime-позиция слоя:
 ```
 
 Примечание: `blockWeights.volumeContext` задаёт вклад только volume-контекста и не смешивает его с `marketLevel` (zones engine).
+
+## Конфиг confirmationEngine (technical + microstructure confirmations)
+Блок находится в `confluenceEntryEngine.confirmationEngine`.
+
+- `enabled`: включает новый слой подтверждений confluence; при `false` сохраняется legacy-confirmation fallback на основе `confirmationSignals`.
+- `weights.technical / weights.microstructure`: веса дешёвого и дорогого подслоя в итоговом `confirmationLayer.score`.
+- `costSplit.minCheapScoreForMicro`: порог cheap-stage (technical), после которого разрешается expensive-stage (order book / microstructure).
+- `costSplit.skipMicroWhenBudgetExceeded`: при ограничении budget переводит microstructure в `degraded/cached` режим без падения цикла.
+- `technical.*`: технические подтверждения (`volume spike`, `volume vs average`, `RSI`, `Stochastic RSI`, `MFI`, `CCI`, `basic divergence`).
+- `microstructure.*`: микроструктурные подтверждения (`order book imbalance`, `spread quality`, `book pressure`, `liquidity wall`).
+- `capitalRegimePenalties.*`: защитный penalty по `capitalRegime`; слой подтверждений не имеет права ослаблять hard-risk/capital-prohibition.
+
+### Что важно по архитектуре
+- `confirmationEngine` **не может** принять final decision и не может открыть позицию сам.
+- ownership final entry остаётся у `confluenceEntryEngine.finalEntryDecisionLayer`.
+- при отсутствии части данных (`volume`, `orderBook`, индикаторы) слой возвращает валидный `dataQualityState` и продолжает цикл в `degraded/missing` режиме.
