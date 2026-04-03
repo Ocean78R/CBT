@@ -698,3 +698,140 @@ test('confluenceEntryEngine: confirmationEngine возвращает валид�
   assert.ok(event.payload.confirmationContext);
   assert.ok(event.payload.telemetry.downstreamContext.confluenceEntry.confirmationContext);
 });
+
+test('confluenceEntryEngine: eventRiskLayer поднимает hard veto при shock-сценарии', () => {
+  const config = normalizeConfluenceEntryConfig({
+    enabled: true,
+    mode: 'confluence',
+    blockWeights: {
+      entryPermission: 0.22,
+      marketContext: 0.2,
+      primarySignal: 0.22,
+      confirmation: 0.14,
+      marketLevel: 0.06,
+      eventRisk: 0.16,
+    },
+    eventRisk: {
+      enabled: true,
+      minCandles: 18,
+      thresholds: {
+        hardRiskScore: 0.6,
+        softRiskScore: 0.35,
+      },
+    },
+  });
+
+  const candles = Array.from({ length: 30 }, (_, idx) => ({
+    timestamp: idx + 1,
+    open: 100 + idx * 0.2,
+    high: 101 + idx * 0.3,
+    low: 99 + idx * 0.2,
+    close: 100 + idx * 0.22,
+    volume: 1000,
+  }));
+
+  // Шоковая свеча в конце ряда.
+  candles[candles.length - 1] = {
+    timestamp: 30,
+    open: 106,
+    high: 120,
+    low: 95,
+    close: 118,
+    volume: 2200,
+  };
+
+  const result = evaluateConfluenceEntry({
+    context: {
+      cycleId: 'c-event-1',
+      ticker: 'BTC-USDT',
+      exchange: 'bingx',
+      marketRegime: 'trend',
+      capitalRegime: 'DEFENSIVE',
+      balanceState: { capitalRegime: 'DEFENSIVE' },
+      forecastRegimeShiftRisk: 'LOW',
+      setupType: 'byBarsPercents',
+    },
+    sharedSnapshot: {
+      candles,
+      bestBid: 100,
+      bestAsk: 103,
+      spreadHistoryPercent: [0.05, 0.04, 0.06, 0.05, 0.04],
+    },
+    regimeRouterDecision: {
+      layerName: 'marketRegimeRouter',
+      marketRegime: 'trend',
+      allowedSetups: ['byBarsPercents'],
+      selectedPredictType: 'byBarsPercents',
+      score: 0.82,
+      confidence: 0.72,
+    },
+    primarySignal: {
+      layerName: 'primarySignalLayer',
+      direction: 'long',
+      score: 0.88,
+      confidence: 0.76,
+      setupType: 'byBarsPercents',
+    },
+    confirmationSignals: [{ name: 'trend_confirmation', approved: true }],
+  }, config);
+
+  assert.equal(result.layers.eventRiskLayer.layerName, 'eventRiskLayer');
+  assert.equal(result.layers.eventRiskLayer.explanation.shockVetoTriggered, true);
+  assert.equal(result.decision.entryAllowed, false);
+  assert.equal(result.decision.veto.type, 'hard_veto');
+  assert.equal(result.layers.eventRiskLayer.explanation.eventRiskState, 'critical_shock');
+});
+
+test('confluenceEntryEngine: eventRiskLayer в degraded режиме не отдаёт ложный safe-state', () => {
+  const config = normalizeConfluenceEntryConfig({
+    enabled: true,
+    mode: 'confluence',
+    eventRisk: {
+      enabled: true,
+      minCandles: 20,
+      degradedMode: {
+        softPenalty: 0.21,
+        minRiskScore: 0.4,
+        failSafeOnInsufficientData: false,
+      },
+    },
+  });
+
+  const result = evaluateConfluenceEntry({
+    context: {
+      cycleId: 'c-event-2',
+      ticker: 'ETH-USDT',
+      exchange: 'bingx',
+      marketRegime: 'trend',
+      capitalRegime: 'NORMAL',
+      balanceState: { capitalRegime: 'NORMAL' },
+      setupType: 'byBarsPercents',
+    },
+    sharedSnapshot: {
+      candles: [
+        { timestamp: 1, open: 100, high: 101, low: 99, close: 100.4 },
+        { timestamp: 2, open: 100.4, high: 101, low: 100, close: 100.6 },
+        { timestamp: 3, open: 100.6, high: 101.2, low: 100.2, close: 100.8 },
+      ],
+    },
+    regimeRouterDecision: {
+      layerName: 'marketRegimeRouter',
+      marketRegime: 'trend',
+      allowedSetups: ['byBarsPercents'],
+      selectedPredictType: 'byBarsPercents',
+      score: 0.74,
+      confidence: 0.71,
+    },
+    primarySignal: {
+      direction: 'long',
+      score: 0.78,
+      confidence: 0.72,
+      setupType: 'byBarsPercents',
+    },
+  }, config);
+
+  assert.equal(result.layers.eventRiskLayer.dataQualityState, 'degraded');
+  assert.equal(result.layers.eventRiskLayer.explanation.eventRiskState, 'insufficient_data');
+  assert.ok(result.layers.eventRiskLayer.softPenalty >= 0.2);
+  assert.ok(result.layers.eventRiskLayer.explanation.shockRiskScore >= 0.35);
+});

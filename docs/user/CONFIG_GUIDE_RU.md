@@ -619,3 +619,21 @@ Runtime-позиция слоя:
 - `confirmationEngine` **не может** принять final decision и не может открыть позицию сам.
 - ownership final entry остаётся у `confluenceEntryEngine.finalEntryDecisionLayer`.
 - при отсутствии части данных (`volume`, `orderBook`, индикаторы) слой возвращает валидный `dataQualityState` и продолжает цикл в `degraded/missing` режиме.
+
+## Новый блок `confluenceEntryEngine.eventRisk`
+Блок управляет слоем event-risk/shock-veto и включается только через config.
+
+Ключевые параметры:
+- `enabled` — master-флаг слоя.
+- `highPriority` — приоритет слоя как risk/veto provider.
+- `minCandles`, `atrPeriod`, `spreadLookback`, `eventWindow` — окна расчёта.
+- `weights.*` — веса признаков (`atrSpike`, `spreadWidening`, `oversizedCandles`, `chaoticRangeExpansion`, `eventMovement`).
+- `thresholds.*` — пороги soft/hard event-risk.
+- `degradedMode.softPenalty` — защитный штраф при неполных данных.
+- `degradedMode.failSafeOnInsufficientData` — опциональный fail-safe hard veto, если данных недостаточно.
+- `capitalRegimeAdjustments.*` — ужесточение чувствительности слоя в режимах `CAUTION/DEFENSIVE/CAPITAL_PRESERVATION/HALT_NEW_ENTRIES`.
+- `blockWeights.eventRisk` — вес слоя в aggregate score confluence (по умолчанию 0 для обратной совместимости).
+
+Важно:
+- слой не заменяет `finalEntryDecisionLayer`, а только поставляет veto/penalty в общий контракт;
+- при `enabled=false` сохраняется старое поведение.
