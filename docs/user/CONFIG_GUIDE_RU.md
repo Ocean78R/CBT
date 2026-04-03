@@ -162,6 +162,8 @@
 - `sessionFilter.restrictedWindows[]`: окна, где можно полностью запрещать вход через `timeBasedEntryRestriction`.
 - `sessionFilter.capitalRegimeInfluence.*`: как `capitalRegime` усиливает time-ограничения (penalty/strict mode).
 - `sessionFilter.refreshPolicy.*`: cadence и кэширование (`minCyclesBetweenRefresh`, `allowCachedReuse`, `cacheKey`).
+- `timeContextScore` в downstream telemetry рассчитывается как net-оценка слоя (`score-softPenalty`) и используется как контекст для final decision/audit.
+- `timeBasedEntryRestriction` может стать `true` как из `restrictedWindows`, так и из strict-режима `capitalRegimeInfluence.mode=strict`.
 
 Важно:
 - слой не заменяет `marketRegimeRouter` и не является final-decision слоем;

@@ -104,4 +104,60 @@ test('confluenceEntryEngine: sessionFilterLayer влияет на вход то�
   assert.ok(result.decision.reasonCodes.some((x) => String(x).includes('hard_veto')));
   assert.equal(result.decisionContext.metadata.sessionState, 'NIGHT');
   assert.equal(result.decisionContext.metadata.timeBasedEntryRestriction, true);
+  assert.ok(result.decisionContext.metadata.timeContextScore <= result.layers.sessionFilterLayer.score);
+});
+
+test('confluenceEntryEngine: strict capital regime пробрасывает timeBasedEntryRestriction через capital_prohibition', () => {
+  const config = normalizeConfluenceEntryConfig({
+    enabled: true,
+    mode: 'confluence',
+    blockWeights: {
+      entryPermission: 0.3,
+      marketContext: 0.2,
+      primarySignal: 0.3,
+      confirmation: 0.1,
+      sessionFilter: 0.1,
+    },
+    sessionFilter: {
+      enabled: true,
+      timezone: 'UTC',
+      noTradeOnRestrictedWindows: false,
+      capitalRegimeInfluence: {
+        mode: 'strict',
+        strictNoTradeRegimes: ['HALT_NEW_ENTRIES'],
+      },
+    },
+  });
+
+  const result = evaluateConfluenceEntry({
+    context: {
+      cycleId: 'c-time-3',
+      cycleIndex: 15,
+      timestampMs: Date.parse('2026-04-03T12:30:00.000Z'),
+      ticker: 'XRP-USDT',
+      exchange: 'bingx',
+      marketRegime: 'trend',
+      capitalRegime: 'HALT_NEW_ENTRIES',
+      balanceState: { capitalRegime: 'HALT_NEW_ENTRIES' },
+      setupType: 'byBarsPercents',
+    },
+    regimeRouterDecision: {
+      layerName: 'marketRegimeRouter',
+      marketRegime: 'trend',
+      allowedSetups: ['byBarsPercents'],
+      selectedPredictType: 'byBarsPercents',
+      score: 0.76,
+      confidence: 0.7,
+    },
+    primarySignal: {
+      layerName: 'primarySignalLayer',
+      direction: 'long',
+      score: 0.82,
+      confidence: 0.74,
+      setupType: 'byBarsPercents',
+    },
+  }, config);
+
+  assert.equal(result.decisionContext.metadata.timeBasedEntryRestriction, true);
+  assert.ok(result.decision.reasonCodes.some((x) => String(x).includes('capital_regime_halt_new_entries')));
 });

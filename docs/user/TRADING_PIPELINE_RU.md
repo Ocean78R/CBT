@@ -211,6 +211,7 @@
 - Влияние `capitalRegime`:
   - защитные режимы могут увеличивать time-penalty;
   - в strict-конфигурации фильтр может поднимать `capital_prohibition` кандидат;
+  - `timeBasedEntryRestriction` поднимается и в strict-capital сценарии, даже если окно не помечено как `restricted`;
   - слой не имеет права снять запрет, выставленный верхним risk-контуром.
 
 ## Runtime-позиция единого observability/reporting слоя
