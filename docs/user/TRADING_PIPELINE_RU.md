@@ -540,3 +540,22 @@ Cache tiers и чтение слоями:
   - expensive-stage запускается только после cheap-stage (`costSplit.minCheapScoreForMicro`) и при доступном budget.
 - Роль слоя:
   - только усиление/ослабление базовой идеи (`score/confidence/softPenalty`), без final-entry ownership.
+
+## Runtime-позиция eventRiskVetoEngine / shockFilterEngine
+- Место в пайплайне: **после `entryPermission/marketContext/session` и перед `finalEntryDecisionLayer`** внутри confluence.
+- Зависимости ранних слоёв:
+  - `DecisionContext` (`cycleId/ticker/exchange/marketRegime/capitalRegime/setupType`),
+  - `sharedSnapshot.candles` (обязательно),
+  - `sharedSnapshot.bestBid/bestAsk` или `sharedSnapshot.spreadPercent` (если доступны),
+  - `sharedSnapshot.spreadHistoryPercent` (если есть).
+- Что делает слой:
+  1. Считает `shockRiskScore` и `eventRiskState`;
+  2. Формирует `shockVetoTriggered` и `vetoCandidates` как специализированный veto-provider;
+  3. Возвращает совместимый block-result (`layerName/direction/score/confidence/softPenalty/vetoCandidates/dataQualityState/reasonCodes/explanation`).
+- Что слой **не делает**:
+  - не открывает сделку,
+  - не исполняет ордера,
+  - не интерпретирует veto финально (это делает только `finalEntryDecisionLayer`).
+- Fallback/совместимость:
+  - при `confluenceEntryEngine.eventRisk.enabled=false` поведение полностью legacy/fallback;
+  - при нехватке данных слой уходит в `degraded` и не даёт ложный safe-state (добавляет защитный penalty и/или fail-safe veto по config).

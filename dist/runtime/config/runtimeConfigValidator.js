@@ -79,6 +79,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const confluenceBreakdownDetection = confluenceEntryEngine.breakdownDetection || {};
   const confluenceDerivativesContext = confluenceEntryEngine.derivativesContext || {};
   const confluenceSessionFilter = confluenceEntryEngine.sessionFilter || {};
+  const confluenceEventRisk = confluenceEntryEngine.eventRisk || {};
   const confluenceMarketLevelScoring = confluenceMarketLevel.scoring || {};
   const confluenceMarketLevelDetection = confluenceMarketLevel.detection || {};
   const confluenceVolumeContextAnchoredVwap = confluenceVolumeContext.anchoredVwap || {};
@@ -279,6 +280,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         breakdownDetection: Number(confluenceBlockWeights.breakdownDetection || 0),
         derivativesContext: Number(confluenceBlockWeights.derivativesContext || 0),
         sessionFilter: Number(confluenceBlockWeights.sessionFilter || 0),
+        eventRisk: Number(confluenceBlockWeights.eventRisk || 0),
       },
       thresholds: {
         fullEntryScore: Number(confluenceThresholds.fullEntryScore || 0.68),
@@ -613,6 +615,26 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
           allowCachedReuse: confluenceSessionRefreshPolicy.allowCachedReuse !== false,
           cacheKey: confluenceSessionRefreshPolicy.cacheKey || 'session_filter_engine',
         },
+      },
+      eventRisk: {
+        enabled: !!confluenceEventRisk.enabled,
+        highPriority: confluenceEventRisk.highPriority !== false,
+        minCandles: Number(confluenceEventRisk.minCandles || 24),
+        atrPeriod: Number(confluenceEventRisk.atrPeriod || 14),
+        spreadLookback: Number(confluenceEventRisk.spreadLookback || 20),
+        eventWindow: Number(confluenceEventRisk.eventWindow || 6),
+        weights: typeof confluenceEventRisk.weights === 'object' && confluenceEventRisk.weights
+          ? confluenceEventRisk.weights
+          : {},
+        thresholds: typeof confluenceEventRisk.thresholds === 'object' && confluenceEventRisk.thresholds
+          ? confluenceEventRisk.thresholds
+          : {},
+        degradedMode: typeof confluenceEventRisk.degradedMode === 'object' && confluenceEventRisk.degradedMode
+          ? confluenceEventRisk.degradedMode
+          : {},
+        capitalRegimeAdjustments: typeof confluenceEventRisk.capitalRegimeAdjustments === 'object' && confluenceEventRisk.capitalRegimeAdjustments
+          ? confluenceEventRisk.capitalRegimeAdjustments
+          : {},
       },
     },
 

@@ -8,6 +8,7 @@ const { evaluateBreakdown } = require('./breakdownEngine');
 const { evaluateDerivativesContext } = require('./derivativesContextEngine');
 const { evaluateSessionFilter } = require('./sessionFilterEngine');
 const { evaluateConfirmationEngine } = require('./confirmationEngine');
+const { evaluateEventRiskVeto } = require('./eventRiskVetoEngine');
 
 function clamp01(value) {
   if (!Number.isFinite(value)) return 0;
@@ -46,6 +47,7 @@ function normalizeConfig(raw = {}) {
       breakdownDetection: Number(blockWeights.breakdownDetection ?? 0),
       derivativesContext: Number(blockWeights.derivativesContext ?? 0),
       sessionFilter: Number(blockWeights.sessionFilter ?? 0),
+      eventRisk: Number(blockWeights.eventRisk ?? 0),
     },
     thresholds: {
       fullEntryScore: Number(thresholds.fullEntryScore ?? 0.68),
@@ -280,6 +282,7 @@ function normalizeConfig(raw = {}) {
         ? sessionFilter.refreshPolicy
         : {},
     },
+    eventRisk: raw.eventRisk && typeof raw.eventRisk === 'object' ? raw.eventRisk : {},
   };
 }
 
@@ -608,6 +611,7 @@ function combineLayerScores(layers, config) {
     ['breakdownDetectionLayer', weights.breakdownDetection],
     ['derivativesContextLayer', weights.derivativesContext],
     ['sessionFilterLayer', weights.sessionFilter],
+    ['eventRiskLayer', weights.eventRisk],
   ];
 
   let weightedScore = 0;
@@ -675,6 +679,7 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
       derivativesContext: (layers.derivativesContextLayer || {}).explanation || {},
       confirmationContext: (layers.confirmationLayer || {}).explanation || {},
       sessionContext: (layers.sessionFilterLayer || {}).explanation || {},
+      eventRisk: (layers.eventRiskLayer || {}).explanation || {},
     },
   });
 
@@ -717,6 +722,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       breakdownDetectionLayer: createLayerResult('breakdownDetectionLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       derivativesContextLayer: createLayerResult('derivativesContextLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       sessionFilterLayer: createLayerResult('sessionFilterLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
+      eventRiskLayer: createLayerResult('eventRiskLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       finalEntryDecisionLayer: createLayerResult('finalEntryDecisionLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       },
       decision: {
@@ -837,6 +843,27 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       timeBasedEntryRestriction: sessionFilterResult.timeBasedEntryRestriction === true,
     },
   });
+  // Русский комментарий: event-risk/shock слой вызывается после дешёвых gating-слоёв и до final decision как специализированный veto-provider.
+  const eventRiskResult = evaluateEventRiskVeto({
+    context,
+    sharedSnapshot: input.sharedSnapshot || {},
+    budgetState: input.budgetState || 'normal',
+  }, config.eventRisk || {});
+  layers.eventRiskLayer = createLayerResult('eventRiskLayer', {
+    direction: eventRiskResult.direction || 'long_short',
+    score: eventRiskResult.score,
+    confidence: eventRiskResult.confidence,
+    softPenalty: eventRiskResult.softPenalty,
+    vetoCandidates: eventRiskResult.vetoCandidates,
+    dataQualityState: eventRiskResult.dataQualityState || 'degraded',
+    reasonCodes: eventRiskResult.reasonCodes,
+    explanation: {
+      ...(eventRiskResult.explanation || {}),
+      shockRiskScore: Number.isFinite(eventRiskResult.shockRiskScore) ? eventRiskResult.shockRiskScore : 0,
+      eventRiskState: eventRiskResult.eventRiskState || 'unknown',
+      shockVetoTriggered: eventRiskResult.shockVetoTriggered === true,
+    },
+  });
   layers.finalEntryDecisionLayer = evaluateFinalEntryDecisionLayer(input, config, layers);
 
   const final = layers.finalEntryDecisionLayer;
@@ -865,6 +892,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       { source: 'breakdownDetectionLayer', value: layers.breakdownDetectionLayer.softPenalty },
       { source: 'derivativesContextLayer', value: layers.derivativesContextLayer.softPenalty },
       { source: 'sessionFilterLayer', value: layers.sessionFilterLayer.softPenalty },
+      { source: 'eventRiskLayer', value: layers.eventRiskLayer.softPenalty },
     ],
     metadata: {
       layerScores: layers,
@@ -885,6 +913,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       derivativesContext: layers.derivativesContextLayer ? layers.derivativesContextLayer.explanation : {},
       confirmationContext: layers.confirmationLayer ? layers.confirmationLayer.explanation : {},
       sessionContext: layers.sessionFilterLayer ? layers.sessionFilterLayer.explanation : {},
+      eventRisk: layers.eventRiskLayer ? layers.eventRiskLayer.explanation : {},
       timeContextScore: resolveSessionTimeContextScore(layers.sessionFilterLayer || {}),
       sessionState: ((layers.sessionFilterLayer || {}).explanation || {}).sessionState || 'OFF_HOURS',
       timeBasedEntryRestriction: resolveTimeBasedEntryRestriction(layers.sessionFilterLayer || {}),
@@ -943,6 +972,7 @@ function toConfluenceEntryEvent(input = {}) {
       derivativesContext: (layerScores.derivativesContextLayer || {}).explanation || {},
       confirmationContext: (layerScores.confirmationLayer || {}).explanation || {},
       sessionContext: (layerScores.sessionFilterLayer || {}).explanation || {},
+      eventRisk: (layerScores.eventRiskLayer || {}).explanation || {},
       timeContextScore: resolveSessionTimeContextScore(layerScores.sessionFilterLayer || {}),
       sessionState: ((layerScores.sessionFilterLayer || {}).explanation || {}).sessionState || 'OFF_HOURS',
       timeBasedEntryRestriction: resolveTimeBasedEntryRestriction(layerScores.sessionFilterLayer || {}),
@@ -962,6 +992,7 @@ function toConfluenceEntryEvent(input = {}) {
             derivativesContext: (layerScores.derivativesContextLayer || {}).explanation || {},
             confirmationContext: (layerScores.confirmationLayer || {}).explanation || {},
             sessionContext: (layerScores.sessionFilterLayer || {}).explanation || {},
+            eventRisk: (layerScores.eventRiskLayer || {}).explanation || {},
             timeContextScore: resolveSessionTimeContextScore(layerScores.sessionFilterLayer || {}),
             sessionState: ((layerScores.sessionFilterLayer || {}).explanation || {}).sessionState || 'OFF_HOURS',
             timeBasedEntryRestriction: resolveTimeBasedEntryRestriction(layerScores.sessionFilterLayer || {}),

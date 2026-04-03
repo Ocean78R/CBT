@@ -258,3 +258,11 @@
 - Изменение: расширены runtime-логи `[confluenceEntry]` и structured event `confluence_entry_decision` полями derivatives-context для audit trail/observability/trade journal.
 - Связанные файлы кода: `dist/runtime/engines/derivativesContextEngine.js`, `dist/runtime/engines/confluenceEntryEngine.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/confluence-entry-engine.test.js`.
 - Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
+
+## 2026-04-03 (eventRiskVetoEngine / shock veto layer)
+- Изменение: добавлен отдельный слой `eventRiskVetoEngine` как специализированный veto-provider для обнаружения аномальных/хаотичных рыночных состояний (`abnormal ATR spike`, `spread widening`, `oversized candles`, `chaotic range expansion`, `event-like movement`).
+- Изменение: слой интегрирован в `confluenceEntryEngine` перед `finalEntryDecisionLayer`, возвращает `shockRiskScore/eventRiskState/shockVetoTriggered` и передаёт veto/penalty в общий контракт без финальной интерпретации veto.
+- Изменение: добавлен config-блок `confluenceEntryEngine.eventRisk` + `blockWeights.eventRisk` с сохранением обратной совместимости (`enabled=false`, вес=0 по умолчанию).
+- Изменение: расширены runtime-логи `[confluenceEntry]` и structured payload `confluence_entry_decision` полями event-risk для observability/audit trail/trade journal.
+- Связанные файлы кода: `dist/runtime/engines/eventRiskVetoEngine.js`, `dist/runtime/engines/confluenceEntryEngine.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/confluence-entry-engine.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.

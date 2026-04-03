@@ -83,7 +83,8 @@
           "bounceDetection": 0,
           "breakdownDetection": 0,
           "derivativesContext": 0,
-          "sessionFilter": 0
+          "sessionFilter": 0,
+          "eventRisk": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -445,6 +446,45 @@
             "allowCachedReuse": true,
             "cacheKey": "session_filter_engine"
           }
+        },
+        "eventRisk": {
+          "enabled": false,
+          "highPriority": true,
+          "minCandles": 24,
+          "atrPeriod": 14,
+          "spreadLookback": 20,
+          "eventWindow": 6,
+          "weights": {
+            "atrSpike": 0.28,
+            "spreadWidening": 0.22,
+            "oversizedCandles": 0.18,
+            "chaoticRangeExpansion": 0.16,
+            "eventMovement": 0.16
+          },
+          "thresholds": {
+            "atrSpikeRatio": 1.85,
+            "spreadSpikeRatio": 2.4,
+            "spreadAbsPercent": 0.2,
+            "oversizedCandleBodyToAtr": 1.75,
+            "oversizedCandleRangeToAtr": 2.3,
+            "chaosRangeP95ToMedian": 2.8,
+            "eventMoveNetToAtr": 2.2,
+            "eventMoveWhipsawRatio": 1.4,
+            "softRiskScore": 0.45,
+            "hardRiskScore": 0.7
+          },
+          "degradedMode": {
+            "softPenalty": 0.18,
+            "minRiskScore": 0.35,
+            "failSafeOnInsufficientData": false
+          },
+          "capitalRegimeAdjustments": {
+            "NORMAL": 1.0,
+            "CAUTION": 1.05,
+            "DEFENSIVE": 1.15,
+            "CAPITAL_PRESERVATION": 1.25,
+            "HALT_NEW_ENTRIES": 1.35
+          }
         }
       }
     },
@@ -530,7 +570,8 @@
           "volumeContext": 0,
           "bounceDetection": 0,
           "breakdownDetection": 0,
-          "sessionFilter": 0
+          "sessionFilter": 0,
+          "eventRisk": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -759,6 +800,45 @@
             "minCyclesBetweenRefresh": 2,
             "allowCachedReuse": true,
             "cacheKey": "session_filter_engine"
+          }
+        },
+        "eventRisk": {
+          "enabled": false,
+          "highPriority": true,
+          "minCandles": 24,
+          "atrPeriod": 14,
+          "spreadLookback": 20,
+          "eventWindow": 6,
+          "weights": {
+            "atrSpike": 0.28,
+            "spreadWidening": 0.22,
+            "oversizedCandles": 0.18,
+            "chaoticRangeExpansion": 0.16,
+            "eventMovement": 0.16
+          },
+          "thresholds": {
+            "atrSpikeRatio": 1.85,
+            "spreadSpikeRatio": 2.4,
+            "spreadAbsPercent": 0.2,
+            "oversizedCandleBodyToAtr": 1.75,
+            "oversizedCandleRangeToAtr": 2.3,
+            "chaosRangeP95ToMedian": 2.8,
+            "eventMoveNetToAtr": 2.2,
+            "eventMoveWhipsawRatio": 1.4,
+            "softRiskScore": 0.45,
+            "hardRiskScore": 0.7
+          },
+          "degradedMode": {
+            "softPenalty": 0.18,
+            "minRiskScore": 0.35,
+            "failSafeOnInsufficientData": false
+          },
+          "capitalRegimeAdjustments": {
+            "NORMAL": 1.0,
+            "CAUTION": 1.05,
+            "DEFENSIVE": 1.15,
+            "CAPITAL_PRESERVATION": 1.25,
+            "HALT_NEW_ENTRIES": 1.35
           }
         }
       }
@@ -1180,7 +1260,8 @@
           "volumeContext": 0,
           "bounceDetection": 0,
           "breakdownDetection": 0,
-          "sessionFilter": 0
+          "sessionFilter": 0,
+          "eventRisk": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1409,6 +1490,45 @@
             "minCyclesBetweenRefresh": 2,
             "allowCachedReuse": true,
             "cacheKey": "session_filter_engine"
+          }
+        },
+        "eventRisk": {
+          "enabled": false,
+          "highPriority": true,
+          "minCandles": 24,
+          "atrPeriod": 14,
+          "spreadLookback": 20,
+          "eventWindow": 6,
+          "weights": {
+            "atrSpike": 0.28,
+            "spreadWidening": 0.22,
+            "oversizedCandles": 0.18,
+            "chaoticRangeExpansion": 0.16,
+            "eventMovement": 0.16
+          },
+          "thresholds": {
+            "atrSpikeRatio": 1.85,
+            "spreadSpikeRatio": 2.4,
+            "spreadAbsPercent": 0.2,
+            "oversizedCandleBodyToAtr": 1.75,
+            "oversizedCandleRangeToAtr": 2.3,
+            "chaosRangeP95ToMedian": 2.8,
+            "eventMoveNetToAtr": 2.2,
+            "eventMoveWhipsawRatio": 1.4,
+            "softRiskScore": 0.45,
+            "hardRiskScore": 0.7
+          },
+          "degradedMode": {
+            "softPenalty": 0.18,
+            "minRiskScore": 0.35,
+            "failSafeOnInsufficientData": false
+          },
+          "capitalRegimeAdjustments": {
+            "NORMAL": 1.0,
+            "CAUTION": 1.05,
+            "DEFENSIVE": 1.15,
+            "CAPITAL_PRESERVATION": 1.25,
+            "HALT_NEW_ENTRIES": 1.35
           }
         }
       }
@@ -1494,7 +1614,8 @@
           "volumeContext": 0,
           "bounceDetection": 0,
           "breakdownDetection": 0,
-          "sessionFilter": 0
+          "sessionFilter": 0,
+          "eventRisk": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -1723,6 +1844,45 @@
             "minCyclesBetweenRefresh": 2,
             "allowCachedReuse": true,
             "cacheKey": "session_filter_engine"
+          }
+        },
+        "eventRisk": {
+          "enabled": false,
+          "highPriority": true,
+          "minCandles": 24,
+          "atrPeriod": 14,
+          "spreadLookback": 20,
+          "eventWindow": 6,
+          "weights": {
+            "atrSpike": 0.28,
+            "spreadWidening": 0.22,
+            "oversizedCandles": 0.18,
+            "chaoticRangeExpansion": 0.16,
+            "eventMovement": 0.16
+          },
+          "thresholds": {
+            "atrSpikeRatio": 1.85,
+            "spreadSpikeRatio": 2.4,
+            "spreadAbsPercent": 0.2,
+            "oversizedCandleBodyToAtr": 1.75,
+            "oversizedCandleRangeToAtr": 2.3,
+            "chaosRangeP95ToMedian": 2.8,
+            "eventMoveNetToAtr": 2.2,
+            "eventMoveWhipsawRatio": 1.4,
+            "softRiskScore": 0.45,
+            "hardRiskScore": 0.7
+          },
+          "degradedMode": {
+            "softPenalty": 0.18,
+            "minRiskScore": 0.35,
+            "failSafeOnInsufficientData": false
+          },
+          "capitalRegimeAdjustments": {
+            "NORMAL": 1.0,
+            "CAUTION": 1.05,
+            "DEFENSIVE": 1.15,
+            "CAPITAL_PRESERVATION": 1.25,
+            "HALT_NEW_ENTRIES": 1.35
           }
         }
       }
@@ -1809,7 +1969,8 @@
           "volumeContext": 0,
           "bounceDetection": 0,
           "breakdownDetection": 0,
-          "sessionFilter": 0
+          "sessionFilter": 0,
+          "eventRisk": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -2038,6 +2199,45 @@
             "minCyclesBetweenRefresh": 2,
             "allowCachedReuse": true,
             "cacheKey": "session_filter_engine"
+          }
+        },
+        "eventRisk": {
+          "enabled": false,
+          "highPriority": true,
+          "minCandles": 24,
+          "atrPeriod": 14,
+          "spreadLookback": 20,
+          "eventWindow": 6,
+          "weights": {
+            "atrSpike": 0.28,
+            "spreadWidening": 0.22,
+            "oversizedCandles": 0.18,
+            "chaoticRangeExpansion": 0.16,
+            "eventMovement": 0.16
+          },
+          "thresholds": {
+            "atrSpikeRatio": 1.85,
+            "spreadSpikeRatio": 2.4,
+            "spreadAbsPercent": 0.2,
+            "oversizedCandleBodyToAtr": 1.75,
+            "oversizedCandleRangeToAtr": 2.3,
+            "chaosRangeP95ToMedian": 2.8,
+            "eventMoveNetToAtr": 2.2,
+            "eventMoveWhipsawRatio": 1.4,
+            "softRiskScore": 0.45,
+            "hardRiskScore": 0.7
+          },
+          "degradedMode": {
+            "softPenalty": 0.18,
+            "minRiskScore": 0.35,
+            "failSafeOnInsufficientData": false
+          },
+          "capitalRegimeAdjustments": {
+            "NORMAL": 1.0,
+            "CAUTION": 1.05,
+            "DEFENSIVE": 1.15,
+            "CAPITAL_PRESERVATION": 1.25,
+            "HALT_NEW_ENTRIES": 1.35
           }
         }
       }
@@ -2123,7 +2323,8 @@
           "volumeContext": 0,
           "bounceDetection": 0,
           "breakdownDetection": 0,
-          "sessionFilter": 0
+          "sessionFilter": 0,
+          "eventRisk": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -2352,6 +2553,45 @@
             "minCyclesBetweenRefresh": 2,
             "allowCachedReuse": true,
             "cacheKey": "session_filter_engine"
+          }
+        },
+        "eventRisk": {
+          "enabled": false,
+          "highPriority": true,
+          "minCandles": 24,
+          "atrPeriod": 14,
+          "spreadLookback": 20,
+          "eventWindow": 6,
+          "weights": {
+            "atrSpike": 0.28,
+            "spreadWidening": 0.22,
+            "oversizedCandles": 0.18,
+            "chaoticRangeExpansion": 0.16,
+            "eventMovement": 0.16
+          },
+          "thresholds": {
+            "atrSpikeRatio": 1.85,
+            "spreadSpikeRatio": 2.4,
+            "spreadAbsPercent": 0.2,
+            "oversizedCandleBodyToAtr": 1.75,
+            "oversizedCandleRangeToAtr": 2.3,
+            "chaosRangeP95ToMedian": 2.8,
+            "eventMoveNetToAtr": 2.2,
+            "eventMoveWhipsawRatio": 1.4,
+            "softRiskScore": 0.45,
+            "hardRiskScore": 0.7
+          },
+          "degradedMode": {
+            "softPenalty": 0.18,
+            "minRiskScore": 0.35,
+            "failSafeOnInsufficientData": false
+          },
+          "capitalRegimeAdjustments": {
+            "NORMAL": 1.0,
+            "CAUTION": 1.05,
+            "DEFENSIVE": 1.15,
+            "CAPITAL_PRESERVATION": 1.25,
+            "HALT_NEW_ENTRIES": 1.35
           }
         }
       }
@@ -2448,7 +2688,8 @@
           "volumeContext": 0,
           "bounceDetection": 0,
           "breakdownDetection": 0,
-          "sessionFilter": 0
+          "sessionFilter": 0,
+          "eventRisk": 0
         },
         "thresholds": {
           "fullEntryScore": 0.68,
@@ -2677,6 +2918,45 @@
             "minCyclesBetweenRefresh": 2,
             "allowCachedReuse": true,
             "cacheKey": "session_filter_engine"
+          }
+        },
+        "eventRisk": {
+          "enabled": false,
+          "highPriority": true,
+          "minCandles": 24,
+          "atrPeriod": 14,
+          "spreadLookback": 20,
+          "eventWindow": 6,
+          "weights": {
+            "atrSpike": 0.28,
+            "spreadWidening": 0.22,
+            "oversizedCandles": 0.18,
+            "chaoticRangeExpansion": 0.16,
+            "eventMovement": 0.16
+          },
+          "thresholds": {
+            "atrSpikeRatio": 1.85,
+            "spreadSpikeRatio": 2.4,
+            "spreadAbsPercent": 0.2,
+            "oversizedCandleBodyToAtr": 1.75,
+            "oversizedCandleRangeToAtr": 2.3,
+            "chaosRangeP95ToMedian": 2.8,
+            "eventMoveNetToAtr": 2.2,
+            "eventMoveWhipsawRatio": 1.4,
+            "softRiskScore": 0.45,
+            "hardRiskScore": 0.7
+          },
+          "degradedMode": {
+            "softPenalty": 0.18,
+            "minRiskScore": 0.35,
+            "failSafeOnInsufficientData": false
+          },
+          "capitalRegimeAdjustments": {
+            "NORMAL": 1.0,
+            "CAUTION": 1.05,
+            "DEFENSIVE": 1.15,
+            "CAPITAL_PRESERVATION": 1.25,
+            "HALT_NEW_ENTRIES": 1.35
           }
         }
       }

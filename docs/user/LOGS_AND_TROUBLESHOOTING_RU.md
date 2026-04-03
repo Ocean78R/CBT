@@ -341,3 +341,18 @@
 1. Если `confirmationsDataQuality=missing|degraded`, проверьте `sharedSnapshot.candles` и `sharedSnapshot.orderBook`.
 2. Если `confirmationsMode=degraded_mode`, проверьте `budgetState` и cheap-stage порог `confirmationEngine.costSplit.minCheapScoreForMicro`.
 3. Если penalty высокий в защитных режимах, проверьте `confirmationEngine.capitalRegimePenalties` и текущий `capitalRegime`.
+
+## Логи и события event-risk / shock veto
+`confluenceEntry` runtime-лог дополнен полями:
+- `eventRiskScore`
+- `eventRiskState`
+- `eventRiskVeto`
+- `eventRiskDataQuality`
+- `eventRiskReason`
+
+Structured event остаётся в общем формате `confluence_entry_decision` (без ad-hoc контракта):
+- в `payload.layerScores.eventRiskLayer` доступны `shockRiskScore`, `eventRiskState`, `shockVetoTriggered`;
+- в `payload.telemetry.downstreamContext.confluenceEntry.eventRisk` слой попадает в audit trail/reporting/journal как часть общего confluence-контекста.
+
+Минимальные поля журналирования соблюдаются через общий event-контракт:
+`cycleId/ticker/exchange/module/layer/marketRegime/capitalRegime/setupType/score/confidence/vetoReason/sizingDecision/executionAction/fallbackAction/finalDecision`.
