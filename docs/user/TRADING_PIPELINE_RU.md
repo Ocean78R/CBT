@@ -187,8 +187,31 @@
   - при `confluenceEntryEngine.derivativesContext.enabled=false` поведение остаётся legacy/fallback.
 - Refresh cadence и reuse:
   - OI/funding/liquidation читаются из `sharedSnapshot` и/или cache;
-  - full refresh выполняется реже (`minCyclesBetweenRefresh`);
-  - между refresh используется `cached_mode`, при нехватке данных/бюджета — `degraded_mode` без остановки цикла.
+- full refresh выполняется реже (`minCyclesBetweenRefresh`);
+- между refresh используется `cached_mode`, при нехватке данных/бюджета — `degraded_mode` без остановки цикла.
+
+## Runtime-позиция sessionFilterEngine / timeContextEngine
+- Место в пайплайне: **после `entryPermission + regimeRouter` и перед `finalEntryDecisionLayer` внутри confluence**.
+- Зависимости ранних слоёв:
+  - `DecisionContext` (`cycleId`, `ticker`, `exchange`, `marketRegime`, `capitalRegime`, `timestampMs`);
+  - `featureStoreContext` для cached/full/degraded режима (без повторных market-data запросов).
+- Что делает:
+  1. Определяет час дня и активную сессию (`sessionState`);
+  2. Рассчитывает `timeContextScore`;
+  3. Отмечает `timeBasedEntryRestriction` в плохих окнах;
+  4. Возвращает совместимый layer-result (`score/confidence/softPenalty/vetoCandidates/dataQualityState/reasonCodes`).
+- Что **не делает**:
+  - не заменяет `marketRegimeRouter`;
+  - не открывает сделку самостоятельно;
+  - не ослабляет `hard-risk` и `capitalRegime`.
+- Кто главный и fallback:
+  - главный по финальному разрешению входа остаётся `finalEntryDecisionLayer`;
+  - `sessionFilterEngine` — только context/permission слой;
+  - при `confluenceEntryEngine.sessionFilter.enabled=false` поведение полностью legacy/fallback.
+- Влияние `capitalRegime`:
+  - защитные режимы могут увеличивать time-penalty;
+  - в strict-конфигурации фильтр может поднимать `capital_prohibition` кандидат;
+  - слой не имеет права снять запрет, выставленный верхним risk-контуром.
 
 ## Runtime-позиция единого observability/reporting слоя
 - Позиция в пайплайне: после формирования структурированных событий в decision/risk/execution/lifecycle слоях, как неблокирующий subscriber.

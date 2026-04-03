@@ -78,6 +78,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const confluenceBounceDetection = confluenceEntryEngine.bounceDetection || {};
   const confluenceBreakdownDetection = confluenceEntryEngine.breakdownDetection || {};
   const confluenceDerivativesContext = confluenceEntryEngine.derivativesContext || {};
+  const confluenceSessionFilter = confluenceEntryEngine.sessionFilter || {};
   const confluenceMarketLevelScoring = confluenceMarketLevel.scoring || {};
   const confluenceMarketLevelDetection = confluenceMarketLevel.detection || {};
   const confluenceVolumeContextAnchoredVwap = confluenceVolumeContext.anchoredVwap || {};
@@ -99,6 +100,8 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const confluenceDerivativesCrowding = confluenceDerivativesContext.crowding || {};
   const confluenceDerivativesLiquidation = confluenceDerivativesContext.liquidation || {};
   const confluenceDerivativesRefresh = confluenceDerivativesContext.refreshPolicy || {};
+  const confluenceSessionCapitalInfluence = confluenceSessionFilter.capitalRegimeInfluence || {};
+  const confluenceSessionRefreshPolicy = confluenceSessionFilter.refreshPolicy || {};
 
   const normalized = {
     ...merged,
@@ -275,6 +278,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         bounceDetection: Number(confluenceBlockWeights.bounceDetection || 0),
         breakdownDetection: Number(confluenceBlockWeights.breakdownDetection || 0),
         derivativesContext: Number(confluenceBlockWeights.derivativesContext || 0),
+        sessionFilter: Number(confluenceBlockWeights.sessionFilter || 0),
       },
       thresholds: {
         fullEntryScore: Number(confluenceThresholds.fullEntryScore || 0.68),
@@ -580,6 +584,35 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
             CAPITAL_PRESERVATION: 0.16,
             HALT_NEW_ENTRIES: 0.26,
           },
+      },
+      sessionFilter: {
+        enabled: !!confluenceSessionFilter.enabled,
+        timezone: confluenceSessionFilter.timezone || 'UTC',
+        noTradeOnRestrictedWindows: confluenceSessionFilter.noTradeOnRestrictedWindows !== false,
+        baseScore: Number(confluenceSessionFilter.baseScore || 0.6),
+        baseConfidence: Number(confluenceSessionFilter.baseConfidence || 0.62),
+        degradedPenaltyOnMissingTime: Number(confluenceSessionFilter.degradedPenaltyOnMissingTime || 0.08),
+        sessions: Array.isArray(confluenceSessionFilter.sessions) ? confluenceSessionFilter.sessions : [],
+        goodWindows: Array.isArray(confluenceSessionFilter.goodWindows) ? confluenceSessionFilter.goodWindows : [],
+        chaoticWindows: Array.isArray(confluenceSessionFilter.chaoticWindows) ? confluenceSessionFilter.chaoticWindows : [],
+        restrictedWindows: Array.isArray(confluenceSessionFilter.restrictedWindows) ? confluenceSessionFilter.restrictedWindows : [],
+        capitalRegimeInfluence: {
+          mode: confluenceSessionCapitalInfluence.mode === 'strict' ? 'strict' : 'penalty_only',
+          protectivePenaltyByRegime: typeof confluenceSessionCapitalInfluence.protectivePenaltyByRegime === 'object' && confluenceSessionCapitalInfluence.protectivePenaltyByRegime
+            ? confluenceSessionCapitalInfluence.protectivePenaltyByRegime
+            : {},
+          strictNoTradeRegimes: Array.isArray(confluenceSessionCapitalInfluence.strictNoTradeRegimes)
+            ? confluenceSessionCapitalInfluence.strictNoTradeRegimes
+            : ['HALT_NEW_ENTRIES'],
+          tightenRestrictedWindowRegimes: Array.isArray(confluenceSessionCapitalInfluence.tightenRestrictedWindowRegimes)
+            ? confluenceSessionCapitalInfluence.tightenRestrictedWindowRegimes
+            : ['CAPITAL_PRESERVATION', 'HALT_NEW_ENTRIES'],
+        },
+        refreshPolicy: {
+          minCyclesBetweenRefresh: Number(confluenceSessionRefreshPolicy.minCyclesBetweenRefresh || 2),
+          allowCachedReuse: confluenceSessionRefreshPolicy.allowCachedReuse !== false,
+          cacheKey: confluenceSessionRefreshPolicy.cacheKey || 'session_filter_engine',
+        },
       },
     },
 

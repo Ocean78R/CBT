@@ -6,6 +6,7 @@ const { evaluateVwapProfileLayer } = require('./vwapProfileEngine');
 const { evaluateBounceDetection } = require('./bounceDetectionEngine');
 const { evaluateBreakdown } = require('./breakdownEngine');
 const { evaluateDerivativesContext } = require('./derivativesContextEngine');
+const { evaluateSessionFilter } = require('./sessionFilterEngine');
 const { evaluateConfirmationEngine } = require('./confirmationEngine');
 
 function clamp01(value) {
@@ -27,6 +28,7 @@ function normalizeConfig(raw = {}) {
   const bounceDetection = raw.bounceDetection || {};
   const breakdownDetection = raw.breakdownDetection || {};
   const derivativesContext = raw.derivativesContext || {};
+  const sessionFilter = raw.sessionFilter || {};
 
   return {
     enabled: !!raw.enabled,
@@ -43,6 +45,7 @@ function normalizeConfig(raw = {}) {
       bounceDetection: Number(blockWeights.bounceDetection ?? 0),
       breakdownDetection: Number(blockWeights.breakdownDetection ?? 0),
       derivativesContext: Number(blockWeights.derivativesContext ?? 0),
+      sessionFilter: Number(blockWeights.sessionFilter ?? 0),
     },
     thresholds: {
       fullEntryScore: Number(thresholds.fullEntryScore ?? 0.68),
@@ -257,6 +260,24 @@ function normalizeConfig(raw = {}) {
         : {},
       capitalRegimePenalties: typeof derivativesContext.capitalRegimePenalties === 'object' && derivativesContext.capitalRegimePenalties
         ? derivativesContext.capitalRegimePenalties
+        : {},
+    },
+    sessionFilter: {
+      enabled: !!sessionFilter.enabled,
+      timezone: sessionFilter.timezone || 'UTC',
+      noTradeOnRestrictedWindows: sessionFilter.noTradeOnRestrictedWindows !== false,
+      baseScore: Number(sessionFilter.baseScore ?? 0.6),
+      baseConfidence: Number(sessionFilter.baseConfidence ?? 0.62),
+      degradedPenaltyOnMissingTime: Number(sessionFilter.degradedPenaltyOnMissingTime ?? 0.08),
+      sessions: Array.isArray(sessionFilter.sessions) ? sessionFilter.sessions : [],
+      goodWindows: Array.isArray(sessionFilter.goodWindows) ? sessionFilter.goodWindows : [],
+      chaoticWindows: Array.isArray(sessionFilter.chaoticWindows) ? sessionFilter.chaoticWindows : [],
+      restrictedWindows: Array.isArray(sessionFilter.restrictedWindows) ? sessionFilter.restrictedWindows : [],
+      capitalRegimeInfluence: typeof sessionFilter.capitalRegimeInfluence === 'object' && sessionFilter.capitalRegimeInfluence
+        ? sessionFilter.capitalRegimeInfluence
+        : {},
+      refreshPolicy: typeof sessionFilter.refreshPolicy === 'object' && sessionFilter.refreshPolicy
+        ? sessionFilter.refreshPolicy
         : {},
     },
   };
@@ -569,6 +590,7 @@ function combineLayerScores(layers, config) {
     ['bounceDetectionLayer', weights.bounceDetection],
     ['breakdownDetectionLayer', weights.breakdownDetection],
     ['derivativesContextLayer', weights.derivativesContext],
+    ['sessionFilterLayer', weights.sessionFilter],
   ];
 
   let weightedScore = 0;
@@ -635,6 +657,7 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
       marketLevels: (layers.marketLevelLayer || {}).explanation || {},
       derivativesContext: (layers.derivativesContextLayer || {}).explanation || {},
       confirmationContext: (layers.confirmationLayer || {}).explanation || {},
+      sessionContext: (layers.sessionFilterLayer || {}).explanation || {},
     },
   });
 
@@ -676,6 +699,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       bounceDetectionLayer: createLayerResult('bounceDetectionLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       breakdownDetectionLayer: createLayerResult('breakdownDetectionLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       derivativesContextLayer: createLayerResult('derivativesContextLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
+      sessionFilterLayer: createLayerResult('sessionFilterLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       finalEntryDecisionLayer: createLayerResult('finalEntryDecisionLayer', { dataQualityState: 'fallback', reasonCodes: ['confluence_disabled'] }),
       },
       decision: {
@@ -768,6 +792,29 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
     reasonCodes: derivativesResult.reasonCodes,
     explanation: derivativesResult.explanation || {},
   });
+  // Русский комментарий: session/time-context слой вызывается после risk/regime и перед final decision как permission-контекст.
+  const sessionFilterResult = evaluateSessionFilter({
+    context,
+    featureStoreContext: input.featureStoreContext || {},
+    runtime: {
+      nowMs: input.nowMs,
+    },
+  }, config.sessionFilter || {});
+  if (sessionFilterResult && sessionFilterResult.cacheWrite && input.featureStoreContext && typeof input.featureStoreContext === 'object') {
+    input.featureStoreContext[(config.sessionFilter || {}).refreshPolicy && (config.sessionFilter || {}).refreshPolicy.cacheKey
+      ? config.sessionFilter.refreshPolicy.cacheKey
+      : 'session_filter_engine'] = sessionFilterResult.cacheWrite;
+  }
+  layers.sessionFilterLayer = createLayerResult('sessionFilterLayer', {
+    direction: sessionFilterResult.direction || 'long_short',
+    score: sessionFilterResult.score,
+    confidence: sessionFilterResult.confidence,
+    softPenalty: sessionFilterResult.softPenalty,
+    vetoCandidates: sessionFilterResult.vetoCandidates,
+    dataQualityState: sessionFilterResult.dataQualityState || 'degraded',
+    reasonCodes: sessionFilterResult.reasonCodes,
+    explanation: sessionFilterResult.explanation || {},
+  });
   layers.finalEntryDecisionLayer = evaluateFinalEntryDecisionLayer(input, config, layers);
 
   const final = layers.finalEntryDecisionLayer;
@@ -795,6 +842,7 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       { source: 'bounceDetectionLayer', value: layers.bounceDetectionLayer.softPenalty },
       { source: 'breakdownDetectionLayer', value: layers.breakdownDetectionLayer.softPenalty },
       { source: 'derivativesContextLayer', value: layers.derivativesContextLayer.softPenalty },
+      { source: 'sessionFilterLayer', value: layers.sessionFilterLayer.softPenalty },
     ],
     metadata: {
       layerScores: layers,
@@ -814,6 +862,12 @@ function evaluateConfluenceEntry(input = {}, rawConfig = {}) {
       breakdownDetection: layers.breakdownDetectionLayer ? layers.breakdownDetectionLayer.explanation : {},
       derivativesContext: layers.derivativesContextLayer ? layers.derivativesContextLayer.explanation : {},
       confirmationContext: layers.confirmationLayer ? layers.confirmationLayer.explanation : {},
+      sessionContext: layers.sessionFilterLayer ? layers.sessionFilterLayer.explanation : {},
+      timeContextScore: Number.isFinite((layers.sessionFilterLayer || {}).score) ? layers.sessionFilterLayer.score : 0,
+      sessionState: ((layers.sessionFilterLayer || {}).explanation || {}).sessionState || 'OFF_HOURS',
+      timeBasedEntryRestriction: Array.isArray((layers.sessionFilterLayer || {}).vetoCandidates)
+        ? layers.sessionFilterLayer.vetoCandidates.some((x) => x && x.reason && String(x.reason).includes('restricted'))
+        : false,
     },
   });
 
@@ -868,6 +922,7 @@ function toConfluenceEntryEvent(input = {}) {
       breakdownDetection: (layerScores.breakdownDetectionLayer || {}).explanation || {},
       derivativesContext: (layerScores.derivativesContextLayer || {}).explanation || {},
       confirmationContext: (layerScores.confirmationLayer || {}).explanation || {},
+      sessionContext: (layerScores.sessionFilterLayer || {}).explanation || {},
       // Русский комментарий: совместимый downstream-контекст для audit trail/reporting без ad-hoc форматов.
       telemetry: {
         downstreamContext: {
@@ -883,6 +938,12 @@ function toConfluenceEntryEvent(input = {}) {
             breakdownDetection: (layerScores.breakdownDetectionLayer || {}).explanation || {},
             derivativesContext: (layerScores.derivativesContextLayer || {}).explanation || {},
             confirmationContext: (layerScores.confirmationLayer || {}).explanation || {},
+            sessionContext: (layerScores.sessionFilterLayer || {}).explanation || {},
+            timeContextScore: Number.isFinite(((layerScores.sessionFilterLayer || {}).score)) ? layerScores.sessionFilterLayer.score : 0,
+            sessionState: ((layerScores.sessionFilterLayer || {}).explanation || {}).sessionState || 'OFF_HOURS',
+            timeBasedEntryRestriction: Array.isArray((layerScores.sessionFilterLayer || {}).vetoCandidates)
+              ? layerScores.sessionFilterLayer.vetoCandidates.some((x) => x && x.reason && String(x.reason).includes('restricted'))
+              : false,
           },
         },
       },
