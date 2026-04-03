@@ -330,6 +330,92 @@
             "CAPITAL_PRESERVATION": 0.16,
             "HALT_NEW_ENTRIES": 0.26
           }
+        },
+        "confirmationEngine": {
+          "enabled": false,
+          "weights": {
+            "technical": 0.62,
+            "microstructure": 0.38
+          },
+          "costSplit": {
+            "minCheapScoreForMicro": 0.42,
+            "skipMicroWhenBudgetExceeded": true
+          },
+          "technical": {
+            "minCandles": 30,
+            "volumeAveragePeriod": 20,
+            "volumeSpikeThreshold": 1.6,
+            "volumeConfirmationThreshold": 1.1,
+            "weights": {
+              "volume": 0.2,
+              "rsi": 0.14,
+              "stochasticRsi": 0.12,
+              "mfi": 0.12,
+              "cci": 0.12,
+              "divergence": 0.12
+            },
+            "rsi": {
+              "period": 14,
+              "longMin": 45,
+              "longMax": 78,
+              "shortMin": 22,
+              "shortMax": 55
+            },
+            "stochasticRsi": {
+              "period": 14,
+              "lookback": 14,
+              "longMin": 0.2,
+              "longMax": 0.95,
+              "shortMin": 0.05,
+              "shortMax": 0.8
+            },
+            "mfi": {
+              "period": 14,
+              "longMin": 45,
+              "longMax": 85,
+              "shortMin": 15,
+              "shortMax": 55
+            },
+            "cci": {
+              "period": 20,
+              "longMin": -80,
+              "longMax": 220,
+              "shortMin": -220,
+              "shortMax": 80
+            },
+            "divergence": {
+              "lookback": 8
+            }
+          },
+          "microstructure": {
+            "depthLevels": 8,
+            "softPenaltyOnMissingData": 0.06,
+            "weights": {
+              "imbalance": 0.36,
+              "spread": 0.28,
+              "bookPressure": 0.36
+            },
+            "imbalance": {
+              "longMin": 0.05,
+              "shortMax": -0.05
+            },
+            "spread": {
+              "maxPercent": 0.12
+            },
+            "bookPressure": {
+              "longPressureRatio": 1.08,
+              "shortPressureRatio": 1.08
+            },
+            "liquidityWall": {
+              "minWallRatio": 2.2
+            }
+          },
+          "capitalRegimePenalties": {
+            "CAUTION": 0.02,
+            "DEFENSIVE": 0.05,
+            "CAPITAL_PRESERVATION": 0.1,
+            "HALT_NEW_ENTRIES": 0.2
+          }
         }
       }
     },

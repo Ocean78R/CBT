@@ -323,3 +323,21 @@
 - `lazy_skip_budget_exhausted` — слой пропущен из-за budget-aware ограничения.
 - `volume_context_cached_reuse` — признаки взяты из кэша согласно refresh policy.
 - `synthetic_volume_majority` — большая часть объёма синтетическая (нет биржевого volume), confidence понижен.
+
+## Логи confirmationEngine (technical + microstructure)
+В runtime-логе `[confluenceEntry]` добавлены поля:
+- `confirmationsScore`, `confirmationsConfidence`,
+- `confirmationsDataQuality` (`full|degraded|missing|fallback`),
+- `confirmationsReason`,
+- `confirmationsMode` (`full_mode|degraded_mode|legacy_fallback`),
+- `confirmationsCapitalInfluence`.
+
+В structured event `confluence_entry_decision` добавлены:
+- `payload.confirmationContext`,
+- `payload.layerScores.confirmationLayer`,
+- `payload.telemetry.downstreamContext.confluenceEntry.confirmationContext`.
+
+Минимальная диагностика для проблем подтверждений:
+1. Если `confirmationsDataQuality=missing|degraded`, проверьте `sharedSnapshot.candles` и `sharedSnapshot.orderBook`.
+2. Если `confirmationsMode=degraded_mode`, проверьте `budgetState` и cheap-stage порог `confirmationEngine.costSplit.minCheapScoreForMicro`.
+3. Если penalty высокий в защитных режимах, проверьте `confirmationEngine.capitalRegimePenalties` и текущий `capitalRegime`.
