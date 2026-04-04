@@ -20,6 +20,10 @@ const {
   normalizeFinalEntryDecisionConfig,
   toFinalEntryDecisionEvent,
 } = require('./finalEntryDecisionEngine');
+const {
+  evaluateDynamicPositionSizing,
+  normalizeDynamicPositionSizingConfig,
+} = require('../sizing/dynamicPositionSizing');
 
 function emitObservabilityEvent(strategy, event) {
   const layer = strategy && strategy.observabilityLayer;
@@ -55,6 +59,17 @@ function createEngines(strategy) {
         }
 
         return result;
+      },
+      // Русский комментарий: sizing запускается только после approved entry и не имеет права разрешать вход самостоятельно.
+      evaluateDynamicPositionSizing: (input, runtimeConfig) => {
+        const sizingConfig = runtimeConfig && runtimeConfig.dynamicPositionSizing
+          ? runtimeConfig.dynamicPositionSizing
+          : {};
+        return evaluateDynamicPositionSizing(input, normalizeDynamicPositionSizingConfig(sizingConfig), {
+          log: (message) => {
+            if (typeof strategy.log === 'function') strategy.log(message);
+          },
+        });
       },
       // Русский комментарий: confluence режим стоит после regime-router и до sizing/execution; legacy остаётся fallback.
       predictPriceDirection: async (ticker) => {

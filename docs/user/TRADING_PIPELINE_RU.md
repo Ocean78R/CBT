@@ -432,6 +432,23 @@ Cache tiers и чтение слоями:
 - Как переключается режим:
   - `confluenceEntryEngine.enabled` + `confluenceEntryEngine.mode=confluence`.
 
+## Runtime-позиция dynamicPositionSizing (шаг 36, подэтап 1)
+- Место слоя в пайплайне: строго после `finalEntryDecisionEngine` и только при approved entry.
+- Входы (v1): `approvedEntryResult`, `decisionMode`, `entryScore/confidence`, `balanceState/capitalRegime`, `tickerRisk`, `runtimeGuards`, `metadata/dataQuality`.
+- Выходы (v1): `sizeMultiplier`, `targetMarginSize`, `leverageCap`, `aggressivenessMode`, `sizingReasonCodes`, `sizingDataQualityState`, `mode`.
+- Базовая логика:
+  - `weak_entry` всегда получает уменьшенный профиль;
+  - высокий риск тикера снижает размер и допустимое плечо;
+  - ужесточение `capitalRegime`/`balanceState` снижает размер и aggressiveness;
+  - `no_entry`/hard guard (`unload/capital prohibition`) возвращает нулевой sizing.
+- Fallback:
+  - при `dynamicPositionSizing.enabled=false` или недостаточном runtime context применяется `fixed_fallback`;
+  - fallback не меняет ownership execution/lifecycle.
+- Ownership-ограничения:
+  - слой не пересчитывает market data/signal block outputs;
+  - слой не является final decision owner;
+  - слой не отправляет ордера и не владеет execution/lifecycle.
+
 ### Блоки нового входа
 1. `entryPermissionLayer`
    - учитывает `balanceState/capitalRegime` и forecast-риск;
