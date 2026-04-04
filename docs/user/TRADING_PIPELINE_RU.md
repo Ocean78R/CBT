@@ -214,6 +214,27 @@
   - `timeBasedEntryRestriction` поднимается и в strict-capital сценарии, даже если окно не помечено как `restricted`;
   - слой не имеет права снять запрет, выставленный верхним risk-контуром.
 
+## Runtime-позиция finalEntryDecisionEngine (каркас шага 35, подэтап 1)
+- Место в пайплайне: **после всех upstream block outputs (шаги 1–34) и до dynamic sizing / ML phase 1/2**.
+- Что делает:
+  1. Принимает готовые `componentScores` из общего `DecisionContext/shared block outputs`;
+  2. Агрегирует score без пересчёта market-data и block-логики;
+  3. Применяет безопасные fallback-пенальти для `missing/degraded/cached` блоков;
+  4. Возвращает единый структурированный decision-контракт для downstream.
+- Что **не делает**:
+  - не пересчитывает сигналы и market data;
+  - не владеет sizing (`dynamicPositionSizing`) и execution (`execution/lifecycle`);
+  - не обходит `hard-risk`, `unload mode`, `capital prohibition`.
+- Минимальный входной контракт:
+  - `componentScores` (по блокам), `vetoCandidates`, `dataQualityState`;
+  - `balanceState/capitalRegime` как внешний runtime context;
+  - `metadata` по источникам block outputs.
+- Минимальный выходной контракт:
+  - `entryScore`, `decisionMode` (`full_entry|weak_entry|no_entry`), `componentScores`;
+  - `unmetMinimumBlocks`, `vetoSummary`, `appliedPenalties`;
+  - `capitalRegimeImpact`, `dataQualityState`, `explanation.reasonCodes`.
+- Exchange-agnostic инвариант: слой не зашивает BingX-specific assumptions и работает только с универсальным контрактом входа/выхода.
+
 ## Runtime-позиция единого observability/reporting слоя
 - Позиция в пайплайне: после формирования структурированных событий в decision/risk/execution/lifecycle слоях, как неблокирующий subscriber.
 - Зависимости (более ранние слои): `DecisionContext` + `score` + `veto` контракты, события execution owner-path, capital/forecast context, lifecycle события позиции.

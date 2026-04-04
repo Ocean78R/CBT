@@ -15,6 +15,10 @@ const {
   evaluateConfluenceEntry,
   toConfluenceEntryEvent,
 } = require('./confluenceEntryEngine');
+const {
+  evaluateFinalEntryDecision,
+  normalizeFinalEntryDecisionConfig,
+} = require('./finalEntryDecisionEngine');
 
 function emitObservabilityEvent(strategy, event) {
   const layer = strategy && strategy.observabilityLayer;
@@ -29,6 +33,17 @@ function createEngines(strategy) {
 
   return {
     signalEngine: {
+      // Русский комментарий: standalone finalEntryDecisionEngine доступен для runtime wiring как агрегатор shared block outputs.
+      evaluateFinalEntryDecision: (input, runtimeConfig) => {
+        const finalEntryConfig = runtimeConfig && runtimeConfig.finalEntryDecisionEngine
+          ? runtimeConfig.finalEntryDecisionEngine
+          : {};
+        return evaluateFinalEntryDecision(input, normalizeFinalEntryDecisionConfig(finalEntryConfig), {
+          log: (message) => {
+            if (typeof strategy.log === 'function') strategy.log(message);
+          },
+        });
+      },
       // Русский комментарий: confluence режим стоит после regime-router и до sizing/execution; legacy остаётся fallback.
       predictPriceDirection: async (ticker) => {
         const legacyResult = await strategy.predictPriceDirectionLegacy(ticker);
