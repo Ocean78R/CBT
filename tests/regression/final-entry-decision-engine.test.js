@@ -27,27 +27,56 @@ test('finalEntryDecisionEngine: принимает контракт componentSco
   assert.equal(output.vetoSummary.blocked, false);
   assert.equal(output.dataQualityState, 'ok');
   assert.equal(output.capitalRegimeImpact.capitalRegime, 'NORMAL');
+  assert.equal(output.mandatoryBlocksSatisfied, true);
   assert.equal(output.explanation.ownership.isSignalRecalculationOwner, false);
 });
 
-test('finalEntryDecisionEngine: возвращает структурированный выходной контракт', () => {
+test('finalEntryDecisionEngine: all minimum blocks passed -> full entry', () => {
   const output = evaluateFinalEntryDecision({
     componentScores: {
-      entryPermission: { score: 0.4, confidence: 0.5, weight: 1, dataQualityState: 'ok' },
-      marketContext: { score: 0.42, confidence: 0.4, weight: 1, dataQualityState: 'cached' },
-      primarySignal: { score: 0.45, confidence: 0.6, weight: 1, dataQualityState: 'ok' },
+      entryPermission: { score: 0.7, confidence: 0.8, weight: 1, dataQualityState: 'ok' },
+      marketContext: { score: 0.72, confidence: 0.7, weight: 1, dataQualityState: 'ok' },
+      primarySignal: { score: 0.74, confidence: 0.9, weight: 1, dataQualityState: 'ok' },
     },
     vetoCandidates: [],
     balanceState: { capitalRegime: 'NORMAL' },
   }, {
-    thresholds: { fullEntryScore: 0.8, weakEntryScore: 0.35 },
+    thresholds: { fullEntryScore: 0.69, weakEntryScore: 0.5 },
+    minimumRequiredScorePerBlock: {
+      entryPermission: 0.6,
+      marketContext: 0.6,
+      primarySignal: 0.6,
+    },
   });
 
-  assert.ok(output && output.vetoSummary && output.explanation);
-  assert.ok(Array.isArray(output.unmetMinimumBlocks));
-  assert.ok(Array.isArray(output.appliedPenalties));
-  assert.ok(output.explanation.reasonCodes.includes('degraded_or_cached_input_blocks'));
-  assert.ok(['full_entry', 'weak_entry', 'no_entry'].includes(output.decisionMode));
+  assert.equal(output.decisionMode, 'full_entry');
+  assert.equal(output.mandatoryBlocksSatisfied, true);
+  assert.deepEqual(output.failedMinimumScoreBlocks, []);
+  assert.deepEqual(output.unmetMinimumBlocks, []);
+});
+
+test('finalEntryDecisionEngine: weak entry branch', () => {
+  const output = evaluateFinalEntryDecision({
+    componentScores: {
+      entryPermission: { score: 0.6, confidence: 0.7, weight: 1, dataQualityState: 'ok' },
+      marketContext: { score: 0.58, confidence: 0.6, weight: 1, dataQualityState: 'ok' },
+      primarySignal: { score: 0.62, confidence: 0.65, weight: 1, dataQualityState: 'ok' },
+    },
+    vetoCandidates: [],
+    balanceState: { capitalRegime: 'NORMAL' },
+  }, {
+    thresholds: { fullEntryScore: 0.72, weakEntryScore: 0.56 },
+    allowWeakEntry: true,
+    minimumRequiredScorePerBlock: {
+      entryPermission: 0.55,
+      marketContext: 0.55,
+      primarySignal: 0.55,
+    },
+  });
+
+  assert.equal(output.decisionMode, 'weak_entry');
+  assert.equal(output.vetoSummary.blocked, false);
+  assert.equal(output.thresholdsApplied.weakEntryAllowed, true);
 });
 
 test('finalEntryDecisionEngine: не пересчитывает сигналы и не трогает market-data owner', () => {
@@ -91,4 +120,61 @@ test('finalEntryDecisionEngine: fallback при missing/degraded block outputs �
   assert.equal(output.vetoSummary.finalVeto.type, 'risk_unload');
   assert.deepEqual(output.unmetMinimumBlocks.sort(), ['marketContext', 'primarySignal'].sort());
   assert.ok(output.appliedPenalties.some((p) => p.type === 'missing_block_output'));
+});
+
+test('finalEntryDecisionEngine: hard veto branch', () => {
+  const output = evaluateFinalEntryDecision({
+    componentScores: {
+      entryPermission: { score: 0.99, confidence: 0.8, weight: 1, dataQualityState: 'ok' },
+      marketContext: { score: 0.99, confidence: 0.8, weight: 1, dataQualityState: 'ok' },
+      primarySignal: { score: 0.99, confidence: 0.8, weight: 1, dataQualityState: 'ok' },
+    },
+    vetoCandidates: [{ type: 'event_risk_freeze', severity: 'hard', reason: 'macro_event_window', source: 'eventRiskLayer' }],
+  }, {});
+
+  assert.equal(output.decisionMode, 'no_entry');
+  assert.equal(output.vetoSummary.blocked, true);
+  assert.equal(output.vetoSummary.finalVeto.type, 'event_risk_freeze');
+});
+
+test('finalEntryDecisionEngine: capitalRegime tightening branch', () => {
+  const output = evaluateFinalEntryDecision({
+    componentScores: {
+      entryPermission: { score: 0.61, confidence: 0.7, weight: 1, dataQualityState: 'ok' },
+      marketContext: { score: 0.62, confidence: 0.7, weight: 1, dataQualityState: 'ok' },
+      primarySignal: { score: 0.63, confidence: 0.7, weight: 1, dataQualityState: 'ok' },
+    },
+    capitalRegime: 'CONSERVE_CAPITAL',
+    balanceState: { capitalRegime: 'CONSERVE_CAPITAL' },
+  }, {
+    thresholds: { fullEntryScore: 0.6, weakEntryScore: 0.55 },
+    allowWeakEntry: true,
+    minimumRequiredScorePerBlock: {
+      entryPermission: 0.6,
+      marketContext: 0.6,
+      primarySignal: 0.6,
+    },
+  });
+
+  assert.equal(output.decisionMode, 'no_entry');
+  assert.equal(output.thresholdsApplied.weakEntryAllowed, false);
+  assert.ok(output.explanation.reasonCodes.includes('capital_regime_tightening:CONSERVE_CAPITAL'));
+});
+
+test('finalEntryDecisionEngine: degraded block outputs branch', () => {
+  const output = evaluateFinalEntryDecision({
+    componentScores: {
+      entryPermission: { score: 0.8, confidence: 0.7, weight: 1, dataQualityState: 'degraded' },
+      marketContext: { score: 0.79, confidence: 0.7, weight: 1, dataQualityState: 'cached' },
+      primarySignal: { score: 0.81, confidence: 0.7, weight: 1, dataQualityState: 'ok' },
+    },
+    vetoCandidates: [],
+  }, {
+    thresholds: { fullEntryScore: 0.72, weakEntryScore: 0.65 },
+    fallback: { degradedPenalty: 0.1 },
+  });
+
+  assert.equal(output.decisionMode, 'no_entry');
+  assert.ok(output.appliedPenalties.some((item) => item.type === 'degraded_or_cached_block_output'));
+  assert.ok(output.explanation.reasonCodes.includes('degraded_or_cached_input_blocks'));
 });
