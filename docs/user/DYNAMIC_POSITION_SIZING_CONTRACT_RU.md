@@ -1,4 +1,4 @@
-# Dynamic Position Sizing (шаг 36, подэтап 1)
+# Dynamic Position Sizing (шаг 36, подэтап 2)
 
 ## Назначение
 
@@ -10,7 +10,7 @@
 - не разрешает вход без approved entry;
 - не является execution/lifecycle owner.
 
-## Входной контракт (v1)
+## Входной контракт (v1, production-like integration)
 
 Минимальные поля входа:
 - `approvedEntryResult` — результат шага 35 (`finalEntryDecisionEngine`), включая `decisionMode`/`entryScore`;
@@ -20,6 +20,8 @@
 - `tickerRisk` (`riskScore` или `coinRiskScore`) — если уже есть в runtime;
 - `metadata`/`dataQualityState`/`sizingDataQualityState` — состояние качества данных;
 - `runtimeGuards` (`hardRiskBlocked`, `capitalProhibition`, `allowNewEntries`, `unloadMode`) — верхнеуровневые ограничения.
+- `forecastSizing`/`portfolioRisk.outputHints.sizingHints` — forecast hints (только как входные ограничения, не ownership);
+- `context.mode` (`live|paper|shadow`) — runtime режим для логирования/audit.
 
 ## Выходной контракт (v1)
 
@@ -32,6 +34,13 @@
 - `mode` (`dynamic_base_formula | fixed_fallback | no_entry`) и `contractVersion`.
 
 Дополнительно возвращаются `explanation.ownership` и `explanation.downstreamHints` для интеграции со следующими шагами 37–40.
+Для audit trail добавляется `explanation.structured`:
+- `approvedEntryDecisionMode`;
+- `baseSizingResult`;
+- `capitalRegimeAdjustment`;
+- `forecastSizingAdjustment`;
+- `finalSizeMultiplier`/`finalLeverageCap`;
+- `sizingReasonCodes`.
 
 ## Текущая базовая логика
 
@@ -39,12 +48,19 @@
 - `weak_entry` получает сниженный профиль по умолчанию;
 - чем выше риск тикера (`riskScore`), тем ниже multiplier и cap по плечу;
 - чем жёстче `capitalRegime`/`balanceState`, тем ниже размер и aggressiveness;
+- `CAUTION/DEFENSIVE/CAPITAL_PRESERVATION` дополнительно уменьшают `sizeMultiplier`, ограничивают `leverageCap` и могут запретить full-size профиль;
+- `HALT_NEW_ENTRIES/PROHIBIT_NEW_ENTRIES` не допускают sizing для новых входов (нулевой результат);
 - при `drawdownProtection` вводится дополнительное снижение;
 - при плохом качестве данных (`cached/degraded/missing`) накладывается penalty;
+- forecast hooks могут только дополнительно ужесточать sizing (aggression caps / exposure reduction / conservative cap), но не разрешать вход;
 - при выключенном dynamic sizing или недостаточном runtime context используется `fixed_fallback`.
 
-## Что осознанно оставлено на следующий подэтап
+## Совместимость с future ML
+- ML phase 1: доступен hook-индикатор для confidence-based модификатора (`mlPhase1SizingConfidenceModifierHookEnabled`);
+- ML phase 2: доступен bounded-adjust контракт (`mlPhase2SizingBoundedAdjustmentHookEnabled` + лимиты);
+- ownership sizing остаётся у `dynamicPositionSizing`, ML не переводится в owner.
 
-- Полная интеграция forecast/ML/meta-controller modifiers;
-- Расширенная адаптация профиля по биржевым ограничениям;
-- Полный runtime wiring с execution/lifecycle веткой.
+## Ограничения, которые остаются
+- Расчёт сохраняет rule-based основу и не включает ML-регрессию/обучение внутри sizing;
+- Exchange-specific ограничения (детальные per-symbol фильтры) остаются в downstream execution/adapter слоях;
+- Любые hard-risk / unload / capital prohibition / portfolio contour ограничения по-прежнему выше sizing-логики и не ослабляются.

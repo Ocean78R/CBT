@@ -1,3 +1,11 @@
+## 2026-04-04 (dynamicPositionSizing integration, step 36 / substep 2)
+- Изменение: добавлена production-like интеграция `dynamicPositionSizing` с `capitalRegime` tightening (`CAUTION/DEFENSIVE/CAPITAL_PRESERVATION/HALT_NEW_ENTRIES`) без смены ownership-path.
+- Изменение: расширен config-контракт (`enableDynamicPositionSizing`, `baseSizingRules`, `weakEntrySizeMultiplier`, `capitalRegimeSizingRules`, `leverageCapsByRegime`, `fallbackFixedSizingConfig`, forecast/ML hooks).
+- Изменение: добавлены structured runtime-логи с полями `approvedEntryDecisionMode/baseSizingResult/capitalRegimeAdjustment/forecastSizingAdjustment/finalSizeMultiplier/finalLeverageCap/sizingReasonCodes`.
+- Изменение: добавлен structured event `dynamic_position_sizing` для observability/audit trail.
+- Изменение: добавлены regression/contract тесты на ветки capital tightening, `HALT_NEW_ENTRIES`, forecast hooks, paper/live parity, anti-recompute и future ML compatibility.
+- Связанные файлы кода: `dist/runtime/sizing/dynamicPositionSizing.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/dynamic-position-sizing.test.js`.
+
 ## 2026-04-04 (dynamicPositionSizing scaffold, step 36 / substep 1)
 - Изменение: добавлен отдельный exchange-agnostic модуль `dynamicPositionSizing` с базовой формулой sizing только после approved entry (`full_entry/weak_entry/no_entry`) и без пересчёта upstream сигналов.
 - Изменение: зафиксирован входной контракт (`approvedEntryResult`, `decisionMode`, `entryScore/confidence`, `balanceState/capitalRegime`, `tickerRisk`, `runtimeGuards`, `metadata/dataQuality`).

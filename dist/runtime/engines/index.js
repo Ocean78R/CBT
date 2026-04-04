@@ -23,6 +23,7 @@ const {
 const {
   evaluateDynamicPositionSizing,
   normalizeDynamicPositionSizingConfig,
+  toDynamicPositionSizingEvent,
 } = require('../sizing/dynamicPositionSizing');
 
 function emitObservabilityEvent(strategy, event) {
@@ -65,11 +66,20 @@ function createEngines(strategy) {
         const sizingConfig = runtimeConfig && runtimeConfig.dynamicPositionSizing
           ? runtimeConfig.dynamicPositionSizing
           : {};
-        return evaluateDynamicPositionSizing(input, normalizeDynamicPositionSizingConfig(sizingConfig), {
+        const decision = evaluateDynamicPositionSizing(input, normalizeDynamicPositionSizingConfig(sizingConfig), {
           log: (message) => {
             if (typeof strategy.log === 'function') strategy.log(message);
           },
         });
+        if (strategy.emitStructuredEvent) {
+          const event = toDynamicPositionSizingEvent({
+            context: input && input.context ? input.context : {},
+            decision,
+          });
+          strategy.emitStructuredEvent(event);
+          emitObservabilityEvent(strategy, event);
+        }
+        return decision;
       },
       // Русский комментарий: confluence режим стоит после regime-router и до sizing/execution; legacy остаётся fallback.
       predictPriceDirection: async (ticker) => {
