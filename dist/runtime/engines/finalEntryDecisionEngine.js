@@ -14,8 +14,11 @@ function clamp01(value) {
 function normalizeConfig(raw = {}) {
   const thresholds = raw.thresholds || {};
   const fallback = raw.fallback || {};
+  const tightening = raw.tightening || {};
+  const minimumRequiredScorePerBlock = raw.minimumRequiredScorePerBlock || {};
   return {
     enabled: raw.enabled !== false,
+    allowWeakEntry: raw.allowWeakEntry !== false,
     thresholds: {
       fullEntryScore: Number(thresholds.fullEntryScore ?? 0.68),
       weakEntryScore: Number(thresholds.weakEntryScore ?? 0.44),
@@ -26,6 +29,39 @@ function normalizeConfig(raw = {}) {
     degradedPenalty: clamp01(fallback.degradedPenalty ?? 0.08),
     missingBlockPenalty: clamp01(fallback.missingBlockPenalty ?? 0.12),
     defaultWeight: Number(raw.defaultWeight ?? 1),
+    minimumRequiredScorePerBlock: {
+      entryPermission: clamp01(minimumRequiredScorePerBlock.entryPermission ?? 0.55),
+      marketContext: clamp01(minimumRequiredScorePerBlock.marketContext ?? 0.5),
+      primarySignal: clamp01(minimumRequiredScorePerBlock.primarySignal ?? 0.52),
+      confirmation: clamp01(minimumRequiredScorePerBlock.confirmation ?? 0),
+      ...Object.keys(minimumRequiredScorePerBlock).reduce((acc, name) => {
+        acc[name] = clamp01(minimumRequiredScorePerBlock[name]);
+        return acc;
+      }, {}),
+    },
+    tightening: {
+      balanceState: {
+        enabledWhen: String((tightening.balanceState || {}).enabledWhen || 'drawdownProtection'),
+        thresholdDelta: clamp01((tightening.balanceState || {}).thresholdDelta ?? 0.05),
+        weakThresholdDelta: clamp01((tightening.balanceState || {}).weakThresholdDelta ?? 0.03),
+        minBlockDelta: clamp01((tightening.balanceState || {}).minBlockDelta ?? 0.05),
+        disableWeakEntry: (tightening.balanceState || {}).disableWeakEntry === true,
+      },
+      capitalRegime: {
+        REDUCE_RISK: {
+          thresholdDelta: clamp01((((tightening.capitalRegime || {}).REDUCE_RISK) || {}).thresholdDelta ?? 0.04),
+          weakThresholdDelta: clamp01((((tightening.capitalRegime || {}).REDUCE_RISK) || {}).weakThresholdDelta ?? 0.03),
+          minBlockDelta: clamp01((((tightening.capitalRegime || {}).REDUCE_RISK) || {}).minBlockDelta ?? 0.05),
+          disableWeakEntry: (((tightening.capitalRegime || {}).REDUCE_RISK) || {}).disableWeakEntry === true,
+        },
+        CONSERVE_CAPITAL: {
+          thresholdDelta: clamp01((((tightening.capitalRegime || {}).CONSERVE_CAPITAL) || {}).thresholdDelta ?? 0.08),
+          weakThresholdDelta: clamp01((((tightening.capitalRegime || {}).CONSERVE_CAPITAL) || {}).weakThresholdDelta ?? 0.05),
+          minBlockDelta: clamp01((((tightening.capitalRegime || {}).CONSERVE_CAPITAL) || {}).minBlockDelta ?? 0.08),
+          disableWeakEntry: (((tightening.capitalRegime || {}).CONSERVE_CAPITAL) || {}).disableWeakEntry !== false,
+        },
+      },
+    },
   };
 }
 
@@ -66,7 +102,7 @@ function normalizeVetoCandidate(veto) {
 }
 
 function pickHardRiskVeto(input, vetoCandidates) {
-  const hardVeto = vetoCandidates.find((v) => v && v.blocking);
+  const hardVeto = vetoCandidates.find((v) => v && (v.blocking || v.type === 'no_trade_regime' || v.type === 'capital_prohibition'));
   if (hardVeto) return hardVeto;
 
   const capitalRegime = ((input || {}).capitalRegime || (((input || {}).balanceState || {}).capitalRegime) || 'NORMAL');
@@ -94,6 +130,56 @@ function pickHardRiskVeto(input, vetoCandidates) {
   return null;
 }
 
+function evaluateNoTradeRegimeVeto(input = {}) {
+  if (input.noTradeRegime === true || input.regimeState === 'NO_TRADE') {
+    return {
+      type: 'no_trade_regime',
+      severity: 'hard',
+      reason: 'regime_router_prohibits_new_entries',
+      source: 'regimeRouter',
+      blocking: true,
+    };
+  }
+  return null;
+}
+
+function resolveTightening(config, input = {}) {
+  const capitalRegime = input.capitalRegime || ((input.balanceState || {}).capitalRegime) || 'NORMAL';
+  const balanceState = input.balanceState || {};
+  const result = {
+    fullEntryDelta: 0,
+    weakEntryDelta: 0,
+    minBlockDelta: 0,
+    weakEntryForcedDisabled: false,
+    reasons: [],
+  };
+
+  const capitalRule = (config.tightening.capitalRegime || {})[capitalRegime];
+  if (capitalRule) {
+    result.fullEntryDelta += clamp01(capitalRule.thresholdDelta);
+    result.weakEntryDelta += clamp01(capitalRule.weakThresholdDelta);
+    result.minBlockDelta += clamp01(capitalRule.minBlockDelta);
+    if (capitalRule.disableWeakEntry) result.weakEntryForcedDisabled = true;
+    result.reasons.push(`capital_regime_tightening:${capitalRegime}`);
+  }
+
+  const balanceTrigger = config.tightening.balanceState.enabledWhen;
+  if (balanceState && balanceState[balanceTrigger] === true) {
+    result.fullEntryDelta += clamp01(config.tightening.balanceState.thresholdDelta);
+    result.weakEntryDelta += clamp01(config.tightening.balanceState.weakThresholdDelta);
+    result.minBlockDelta += clamp01(config.tightening.balanceState.minBlockDelta);
+    if (config.tightening.balanceState.disableWeakEntry) result.weakEntryForcedDisabled = true;
+    result.reasons.push(`balance_state_tightening:${balanceTrigger}`);
+  }
+
+  if (balanceState.allowWeakEntry === false) {
+    result.weakEntryForcedDisabled = true;
+    result.reasons.push('balance_state_weak_entry_disabled');
+  }
+
+  return result;
+}
+
 function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
   const config = normalizeConfig(rawConfig);
   const componentScoresInput = input && typeof input.componentScores === 'object' && input.componentScores
@@ -110,8 +196,21 @@ function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
     ? input.vetoCandidates.map(normalizeVetoCandidate).filter(Boolean)
     : [];
 
-  const hardVeto = pickHardRiskVeto(input, vetoCandidates);
+  const noTradeRegimeVeto = evaluateNoTradeRegimeVeto(input);
+  const hardVeto = noTradeRegimeVeto || pickHardRiskVeto(input, vetoCandidates);
+  const tightening = resolveTightening(config, input);
   const unmetMinimumBlocks = config.minimumRequiredBlocks.filter((name) => !componentScores[name]);
+  const minimumRequiredScorePerBlock = config.minimumRequiredBlocks.reduce((acc, name) => {
+    const baseMinScore = config.minimumRequiredScorePerBlock[name] ?? 0;
+    acc[name] = clamp01(baseMinScore + tightening.minBlockDelta);
+    return acc;
+  }, {});
+  const blocksFailedByScore = config.minimumRequiredBlocks.filter((name) => {
+    const block = componentScores[name];
+    if (!block) return false;
+    return block.score < (minimumRequiredScorePerBlock[name] ?? 0);
+  });
+  const mandatoryBlocksSatisfied = unmetMinimumBlocks.length === 0 && blocksFailedByScore.length === 0;
   const appliedPenalties = [];
 
   const missingPenalty = unmetMinimumBlocks.length * config.missingBlockPenalty;
@@ -142,11 +241,14 @@ function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
 
   const totalPenalty = appliedPenalties.reduce((sum, item) => sum + clamp01(item.value), 0);
   const entryScore = clamp01(weightedScore - totalPenalty);
+  const fullEntryScoreThreshold = clamp01(config.thresholds.fullEntryScore + tightening.fullEntryDelta);
+  const weakEntryScoreThreshold = clamp01(config.thresholds.weakEntryScore + tightening.weakEntryDelta);
+  const weakEntryAllowed = config.allowWeakEntry && !tightening.weakEntryForcedDisabled;
 
   let decisionMode = 'no_entry';
-  if (!hardVeto) {
-    if (entryScore >= config.thresholds.fullEntryScore) decisionMode = 'full_entry';
-    else if (entryScore >= config.thresholds.weakEntryScore) decisionMode = 'weak_entry';
+  if (!hardVeto && mandatoryBlocksSatisfied) {
+    if (entryScore >= fullEntryScoreThreshold) decisionMode = 'full_entry';
+    else if (weakEntryAllowed && entryScore >= weakEntryScoreThreshold) decisionMode = 'weak_entry';
   }
 
   const dataQualityState = input.dataQualityState
@@ -157,7 +259,10 @@ function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
   const reasonCodes = [];
   if (hardVeto) reasonCodes.push(`hard_veto:${hardVeto.type}`);
   if (unmetMinimumBlocks.length) reasonCodes.push('missing_minimum_blocks');
+  if (blocksFailedByScore.length) reasonCodes.push('minimum_block_score_not_met');
+  if (tightening.reasons.length) reasonCodes.push(...tightening.reasons);
   if (degradedBlocks.length) reasonCodes.push('degraded_or_cached_input_blocks');
+  if (!weakEntryAllowed) reasonCodes.push('weak_entry_disabled_by_runtime_context');
   if (decisionMode === 'no_entry' && !hardVeto) reasonCodes.push('entry_score_below_threshold');
 
   const output = {
@@ -165,6 +270,14 @@ function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
     decisionMode,
     componentScores,
     unmetMinimumBlocks,
+    failedMinimumScoreBlocks: blocksFailedByScore,
+    mandatoryBlocksSatisfied,
+    minimumRequiredScorePerBlock,
+    thresholdsApplied: {
+      fullEntry: fullEntryScoreThreshold,
+      weakEntry: weakEntryScoreThreshold,
+      weakEntryAllowed,
+    },
     vetoSummary: {
       blocked: !!hardVeto,
       finalVeto: hardVeto,
@@ -179,6 +292,9 @@ function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
     dataQualityState,
     explanation: {
       reasonCodes,
+      hardVetoType: hardVeto ? hardVeto.type : 'none',
+      softPenaltyTypes: appliedPenalties.map((item) => item.type),
+      noTradeRegime: noTradeRegimeVeto ? 'active' : 'inactive',
       sourceMetadata: input.metadata && typeof input.metadata === 'object' ? input.metadata : {},
       ownership: {
         isSignalRecalculationOwner: false,
@@ -196,7 +312,7 @@ function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
   };
 
   if (runtime && typeof runtime.log === 'function') {
-    runtime.log(`[finalEntryDecision] cycle=${(input.context || {}).cycleId || 'n/a'} ticker=${(input.context || {}).ticker || 'n/a'} mode=${decisionMode} entryScore=${entryScore.toFixed(4)} hardVeto=${hardVeto ? hardVeto.type : 'none'} dataQuality=${dataQualityState} unmetMinimum=${unmetMinimumBlocks.join('|') || 'none'}`);
+    runtime.log(`[finalEntryDecision] cycle=${(input.context || {}).cycleId || 'n/a'} ticker=${(input.context || {}).ticker || 'n/a'} mode=${decisionMode} entryScore=${entryScore.toFixed(4)} fullThr=${fullEntryScoreThreshold.toFixed(4)} weakThr=${weakEntryScoreThreshold.toFixed(4)} hardVeto=${hardVeto ? hardVeto.type : 'none'} noTrade=${noTradeRegimeVeto ? 'active' : 'inactive'} weakAllowed=${weakEntryAllowed ? 'yes' : 'no'} unmetMinimum=${unmetMinimumBlocks.join('|') || 'none'} minScoreFailed=${blocksFailedByScore.join('|') || 'none'}`);
   }
 
   return output;
