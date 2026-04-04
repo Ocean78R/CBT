@@ -2987,6 +2987,39 @@
     "slippageBps": 0,
     "feeBps": 0
   },
+  "finalEntryDecisionEngine": {
+    "enabled": true,
+    "entryScoreThreshold": 0.68,
+    "allowWeakEntryMode": true,
+    "weakEntryThreshold": 0.44,
+    "weakEntryRange": {
+      "min": 0.44,
+      "max": 0.68
+    },
+    "minimumRequiredBlocks": [
+      "entryPermission",
+      "marketContext",
+      "primarySignal"
+    ],
+    "minimumRequiredScorePerBlock": {
+      "entryPermission": 0.55,
+      "marketContext": 0.5,
+      "primarySignal": 0.52,
+      "confirmation": 0
+    },
+    "vetoRules": {
+      "hardVetoTypes": [
+        "no_trade_regime",
+        "capital_prohibition"
+      ],
+      "interpretForecastRestrictionHints": true,
+      "forecastHardHints": [
+        "restrict_new_entries_hard_candidate",
+        "restrict_new_entries_hard"
+      ],
+      "mlCannotOverrideHardVeto": true
+    }
+  },
   "executionContour": {
     "enabled": true,
     "queueLimit": 200,

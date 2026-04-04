@@ -21,6 +21,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const mlDatasetBuilder = merged.mlDatasetBuilder || {};
   const higherTimeframeBiasEngine = merged.higherTimeframeBiasEngine || {};
   const confluenceEntryEngine = merged.confluenceEntryEngine || {};
+  const finalEntryDecisionEngine = merged.finalEntryDecisionEngine || {};
 
   const observabilityReporting = merged.observabilityReporting || {};
   const observabilitySampling = observabilityReporting.sampling || {};
@@ -80,6 +81,14 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const confluenceDerivativesContext = confluenceEntryEngine.derivativesContext || {};
   const confluenceSessionFilter = confluenceEntryEngine.sessionFilter || {};
   const confluenceEventRisk = confluenceEntryEngine.eventRisk || {};
+  const finalEntryWeakEntryRange = finalEntryDecisionEngine.weakEntryRange || {};
+  const finalEntryVetoRules = finalEntryDecisionEngine.vetoRules || {};
+  const finalEntryThresholds = finalEntryDecisionEngine.thresholds || {};
+  const finalEntryFallback = finalEntryDecisionEngine.fallback || {};
+  const finalEntryTightening = finalEntryDecisionEngine.tightening || {};
+  const finalEntryTighteningBalance = finalEntryTightening.balanceState || {};
+  const finalEntryTighteningCapital = finalEntryTightening.capitalRegime || {};
+  const finalEntryMinScoreByBlock = finalEntryDecisionEngine.minimumRequiredScorePerBlock || {};
   const confluenceMarketLevelScoring = confluenceMarketLevel.scoring || {};
   const confluenceMarketLevelDetection = confluenceMarketLevel.detection || {};
   const confluenceVolumeContextAnchoredVwap = confluenceVolumeContext.anchoredVwap || {};
@@ -634,6 +643,44 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
           : {},
         capitalRegimeAdjustments: typeof confluenceEventRisk.capitalRegimeAdjustments === 'object' && confluenceEventRisk.capitalRegimeAdjustments
           ? confluenceEventRisk.capitalRegimeAdjustments
+          : {},
+      },
+    },
+    finalEntryDecisionEngine: {
+      enabled: finalEntryDecisionEngine.enabled !== false,
+      entryScoreThreshold: Number(finalEntryDecisionEngine.entryScoreThreshold || finalEntryThresholds.fullEntryScore || 0.68),
+      allowWeakEntryMode: finalEntryDecisionEngine.allowWeakEntryMode !== false && finalEntryDecisionEngine.allowWeakEntry !== false,
+      weakEntryThreshold: Number(finalEntryDecisionEngine.weakEntryThreshold || finalEntryThresholds.weakEntryScore || 0.44),
+      weakEntryRange: {
+        min: Number(finalEntryWeakEntryRange.min || finalEntryDecisionEngine.weakEntryThreshold || finalEntryThresholds.weakEntryScore || 0.44),
+        max: Number(finalEntryWeakEntryRange.max || finalEntryDecisionEngine.entryScoreThreshold || finalEntryThresholds.fullEntryScore || 0.68),
+      },
+      minimumRequiredBlocks: Array.isArray(finalEntryDecisionEngine.minimumRequiredBlocks)
+        ? finalEntryDecisionEngine.minimumRequiredBlocks
+        : ['entryPermission', 'marketContext', 'primarySignal'],
+      minimumRequiredScorePerBlock: typeof finalEntryMinScoreByBlock === 'object' && finalEntryMinScoreByBlock
+        ? finalEntryMinScoreByBlock
+        : {},
+      fallback: {
+        degradedPenalty: Number(finalEntryFallback.degradedPenalty || 0.08),
+        missingBlockPenalty: Number(finalEntryFallback.missingBlockPenalty || 0.12),
+      },
+      vetoRules: {
+        hardVetoTypes: Array.isArray(finalEntryVetoRules.hardVetoTypes)
+          ? finalEntryVetoRules.hardVetoTypes
+          : ['no_trade_regime', 'capital_prohibition'],
+        interpretForecastRestrictionHints: finalEntryVetoRules.interpretForecastRestrictionHints !== false,
+        forecastHardHints: Array.isArray(finalEntryVetoRules.forecastHardHints)
+          ? finalEntryVetoRules.forecastHardHints
+          : ['restrict_new_entries_hard_candidate', 'restrict_new_entries_hard'],
+        mlCannotOverrideHardVeto: finalEntryVetoRules.mlCannotOverrideHardVeto !== false,
+      },
+      tightening: {
+        balanceState: typeof finalEntryTighteningBalance === 'object' && finalEntryTighteningBalance
+          ? finalEntryTighteningBalance
+          : {},
+        capitalRegime: typeof finalEntryTighteningCapital === 'object' && finalEntryTighteningCapital
+          ? finalEntryTighteningCapital
           : {},
       },
     },

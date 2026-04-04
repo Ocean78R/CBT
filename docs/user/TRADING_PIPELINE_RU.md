@@ -214,7 +214,7 @@
   - `timeBasedEntryRestriction` поднимается и в strict-capital сценарии, даже если окно не помечено как `restricted`;
   - слой не имеет права снять запрет, выставленный верхним risk-контуром.
 
-## Runtime-позиция finalEntryDecisionEngine (каркас шага 35, подэтап 1)
+## Runtime-позиция finalEntryDecisionEngine (шаг 35, подэтап 3)
 - Место в пайплайне: **после всех upstream block outputs (шаги 1–34) и до dynamic sizing / ML phase 1/2**.
 - Что делает:
   1. Принимает готовые `componentScores` из общего `DecisionContext/shared block outputs`;
@@ -232,7 +232,11 @@
 - Минимальный выходной контракт:
   - `entryScore`, `decisionMode` (`full_entry|weak_entry|no_entry`), `componentScores`;
   - `unmetMinimumBlocks`, `vetoSummary`, `appliedPenalties`;
-  - `capitalRegimeImpact`, `dataQualityState`, `explanation.reasonCodes`.
+  - `decisionModeMetadata`, `capitalRegimeImpact`, `dataQualityState`, `explanation.reasonCodes`;
+  - `forecastHook` и `mlHook` (только совместимые hooks, без передачи ownership).
+- Observability / audit trail:
+  - runtime logs включают `componentScores`, `unmetMinimumBlocks`, `vetoSummary`, `appliedPenalties`, `decisionMode`, `capitalRegime impact`;
+  - structured event `final_entry_decision` отправляется в reporting/audit слой и одинаково доступен в `live` и `paper`.
 - Exchange-agnostic инвариант: слой не зашивает BingX-specific assumptions и работает только с универсальным контрактом входа/выхода.
 
 ## Runtime-позиция единого observability/reporting слоя
