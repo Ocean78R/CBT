@@ -8,7 +8,6 @@ const {
 
 function createBaseInput(overrides = {}) {
   return {
-    context: { cycleId: 'cycle-36-1', ticker: 'BTC-USDT' },
     approvedEntryResult: {
       decisionMode: 'full_entry',
       entryScore: 0.74,
@@ -22,6 +21,7 @@ function createBaseInput(overrides = {}) {
     tickerRisk: { riskScore: 0.4 },
     metadata: { sizingDataQualityState: 'ok' },
     runtimeGuards: { allowNewEntries: true, hardRiskBlocked: false, unloadMode: false },
+    context: { cycleId: 'cycle-36-1', ticker: 'BTC-USDT', mode: 'live' },
     ...overrides,
   };
 }
@@ -103,4 +103,89 @@ test('dynamicPositionSizing: не пересчитывает сигналы по
 
   assert.equal(recomputeCalls, 0);
   assert.equal(output.explanation.ownership.isSignalRecalculationOwner, false);
+});
+
+test('dynamicPositionSizing: capitalRegime tightening снижает multiplier/leverage и блокирует full-size профиль', () => {
+  const output = evaluateDynamicPositionSizing(createBaseInput({
+    capitalRegime: 'DEFENSIVE',
+    balanceState: { capitalRegime: 'DEFENSIVE', drawdownProtection: false },
+  }), {
+    enableDynamicPositionSizing: true,
+    capitalRegimeSizingRules: {
+      DEFENSIVE: { sizeMultiplier: 0.6, leverageCap: 2, disallowFullSizeProfile: true },
+    },
+    leverageCapsByRegime: { DEFENSIVE: 2 },
+  });
+
+  assert.ok(output.sizeMultiplier > 0 && output.sizeMultiplier < 1);
+  assert.equal(output.leverageCap, 2);
+  assert.ok(output.sizingReasonCodes.includes('capital_regime_tightening:DEFENSIVE'));
+  assert.ok(output.sizingReasonCodes.includes('capital_regime_full_size_blocked:DEFENSIVE'));
+});
+
+test('dynamicPositionSizing: HALT_NEW_ENTRIES не допускает sizing для нового входа', () => {
+  const output = evaluateDynamicPositionSizing(createBaseInput({
+    capitalRegime: 'HALT_NEW_ENTRIES',
+    balanceState: { capitalRegime: 'HALT_NEW_ENTRIES', drawdownProtection: false },
+  }), { enableDynamicPositionSizing: true });
+
+  assert.equal(output.sizeMultiplier, 0);
+  assert.equal(output.leverageCap, 0);
+  assert.ok(output.sizingReasonCodes.includes('hard_risk_or_capital_guard_active'));
+});
+
+test('dynamicPositionSizing: forecast hooks применяют aggression/exposure tightening без смены ownership', () => {
+  const output = evaluateDynamicPositionSizing(createBaseInput({
+    forecastSizing: {
+      multiplier: 0.8,
+      aggressionCap: 'defensive',
+      reductionHint: 'strong',
+      conservativeMultiplier: 0.7,
+      reason: 'forecast_fragility_high',
+    },
+  }), {
+    enableDynamicPositionSizing: true,
+    forecastSizingHooks: {
+      enabled: true,
+      aggressionCaps: { defensive: 0.7 },
+      exposureReductionHints: { strongMultiplier: 0.75 },
+      conservativeMultiplierCap: 0.85,
+    },
+  });
+
+  assert.ok(output.sizeMultiplier > 0 && output.sizeMultiplier < 1);
+  assert.ok(output.sizingReasonCodes.includes('forecast_sizing_tightening:forecast_fragility_high'));
+  assert.equal(output.explanation.ownership.isFinalDecisionOwner, false);
+});
+
+test('dynamicPositionSizing: paper/live режимы дают одинаковую sizing-логику', () => {
+  const live = evaluateDynamicPositionSizing(createBaseInput({
+    context: { cycleId: 'x1', ticker: 'ETH-USDT', mode: 'live' },
+  }), { enableDynamicPositionSizing: true });
+  const paper = evaluateDynamicPositionSizing(createBaseInput({
+    context: { cycleId: 'x2', ticker: 'ETH-USDT', mode: 'paper' },
+  }), { enableDynamicPositionSizing: true });
+
+  assert.equal(live.sizeMultiplier, paper.sizeMultiplier);
+  assert.equal(live.leverageCap, paper.leverageCap);
+  assert.equal(paper.explanation.runtimeMode, 'paper');
+  assert.equal(live.explanation.runtimeMode, 'live');
+});
+
+test('dynamicPositionSizing: контракт future ML hooks присутствует и ограничен', () => {
+  const output = evaluateDynamicPositionSizing(createBaseInput(), {
+    enableDynamicPositionSizing: true,
+    mlCompatibilityHooks: {
+      phase1ConfidenceModifierHookEnabled: true,
+      phase2BoundedAdjustmentHookEnabled: true,
+      phase2BoundedAdjustmentLimits: {
+        multiplierDeltaAbsMax: 0.1,
+        leverageCapDeltaAbsMax: 1,
+      },
+    },
+  });
+
+  assert.equal(output.explanation.downstreamHints.mlPhase1SizingConfidenceModifierHookEnabled, true);
+  assert.equal(output.explanation.downstreamHints.mlPhase2SizingBoundedAdjustmentHookEnabled, true);
+  assert.equal(output.explanation.downstreamHints.mlPhase2SizingBoundedAdjustmentLimits.multiplierDeltaAbsMax, 0.1);
 });

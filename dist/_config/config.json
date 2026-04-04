@@ -3020,6 +3020,76 @@
       "mlCannotOverrideHardVeto": true
     }
   },
+  "dynamicPositionSizing": {
+    "enableDynamicPositionSizing": true,
+    "baseSizingRules": {
+      "baseTargetMarginSize": 100,
+      "baseLeverageCap": 5,
+      "riskPenaltyWeight": 0.6
+    },
+    "weakEntrySizeMultiplier": 0.5,
+    "capitalRegimeSizingRules": {
+      "NORMAL": {
+        "sizeMultiplier": 1,
+        "leverageCap": 5,
+        "disallowFullSizeProfile": false
+      },
+      "CAUTION": {
+        "sizeMultiplier": 0.85,
+        "leverageCap": 4,
+        "disallowFullSizeProfile": true
+      },
+      "DEFENSIVE": {
+        "sizeMultiplier": 0.65,
+        "leverageCap": 3,
+        "disallowFullSizeProfile": true
+      },
+      "CAPITAL_PRESERVATION": {
+        "sizeMultiplier": 0.45,
+        "leverageCap": 2,
+        "disallowFullSizeProfile": true
+      },
+      "HALT_NEW_ENTRIES": {
+        "sizeMultiplier": 0,
+        "leverageCap": 0,
+        "disallowFullSizeProfile": true
+      }
+    },
+    "leverageCapsByRegime": {
+      "NORMAL": 5,
+      "CAUTION": 4,
+      "DEFENSIVE": 3,
+      "CAPITAL_PRESERVATION": 2,
+      "HALT_NEW_ENTRIES": 0
+    },
+    "fallbackFixedSizingConfig": {
+      "baseMultiplier": 0.35,
+      "weakEntryMultiplier": 0.2,
+      "leverageCap": 2
+    },
+    "forecastSizingHooks": {
+      "enabled": true,
+      "aggressionCaps": {
+        "standard": 1,
+        "conservative": 0.85,
+        "defensive": 0.7
+      },
+      "exposureReductionHints": {
+        "enabled": true,
+        "mildMultiplier": 0.9,
+        "strongMultiplier": 0.75
+      },
+      "conservativeMultiplierCap": 0.85
+    },
+    "mlCompatibilityHooks": {
+      "phase1ConfidenceModifierHookEnabled": true,
+      "phase2BoundedAdjustmentHookEnabled": true,
+      "phase2BoundedAdjustmentLimits": {
+        "multiplierDeltaAbsMax": 0.15,
+        "leverageCapDeltaAbsMax": 1
+      }
+    }
+  },
   "executionContour": {
     "enabled": true,
     "queueLimit": 200,

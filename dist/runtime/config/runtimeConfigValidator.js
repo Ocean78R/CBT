@@ -22,6 +22,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const higherTimeframeBiasEngine = merged.higherTimeframeBiasEngine || {};
   const confluenceEntryEngine = merged.confluenceEntryEngine || {};
   const finalEntryDecisionEngine = merged.finalEntryDecisionEngine || {};
+  const dynamicPositionSizing = merged.dynamicPositionSizing || {};
 
   const observabilityReporting = merged.observabilityReporting || {};
   const observabilitySampling = observabilityReporting.sampling || {};
@@ -112,6 +113,15 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const confluenceDerivativesRefresh = confluenceDerivativesContext.refreshPolicy || {};
   const confluenceSessionCapitalInfluence = confluenceSessionFilter.capitalRegimeInfluence || {};
   const confluenceSessionRefreshPolicy = confluenceSessionFilter.refreshPolicy || {};
+  const dynamicBaseSizingRules = dynamicPositionSizing.baseSizingRules || {};
+  const dynamicRegimeSizingRules = dynamicPositionSizing.capitalRegimeSizingRules || {};
+  const dynamicLeverageCapsByRegime = dynamicPositionSizing.leverageCapsByRegime || {};
+  const dynamicFallbackSizing = dynamicPositionSizing.fallbackFixedSizingConfig || dynamicPositionSizing.fallback || {};
+  const dynamicForecastSizingHooks = dynamicPositionSizing.forecastSizingHooks || {};
+  const dynamicForecastAggressionCaps = dynamicForecastSizingHooks.aggressionCaps || {};
+  const dynamicForecastExposureHints = dynamicForecastSizingHooks.exposureReductionHints || {};
+  const dynamicMlHooks = dynamicPositionSizing.mlCompatibilityHooks || {};
+  const dynamicMlHookLimits = dynamicMlHooks.phase2BoundedAdjustmentLimits || {};
 
   const normalized = {
     ...merged,
@@ -682,6 +692,48 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         capitalRegime: typeof finalEntryTighteningCapital === 'object' && finalEntryTighteningCapital
           ? finalEntryTighteningCapital
           : {},
+      },
+    },
+    dynamicPositionSizing: {
+      enableDynamicPositionSizing: dynamicPositionSizing.enableDynamicPositionSizing !== false && dynamicPositionSizing.enabled !== false,
+      baseSizingRules: {
+        baseTargetMarginSize: Number(dynamicBaseSizingRules.baseTargetMarginSize || dynamicPositionSizing.baseTargetMarginSize || 100),
+        baseLeverageCap: Number(dynamicBaseSizingRules.baseLeverageCap || dynamicPositionSizing.baseLeverageCap || 5),
+        riskPenaltyWeight: Number(dynamicBaseSizingRules.riskPenaltyWeight || dynamicPositionSizing.riskPenaltyWeight || 0.6),
+      },
+      weakEntrySizeMultiplier: Number(dynamicPositionSizing.weakEntrySizeMultiplier || dynamicPositionSizing.weakEntryBaseMultiplier || 0.5),
+      capitalRegimeSizingRules: typeof dynamicRegimeSizingRules === 'object' && dynamicRegimeSizingRules
+        ? dynamicRegimeSizingRules
+        : {},
+      leverageCapsByRegime: typeof dynamicLeverageCapsByRegime === 'object' && dynamicLeverageCapsByRegime
+        ? dynamicLeverageCapsByRegime
+        : {},
+      fallbackFixedSizingConfig: {
+        baseMultiplier: Number(dynamicFallbackSizing.baseMultiplier || 0.35),
+        weakEntryMultiplier: Number(dynamicFallbackSizing.weakEntryMultiplier || 0.2),
+        leverageCap: Number(dynamicFallbackSizing.leverageCap || 2),
+      },
+      forecastSizingHooks: {
+        enabled: dynamicForecastSizingHooks.enabled !== false,
+        aggressionCaps: {
+          standard: Number(dynamicForecastAggressionCaps.standard || 1),
+          conservative: Number(dynamicForecastAggressionCaps.conservative || 0.85),
+          defensive: Number(dynamicForecastAggressionCaps.defensive || 0.7),
+        },
+        exposureReductionHints: {
+          enabled: dynamicForecastExposureHints.enabled !== false,
+          mildMultiplier: Number(dynamicForecastExposureHints.mildMultiplier || 0.9),
+          strongMultiplier: Number(dynamicForecastExposureHints.strongMultiplier || 0.75),
+        },
+        conservativeMultiplierCap: Number(dynamicForecastSizingHooks.conservativeMultiplierCap || 0.85),
+      },
+      mlCompatibilityHooks: {
+        phase1ConfidenceModifierHookEnabled: dynamicMlHooks.phase1ConfidenceModifierHookEnabled !== false,
+        phase2BoundedAdjustmentHookEnabled: dynamicMlHooks.phase2BoundedAdjustmentHookEnabled !== false,
+        phase2BoundedAdjustmentLimits: {
+          multiplierDeltaAbsMax: Number(dynamicMlHookLimits.multiplierDeltaAbsMax || 0.15),
+          leverageCapDeltaAbsMax: Number(dynamicMlHookLimits.leverageCapDeltaAbsMax || 1),
+        },
       },
     },
 

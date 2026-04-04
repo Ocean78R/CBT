@@ -362,6 +362,24 @@ Fallback и безопасность:
 
 Безопасность: по умолчанию блок не ослабляет текущий risk contour и не ломает legacy поведение.
 
+## Конфиг dynamicPositionSizing (шаг 36, подэтап 2)
+Блок находится в `dynamicPositionSizing` и применяется только после `finalEntryDecisionEngine`.
+
+- `enableDynamicPositionSizing`: включает dynamic sizing формулу.
+- `baseSizingRules.baseTargetMarginSize/baseLeverageCap/riskPenaltyWeight`: базовый профиль до tightening.
+- `weakEntrySizeMultiplier`: отдельный multiplier для `weak_entry`.
+- `capitalRegimeSizingRules.<REGIME>`: tightening по капитал-режимам (`sizeMultiplier`, `leverageCap`, `disallowFullSizeProfile`).
+- `leverageCapsByRegime.<REGIME>`: верхняя граница плеча по режиму капитала.
+- `fallbackFixedSizingConfig`: fallback-профиль при disabled/insufficient runtime context.
+- `forecastSizingHooks.aggressionCaps/exposureReductionHints/conservativeMultiplierCap`: hooks для forecast-подсказок (только ужесточение).
+- `mlCompatibilityHooks.*`: контракт совместимости для future ML phase 1/2 без смены owner-логики.
+
+Ограничения ownership:
+- dynamic sizing не пересчитывает market data и block scores;
+- не разрешает вход без approved entry;
+- hard-risk / unload / capital prohibition / portfolio contour остаются выше sizing;
+- `HALT_NEW_ENTRIES`/`PROHIBIT_NEW_ENTRIES` блокируют sizing новых входов.
+
 Практический минимум отчётов в `tradeAnalytics`:
 - `overall`, `byTicker`, `byRegime`, `bySignalType`, `bySetupType`, `byHourUtc`, `byWeekDayUtc`;
 - метрики: `winRate`, `avgWin`, `avgLoss`, `expectancy`;
