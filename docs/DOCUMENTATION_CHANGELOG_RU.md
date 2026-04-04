@@ -1,3 +1,13 @@
+## 2026-04-04 (finalEntryDecisionEngine scaffold, step 35 / substep 1)
+- Изменение: добавлен отдельный модуль `finalEntryDecisionEngine` как каркас final decision aggregator поверх готовых `shared block outputs` из `DecisionContext`.
+- Изменение: зафиксированы входной и выходной контракты (`entryScore`, `decisionMode`, `componentScores`, `unmetMinimumBlocks`, `vetoSummary`, `appliedPenalties`, `capitalRegimeImpact`, `dataQualityState`, `explanation.reasonCodes`).
+- Изменение: явно закреплены ownership-ограничения (`не пересчитывает сигналы`, `не запрашивает market data`, `не sizing owner`, `не execution owner`).
+- Изменение: добавлены fallback-механизмы для `missing/degraded/cached` block outputs и минимальное runtime-логирование.
+- Изменение: добавлен минимальный wiring в `runtime/engines/index.js` через `signalEngine.evaluateFinalEntryDecision(...)` без ломки legacy/confluence flow.
+- Изменение: добавлены contract/regression тесты для входного/выходного контракта, fallback-поведения и проверки отсутствия повторного расчёта сигналов.
+- Связанные файлы кода: `dist/runtime/engines/finalEntryDecisionEngine.js`, `dist/runtime/engines/index.js`, `tests/regression/final-entry-decision-engine.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`.
+
 ## 2026-04-03 (sessionFilterEngine / timeContextEngine layer)
 - Изменение: добавлен отдельный слой `sessionFilterEngine` (`timeContextEngine`) для оценки времени суток и рыночной сессии с выходами `timeContextScore`, `sessionState`, `timeBasedEntryRestriction`.
 - Изменение: слой интегрирован в `confluenceEntryEngine` как context/permission-блок `sessionFilterLayer` между контекстными слоями и `finalEntryDecisionLayer`; слой не открывает сделки и не подменяет regime-router.
