@@ -1,3 +1,13 @@
+## 2026-04-04 (dynamicPositionSizing scaffold, step 36 / substep 1)
+- Изменение: добавлен отдельный exchange-agnostic модуль `dynamicPositionSizing` с базовой формулой sizing только после approved entry (`full_entry/weak_entry/no_entry`) и без пересчёта upstream сигналов.
+- Изменение: зафиксирован входной контракт (`approvedEntryResult`, `decisionMode`, `entryScore/confidence`, `balanceState/capitalRegime`, `tickerRisk`, `runtimeGuards`, `metadata/dataQuality`).
+- Изменение: зафиксирован выходной контракт (`sizeMultiplier`, `targetMarginSize`, `leverageCap`, `aggressivenessMode`, `sizingReasonCodes`, `sizingDataQualityState`, `mode`, `contractVersion`).
+- Изменение: добавлены безопасные fallback-ветки fixed sizing при `dynamic disabled` и при недостаточном runtime context; `weak_entry` получает пониженный sizing-profile автоматически.
+- Изменение: добавлен минимальный wiring в `runtime/engines/index.js` через `signalEngine.evaluateDynamicPositionSizing(...)` без изменения execution/lifecycle ownership path.
+- Изменение: добавлены contract/regression тесты на вход/выход, weak-entry, no-entry, fixed fallback и отсутствие повторного расчёта сигналов.
+- Связанные файлы кода: `dist/runtime/sizing/dynamicPositionSizing.js`, `dist/runtime/sizing/index.js`, `dist/runtime/engines/index.js`, `tests/regression/dynamic-position-sizing.test.js`.
+- Связанные разделы docs: `docs/user/DYNAMIC_POSITION_SIZING_CONTRACT_RU.md`, `docs/user/TRADING_PIPELINE_RU.md`.
+
 ## 2026-04-04 (finalEntryDecisionEngine integration, step 35 / substep 3)
 - Изменение: расширен config `finalEntryDecisionEngine` полями `entryScoreThreshold`, `allowWeakEntryMode`, `weakEntryThreshold`, `weakEntryRange`, `minimumRequiredScorePerBlock`, `vetoRules`.
 - Изменение: добавлены full structured outputs/event поля для observability/audit trail (`componentScores`, `unmetMinimumBlocks`, `vetoSummary`, `appliedPenalties`, `decisionMode`, `capitalRegimeImpact`, `forecastHook`, `mlHook`).
