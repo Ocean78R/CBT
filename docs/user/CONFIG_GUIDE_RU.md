@@ -637,3 +637,24 @@ Runtime-позиция слоя:
 Важно:
 - слой не заменяет `finalEntryDecisionLayer`, а только поставляет veto/penalty в общий контракт;
 - при `enabled=false` сохраняется старое поведение.
+
+## Новый блок `finalEntryDecisionEngine` (шаг 35, подэтап 3)
+Назначение: production-like финальная интерпретация новых входов на базе уже готовых `DecisionContext/shared block outputs`.
+
+Ключевые поля config:
+- `entryScoreThreshold` — порог для `full_entry`;
+- `allowWeakEntryMode` — master-флаг weak-mode;
+- `weakEntryThreshold` — базовый порог `weak_entry`;
+- `weakEntryRange.min/max` — допустимый коридор score для weak-entry;
+- `minimumRequiredScorePerBlock.*` — минимальный score по mandatory-блокам;
+- `vetoRules.*`:
+  - `hardVetoTypes`,
+  - `interpretForecastRestrictionHints`,
+  - `forecastHardHints`,
+  - `mlCannotOverrideHardVeto`.
+
+Интеграционные ограничения:
+- `finalEntryDecisionEngine` не пересчитывает market data / block scores;
+- интерпретация `portfolioForecastEngine.restrictionHints` делается только внутри `finalEntryDecisionEngine`;
+- ML hooks подключаются как advisory (`scoreDelta/advisoryPenalty`) и не становятся final decision owner;
+- одинаковая decision-логика для `live` и `paper/shadow`, отличие только на execution-слое.

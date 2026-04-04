@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {
   evaluateFinalEntryDecision,
   normalizeFinalEntryDecisionConfig,
+  toFinalEntryDecisionEvent,
 } = require('../../dist/runtime/engines/finalEntryDecisionEngine');
 
 test('finalEntryDecisionEngine: принимает контракт componentScores/veto/dataQuality/capital', () => {
@@ -65,8 +66,9 @@ test('finalEntryDecisionEngine: weak entry branch', () => {
     vetoCandidates: [],
     balanceState: { capitalRegime: 'NORMAL' },
   }, {
-    thresholds: { fullEntryScore: 0.72, weakEntryScore: 0.56 },
-    allowWeakEntry: true,
+    entryScoreThreshold: 0.72,
+    weakEntryThreshold: 0.56,
+    allowWeakEntryMode: true,
     minimumRequiredScorePerBlock: {
       entryPermission: 0.55,
       marketContext: 0.55,
@@ -77,6 +79,34 @@ test('finalEntryDecisionEngine: weak entry branch', () => {
   assert.equal(output.decisionMode, 'weak_entry');
   assert.equal(output.vetoSummary.blocked, false);
   assert.equal(output.thresholdsApplied.weakEntryAllowed, true);
+});
+
+test('finalEntryDecisionEngine: full structured output + event для audit/analytics', () => {
+  const output = evaluateFinalEntryDecision({
+    context: { cycleId: 'cycle-35-evt', ticker: 'BTC-USDT', exchange: 'binance', mode: 'paper' },
+    componentScores: {
+      entryPermission: { score: 0.79, confidence: 0.7, weight: 1, dataQualityState: 'ok' },
+      marketContext: { score: 0.74, confidence: 0.7, weight: 1, dataQualityState: 'ok' },
+      primarySignal: { score: 0.75, confidence: 0.7, weight: 1, dataQualityState: 'ok' },
+    },
+    vetoCandidates: [],
+    balanceState: { capitalRegime: 'NORMAL' },
+  }, {});
+
+  const event = toFinalEntryDecisionEvent({
+    context: { cycleId: 'cycle-35-evt', ticker: 'BTC-USDT', exchange: 'binance', mode: 'paper' },
+    decision: output,
+  });
+
+  assert.ok(output.componentScores.entryPermission);
+  assert.ok(Array.isArray(output.unmetMinimumBlocks));
+  assert.ok(output.vetoSummary && typeof output.vetoSummary === 'object');
+  assert.ok(Array.isArray(output.appliedPenalties));
+  assert.ok(output.capitalRegimeImpact && typeof output.capitalRegimeImpact === 'object');
+  assert.equal(event.eventType, 'final_entry_decision');
+  assert.equal(event.mode, 'paper');
+  assert.ok(event.payload.componentScores.primarySignal);
+  assert.ok(Array.isArray(event.payload.reasonCodes));
 });
 
 test('finalEntryDecisionEngine: не пересчитывает сигналы и не трогает market-data owner', () => {
@@ -147,8 +177,9 @@ test('finalEntryDecisionEngine: capitalRegime tightening branch', () => {
     capitalRegime: 'CONSERVE_CAPITAL',
     balanceState: { capitalRegime: 'CONSERVE_CAPITAL' },
   }, {
-    thresholds: { fullEntryScore: 0.6, weakEntryScore: 0.55 },
-    allowWeakEntry: true,
+    entryScoreThreshold: 0.6,
+    weakEntryThreshold: 0.55,
+    allowWeakEntryMode: true,
     minimumRequiredScorePerBlock: {
       entryPermission: 0.6,
       marketContext: 0.6,
@@ -177,4 +208,94 @@ test('finalEntryDecisionEngine: degraded block outputs branch', () => {
   assert.equal(output.decisionMode, 'no_entry');
   assert.ok(output.appliedPenalties.some((item) => item.type === 'degraded_or_cached_block_output'));
   assert.ok(output.explanation.reasonCodes.includes('degraded_or_cached_input_blocks'));
+});
+
+test('finalEntryDecisionEngine: forecast hook branch — интерпретация restriction hints только здесь', () => {
+  const output = evaluateFinalEntryDecision({
+    componentScores: {
+      entryPermission: { score: 0.91, confidence: 0.85, weight: 1, dataQualityState: 'ok' },
+      marketContext: { score: 0.88, confidence: 0.82, weight: 1, dataQualityState: 'ok' },
+      primarySignal: { score: 0.9, confidence: 0.84, weight: 1, dataQualityState: 'ok' },
+    },
+    portfolioForecast: {
+      enabled: true,
+      confidence: 0.91,
+      restrictionHints: ['restrict_new_entries_hard_candidate'],
+    },
+  }, {
+    vetoRules: {
+      interpretForecastRestrictionHints: true,
+      forecastHardHints: ['restrict_new_entries_hard_candidate'],
+    },
+  });
+
+  assert.equal(output.decisionMode, 'no_entry');
+  assert.equal(output.vetoSummary.blocked, true);
+  assert.equal(output.vetoSummary.finalVeto.type, 'forecast_restriction_veto');
+  assert.equal(output.forecastHook.interpretedInFinalEntryDecision, true);
+});
+
+test('finalEntryDecisionEngine: ML hook compatibility branch без перехвата ownership', () => {
+  const output = evaluateFinalEntryDecision({
+    componentScores: {
+      entryPermission: { score: 0.67, confidence: 0.71, weight: 1, dataQualityState: 'ok' },
+      marketContext: { score: 0.66, confidence: 0.68, weight: 1, dataQualityState: 'ok' },
+      primarySignal: { score: 0.69, confidence: 0.72, weight: 1, dataQualityState: 'ok' },
+    },
+    mlHooks: {
+      enabled: true,
+      confidence: 0.6,
+      scoreDelta: -0.03,
+      advisoryPenalty: 0.02,
+      direction: 'neutral',
+    },
+  }, {
+    entryScoreThreshold: 0.69,
+    weakEntryThreshold: 0.5,
+  });
+
+  assert.equal(output.mlHook.advisoryOnly, true);
+  assert.equal(output.explanation.ownership.isFinalVetoOwnerForNewEntries, true);
+  assert.ok(output.explanation.reasonCodes.includes('ml_hook_applied_as_advisory_only'));
+});
+
+test('finalEntryDecisionEngine: paper/live compatibility на decision layer', () => {
+  const baseInput = {
+    componentScores: {
+      entryPermission: { score: 0.73, confidence: 0.73, weight: 1, dataQualityState: 'ok' },
+      marketContext: { score: 0.74, confidence: 0.73, weight: 1, dataQualityState: 'ok' },
+      primarySignal: { score: 0.75, confidence: 0.73, weight: 1, dataQualityState: 'ok' },
+    },
+    balanceState: { capitalRegime: 'NORMAL' },
+  };
+  const live = evaluateFinalEntryDecision({
+    ...baseInput,
+    context: { mode: 'live' },
+  }, {});
+  const paper = evaluateFinalEntryDecision({
+    ...baseInput,
+    context: { mode: 'paper' },
+  }, {});
+
+  assert.equal(live.decisionMode, paper.decisionMode);
+  assert.equal(live.entryScore, paper.entryScore);
+});
+
+test('finalEntryDecisionEngine: logging completeness без повторного пересчёта block outputs', () => {
+  const logs = [];
+  evaluateFinalEntryDecision({
+    context: { cycleId: 'cycle-35-log', ticker: 'SOL-USDT' },
+    componentScores: {
+      entryPermission: { score: 0.6, confidence: 0.61, weight: 1, dataQualityState: 'ok' },
+      marketContext: { score: 0.61, confidence: 0.61, weight: 1, dataQualityState: 'ok' },
+      primarySignal: { score: 0.62, confidence: 0.61, weight: 1, dataQualityState: 'ok' },
+    },
+  }, {}, {
+    log: (line) => logs.push(line),
+  });
+
+  assert.equal(logs.length >= 2, true);
+  assert.equal(logs.some((line) => line.includes('mode=')), true);
+  assert.equal(logs.some((line) => line.includes('componentScores=')), true);
+  assert.equal(logs.some((line) => line.includes('capitalImpact=')), true);
 });

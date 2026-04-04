@@ -18,6 +18,7 @@ const {
 const {
   evaluateFinalEntryDecision,
   normalizeFinalEntryDecisionConfig,
+  toFinalEntryDecisionEvent,
 } = require('./finalEntryDecisionEngine');
 
 function emitObservabilityEvent(strategy, event) {
@@ -38,11 +39,22 @@ function createEngines(strategy) {
         const finalEntryConfig = runtimeConfig && runtimeConfig.finalEntryDecisionEngine
           ? runtimeConfig.finalEntryDecisionEngine
           : {};
-        return evaluateFinalEntryDecision(input, normalizeFinalEntryDecisionConfig(finalEntryConfig), {
+        const result = evaluateFinalEntryDecision(input, normalizeFinalEntryDecisionConfig(finalEntryConfig), {
           log: (message) => {
             if (typeof strategy.log === 'function') strategy.log(message);
           },
         });
+
+        if (strategy.emitStructuredEvent) {
+          const event = toFinalEntryDecisionEvent({
+            context: input && input.context ? input.context : {},
+            decision: result,
+          });
+          strategy.emitStructuredEvent(event);
+          emitObservabilityEvent(strategy, event);
+        }
+
+        return result;
       },
       // Русский комментарий: confluence режим стоит после regime-router и до sizing/execution; legacy остаётся fallback.
       predictPriceDirection: async (ticker) => {

@@ -1,3 +1,12 @@
+## 2026-04-04 (finalEntryDecisionEngine integration, step 35 / substep 3)
+- Изменение: расширен config `finalEntryDecisionEngine` полями `entryScoreThreshold`, `allowWeakEntryMode`, `weakEntryThreshold`, `weakEntryRange`, `minimumRequiredScorePerBlock`, `vetoRules`.
+- Изменение: добавлены full structured outputs/event поля для observability/audit trail (`componentScores`, `unmetMinimumBlocks`, `vetoSummary`, `appliedPenalties`, `decisionMode`, `capitalRegimeImpact`, `forecastHook`, `mlHook`).
+- Изменение: подключены совместимые forecast hooks (`portfolioForecastEngine.restrictionHints`) и ML hooks (`mlHooks`) с явным правилом ownership — final veto owner остаётся `finalEntryDecisionEngine`.
+- Изменение: decision-layer wiring в `runtime/engines/index.js` теперь эмитит structured event `final_entry_decision` для analytics/reporting.
+- Изменение: добавлены regression/contract тесты на structured output, paper/live совместимость decision-layer, forecast branch, ML branch, полноту логов и отсутствие повторного recompute.
+- Связанные файлы кода: `dist/runtime/engines/finalEntryDecisionEngine.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/final-entry-decision-engine.test.js`.
+- Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`.
+
 ## 2026-04-04 (finalEntryDecisionEngine scaffold, step 35 / substep 1)
 - Изменение: добавлен отдельный модуль `finalEntryDecisionEngine` как каркас final decision aggregator поверх готовых `shared block outputs` из `DecisionContext`.
 - Изменение: зафиксированы входной и выходной контракты (`entryScore`, `decisionMode`, `componentScores`, `unmetMinimumBlocks`, `vetoSummary`, `appliedPenalties`, `capitalRegimeImpact`, `dataQualityState`, `explanation.reasonCodes`).
