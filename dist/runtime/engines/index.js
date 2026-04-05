@@ -6,6 +6,7 @@ const { toCapitalStressForecastEvent } = require('../risk/capitalStressForecastE
 const { createObservabilityLayer } = require('../observability/reportingLayer');
 const { createPaperTradingExecutor } = require('../execution/paperTrading');
 const { createMlDatasetBuilder } = require('../analytics/mlDatasetBuilder');
+const { createMlInferenceLayer, normalizeMlInferenceConfig } = require('../ml/mlInferenceLayer');
 const {
   evaluateHigherTimeframeBiasWithCache,
   applyHtfBiasToEntryDecision,
@@ -36,6 +37,11 @@ function emitObservabilityEvent(strategy, event) {
 // Русский комментарий: движки пока выступают как адаптеры к существующим методам стратегии (fallback без изменения поведения).
 function createEngines(strategy) {
   const paperExecutor = createPaperTradingExecutor(strategy, strategy && strategy.config ? strategy.config : {});
+  const mlInferenceLayer = createMlInferenceLayer({}, {
+    log: (message) => {
+      if (strategy && typeof strategy.log === 'function') strategy.log(message);
+    },
+  });
 
   return {
     signalEngine: {
@@ -80,6 +86,28 @@ function createEngines(strategy) {
           emitObservabilityEvent(strategy, event);
         }
         return decision;
+      },
+      // Русский комментарий: ML phase 1 работает только как advisory-слой и не перехватывает final decision/sizing/execution ownership.
+      evaluateMlInferencePhase1: (input, runtimeConfig = {}, runtime = {}) => {
+        const mlConfig = runtimeConfig && runtimeConfig.mlInferenceLayer
+          ? runtimeConfig.mlInferenceLayer
+          : (runtimeConfig && runtimeConfig.mlPhase1Inference ? runtimeConfig.mlPhase1Inference : {});
+        const normalizedMlConfig = normalizeMlInferenceConfig(mlConfig);
+        const localLayer = createMlInferenceLayer(normalizedMlConfig, {
+          log: (message) => {
+            if (strategy && typeof strategy.log === 'function') strategy.log(message);
+          },
+        });
+
+        const governor = runtime && runtime.performanceGovernor && typeof runtime.performanceGovernor.registerLayerExecution === 'function'
+          ? runtime.performanceGovernor
+          : null;
+
+        return localLayer.evaluate(input, {
+          registerLayerExecution: governor
+            ? (layerName, durationMs, mode) => governor.registerLayerExecution(layerName, durationMs, mode)
+            : null,
+        });
       },
       // Русский комментарий: confluence режим стоит после regime-router и до sizing/execution; legacy остаётся fallback.
       predictPriceDirection: async (ticker) => {
@@ -360,6 +388,9 @@ function createEngines(strategy) {
         });
         return strategy.mlDatasetBuilder;
       },
+      getMlInferenceLayerStatus: () => (mlInferenceLayer && typeof mlInferenceLayer.getStatus === 'function'
+        ? mlInferenceLayer.getStatus()
+        : { enabled: false }),
       ingestObservabilityEvent: (event) => {
         emitObservabilityEvent(strategy, event);
       },
