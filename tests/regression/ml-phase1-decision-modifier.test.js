@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 const {
   createMlPhase1DecisionModifier,
+  toMlPhase1DecisionEvent,
 } = require('../../dist/runtime/ml/mlPhase1DecisionModifier');
 const {
   evaluateDynamicPositionSizing,
@@ -150,4 +151,65 @@ test('mlPhase1DecisionModifier: ML не может override forecast prohibition
   assert.equal(output.mlBlockedByForecastRestriction, true);
   assert.equal(output.ownership.isFinalVetoOwnerForNewEntries, false);
   assert.equal(output.ownership.baselineDecisionOwner, 'finalEntryDecisionEngine');
+});
+
+test('mlPhase1DecisionModifier: structured logging содержит обязательные ML поля', () => {
+  const logs = [];
+  const modifier = createMlPhase1DecisionModifier({
+    mode: 'confirm_only',
+    thresholds: { confirmMinScore: 0.7, confirmMinConfidence: 0.7 },
+  }, {
+    log: (line) => logs.push(String(line)),
+  });
+
+  const output = modifier.evaluate({
+    context: { cycleId: 'c-ml-log-1', ticker: 'BTC-USDT' },
+    baseRuleDecision: createBaseRuleDecision({ decisionMode: 'weak_entry' }),
+    mlInferenceOutput: createMlOutput({ mlScore: 0.65, mlConfidence: 0.66 }),
+    capitalRegime: 'REDUCE_RISK',
+    fallbackWithoutModelState: 'disabled',
+  });
+
+  assert.equal(output.mlDecisionEffect, 'blocked_not_confirmed');
+  assert.equal(logs.length > 0, true);
+  const line = logs[0];
+  assert.match(line, /baseRuleDecision=weak_entry/);
+  assert.match(line, /mode=confirm_only/);
+  assert.match(line, /mlScore=0\.6500/);
+  assert.match(line, /mlConfidence=0\.6600/);
+  assert.match(line, /mlDecisionEffect=blocked_not_confirmed/);
+  assert.match(line, /capitalRegimeImpact=no_block/);
+  assert.match(line, /forecastImpact=no_block/);
+  assert.match(line, /fallbackWithoutModelState=disabled/);
+  assert.match(line, /confidenceSizingHookApplied=false/);
+});
+
+test('mlPhase1DecisionModifier: structured event не забирает ownership и не инициирует heavy feature recompute', () => {
+  const modifier = createMlPhase1DecisionModifier({ mode: 'confidence_sizing' });
+  const decision = modifier.evaluate({
+    baseRuleDecision: createBaseRuleDecision({ decisionMode: 'full_entry' }),
+    mlInferenceOutput: createMlOutput({ mlScore: 0.82, mlConfidence: 0.77, mlFallbackState: 'none' }),
+    fallbackWithoutModelState: 'enabled',
+  });
+  const event = toMlPhase1DecisionEvent({
+    context: { cycleId: 'c-ml-event-1', ticker: 'ETH-USDT', mode: 'live' },
+    decision,
+    mlInferenceOutput: {
+      mlFallbackState: 'none',
+      mlReasonCodes: ['ml_phase1_inference_layer'],
+      metadata: {
+        ownership: {
+          recalculatesHeavyFeatures: false,
+        },
+      },
+    },
+  });
+
+  const decisionPayload = event.payload.telemetry.downstreamContext.mlPhase1Decision;
+  assert.equal(event.eventType, 'ml_phase1_decision');
+  assert.equal(event.finalDecision, 'full_entry');
+  assert.equal(decisionPayload.confidenceSizingHookApplied, true);
+  assert.equal(decisionPayload.ownership.isFinalVetoOwnerForNewEntries, false);
+  assert.equal(decisionPayload.ownership.isSizingOwner, false);
+  assert.equal(decisionPayload.featureComputation.recomputedHeavyFeatures, false);
 });

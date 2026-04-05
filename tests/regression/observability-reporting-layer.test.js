@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 const { createObservabilityLayer, EVENT_CATEGORIES } = require('../../dist/runtime/observability/reportingLayer');
 const { evaluateForcedLossExit, toForcedLossExitEvent } = require('../../dist/runtime/risk/forcedLossExit');
+const { toMlPhase1DecisionEvent } = require('../../dist/runtime/ml/mlPhase1DecisionModifier');
 
 test('observability слой агрегирует отчёты по циклу/тикеру/дню и причинам veto', () => {
   const layer = createObservabilityLayer({
@@ -252,4 +253,61 @@ test('duplicateClosePrevented и protectiveActionToken попадают в struc
   assert.equal(trails[0].stagePath.lifecycle.protectiveActionOwner, 'execution_lifecycle_manager');
   assert.equal(trails[0].stagePath.reconciliation.protectiveActionToken, 'restart-token-42');
   assert.equal(trails[0].stagePath.reconciliation.positionCapabilityState, 'LEVERAGE_MISMATCH_POSITION');
+});
+
+test('audit trail хранит ML phase1 цепочку rule decision -> ml output -> ml effect -> sizing hook', () => {
+  const layer = createObservabilityLayer({
+    enabled: true,
+    sampling: { decisionEventsRate: 1, diagnosticEventsRate: 1, alwaysKeepCritical: true },
+    storage: { enabled: false },
+  });
+
+  const mlEvent = toMlPhase1DecisionEvent({
+    context: { cycleId: 'c-ml-audit-1', ticker: 'SOL-USDT', mode: 'live', capitalRegime: 'NORMAL' },
+    decision: {
+      baseRuleDecision: 'weak_entry',
+      effectiveDecisionMode: 'weak_entry',
+      effectiveApproved: true,
+      mlMode: 'confidence_sizing',
+      mlScore: 0.74,
+      mlConfidence: 0.79,
+      mlDecisionEffect: 'sizing_hint_only',
+      capitalRegimeImpact: 'no_block',
+      forecastImpact: 'no_block',
+      fallbackWithoutModelState: 'enabled',
+      confidenceSizingHookApplied: true,
+      sizingHook: { enabled: true, aggressivenessMultiplier: 0.93, owner: 'ml_phase1_hint_only' },
+      ownership: {
+        isFinalVetoOwnerForNewEntries: false,
+        baselineDecisionOwner: 'finalEntryDecisionEngine',
+        isExecutionOwner: false,
+        isSizingOwner: false,
+      },
+      telemetry: {
+        featureComputation: {
+          recomputedHeavyFeatures: false,
+        },
+      },
+    },
+    mlInferenceOutput: {
+      mlFallbackState: 'none',
+      mlDataQualityState: 'ok',
+      mlReasonCodes: ['ml_phase1_inference_layer'],
+      metadata: {
+        ownership: { recalculatesHeavyFeatures: false },
+      },
+    },
+  });
+
+  layer.ingestEvent(mlEvent);
+
+  const trails = layer.getAuditTrail({ cycleId: 'c-ml-audit-1', ticker: 'SOL-USDT' });
+  assert.equal(trails.length, 1);
+  const mlStage = trails[0].stagePath.veto.mlPhase1Decision;
+  assert.equal(mlStage.baseRuleDecision, 'weak_entry');
+  assert.equal(mlStage.mlDecisionEffect, 'sizing_hint_only');
+  assert.equal(mlStage.mlInferenceFallbackState, 'none');
+  assert.equal(mlStage.featureComputation.recomputedHeavyFeatures, false);
+  assert.equal(trails[0].stagePath.sizing.confidenceSizingHookApplied, true);
+  assert.equal(trails[0].stagePath.sizing.mlPhase1SizingHook.owner, 'ml_phase1_hint_only');
 });

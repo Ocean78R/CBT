@@ -269,6 +269,23 @@ function createObservabilityLayer(rawConfig = {}, deps = {}) {
       current.stagePath.confluence = downstream.confluenceEntry || {};
       current.stagePath.veto = event.vetoReason ? { reason: event.vetoReason, type: 'hard_veto' } : current.stagePath.veto || null;
       current.stagePath.sizing = downstream.dynamicPositionSizing || {};
+      if (downstream.mlPhase1Decision) {
+        const existingVeto = current.stagePath.veto && typeof current.stagePath.veto === 'object'
+          ? current.stagePath.veto
+          : {};
+        const existingSizing = current.stagePath.sizing && typeof current.stagePath.sizing === 'object'
+          ? current.stagePath.sizing
+          : {};
+        current.stagePath.veto = {
+          ...existingVeto,
+          mlPhase1Decision: downstream.mlPhase1Decision,
+        };
+        current.stagePath.sizing = {
+          ...existingSizing,
+          mlPhase1SizingHook: downstream.mlPhase1Decision.sizingHook || null,
+          confidenceSizingHookApplied: downstream.mlPhase1Decision.confidenceSizingHookApplied === true,
+        };
+      }
     }
     if (category === EVENT_CATEGORIES.EXECUTION) current.stagePath.execution = { action: event.executionAction || 'none', module: event.module || 'unknown' };
     if (category === EVENT_CATEGORIES.LIFECYCLE || category === EVENT_CATEGORIES.PROTECTIVE) {

@@ -8,6 +8,7 @@ const { createEngines } = require('../../dist/runtime/engines');
 const { buildRuntimeConfig } = require('../../dist/runtime/config/runtimeConfigValidator');
 
 function createStrategyStub() {
+  const events = [];
   return {
     config: { paperTrading: { enabled: false } },
     runtimeEngines: {
@@ -16,7 +17,10 @@ function createStrategyStub() {
       },
     },
     log: () => {},
-    emitStructuredEvent: () => {},
+    emitStructuredEvent: (event) => {
+      events.push(event);
+    },
+    getStructuredEvents: () => events.slice(),
     predictPriceDirectionLegacy: async () => ['long', 'ok'],
     processExistingPositionLegacy: async () => null,
     getActiveTickersLegacy: () => [],
@@ -182,4 +186,57 @@ test('ML integration: paper/live дают эквивалентное decision se
   assert.equal(liveDecision.effectiveDecisionMode, paperDecision.effectiveDecisionMode);
   assert.equal(liveDecision.effectiveApproved, paperDecision.effectiveApproved);
   assert.equal(liveDecision.mlDecisionEffect, paperDecision.mlDecisionEffect);
+});
+
+test('ML integration: emitStructuredEvent публикует совместимый decision event для analytics/audit trail', () => {
+  const strategy = createStrategyStub();
+  strategy.observabilityLayer = {
+    events: [],
+    ingestEvent(event) {
+      this.events.push(event);
+    },
+  };
+  const engines = createEngines(strategy);
+
+  const decision = engines.signalEngine.evaluateMlPhase1DecisionModifier({
+    context: { cycleId: 'c-37c-event', ticker: 'BNB-USDT', mode: 'live' },
+    baseRuleDecision: {
+      decisionMode: 'weak_entry',
+      vetoSummary: { blocked: false, finalVeto: null },
+    },
+    capitalRegime: 'NORMAL',
+    mlInferenceOutput: {
+      mlScore: 0.73,
+      mlConfidence: 0.76,
+      mlFallbackState: 'none',
+      mlReasonCodes: ['ml_phase1_inference_layer'],
+      metadata: {
+        ownership: {
+          recalculatesHeavyFeatures: false,
+        },
+      },
+    },
+  }, {
+    mlPhase1Integration: {
+      enableMlFilter: true,
+      allowFallbackWithoutModel: true,
+      mlMode: 'confidence_sizing',
+      minConfidenceForEntry: 0.4,
+      minConfidenceForFullSize: 0.75,
+    },
+    mlPhase1DecisionModifier: {
+      enabled: true,
+      mode: 'confidence_sizing',
+    },
+  });
+
+  assert.equal(decision.confidenceSizingHookApplied, true);
+  const events = strategy.getStructuredEvents();
+  assert.equal(events.length, 1);
+  const event = events[0];
+  assert.equal(event.eventType, 'ml_phase1_decision');
+  assert.equal(event.payload.baseRuleDecision, 'weak_entry');
+  assert.equal(event.payload.mlDecisionEffect, 'sizing_hint_only');
+  assert.equal(event.payload.telemetry.downstreamContext.mlPhase1Decision.featureComputation.recomputedHeavyFeatures, false);
+  assert.equal(strategy.observabilityLayer.events.length, 1);
 });

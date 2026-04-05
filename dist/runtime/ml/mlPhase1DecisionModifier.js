@@ -87,6 +87,9 @@ function createMlPhase1DecisionModifier(rawConfig = {}, dependencies = {}) {
 
     const blocks = checkCapitalBlock(input, resolvedBase);
     const forecastBlocked = checkForecastBlocked(input, resolvedBase);
+    const fallbackWithoutModelState = String(input.fallbackWithoutModelState || input.mlFilterRuntimeState || 'n/a');
+    const capitalRegimeImpact = blocks.blockedByCapitalRegime ? 'blocked' : 'no_block';
+    const forecastImpact = forecastBlocked ? 'blocked' : 'no_block';
 
     let decisionMode = resolvedBase.decisionMode;
     let approved = resolvedBase.baseApproved;
@@ -166,6 +169,7 @@ function createMlPhase1DecisionModifier(rawConfig = {}, dependencies = {}) {
       ? Number((config.thresholds.sizingMinMultiplier
         + (mlConfidence * (config.thresholds.sizingMaxMultiplier - config.thresholds.sizingMinMultiplier))).toFixed(6))
       : 1;
+    const confidenceSizingHookApplied = mlMode === 'confidence_sizing';
 
     const output = {
       mode: mlMode,
@@ -179,9 +183,13 @@ function createMlPhase1DecisionModifier(rawConfig = {}, dependencies = {}) {
       mlBlockedByCapitalRegime: blocks.blockedByCapitalRegime,
       mlBlockedByHardRisk: blocks.blockedByHardRisk,
       mlBlockedByForecastRestriction: forecastBlocked,
+      capitalRegimeImpact,
+      forecastImpact,
+      fallbackWithoutModelState,
+      confidenceSizingHookApplied,
       reasonCodes: Array.from(new Set(reasonCodes)),
       sizingHook: {
-        enabled: mlMode === 'confidence_sizing',
+        enabled: confidenceSizingHookApplied,
         aggressivenessMultiplier: sizingConfidenceMultiplier,
         owner: 'ml_phase1_hint_only',
       },
@@ -191,9 +199,18 @@ function createMlPhase1DecisionModifier(rawConfig = {}, dependencies = {}) {
         isExecutionOwner: false,
         isSizingOwner: false,
       },
+      integrationGuards: {
+        fallbackWithoutModelState,
+        mlFilterRuntimeState: String(input.mlFilterRuntimeState || 'unknown'),
+      },
+      telemetry: {
+        featureComputation: {
+          recomputedHeavyFeatures: false,
+        },
+      },
     };
 
-    log(`[mlPhase1DecisionModifier] cycle=${cycleId} ticker=${ticker} mode=${mlMode} baseRuleDecision=${resolvedBase.decisionMode} mlScore=${mlScore.toFixed(4)} mlConfidence=${mlConfidence.toFixed(4)} mlDecisionEffect=${mlDecisionEffect} mlBlockedByCapitalRegime=${blocks.blockedByCapitalRegime} mlBlockedByHardRisk=${blocks.blockedByHardRisk}`);
+    log(`[mlPhase1DecisionModifier] cycle=${cycleId} ticker=${ticker} mode=${mlMode} baseRuleDecision=${resolvedBase.decisionMode} mlScore=${mlScore.toFixed(4)} mlConfidence=${mlConfidence.toFixed(4)} mlDecisionEffect=${mlDecisionEffect} capitalRegimeImpact=${capitalRegimeImpact} forecastImpact=${forecastImpact} fallbackWithoutModelState=${fallbackWithoutModelState} confidenceSizingHookApplied=${confidenceSizingHookApplied} mlBlockedByCapitalRegime=${blocks.blockedByCapitalRegime} mlBlockedByHardRisk=${blocks.blockedByHardRisk}`);
 
     return output;
   }
@@ -204,7 +221,64 @@ function createMlPhase1DecisionModifier(rawConfig = {}, dependencies = {}) {
   };
 }
 
+function toMlPhase1DecisionEvent({ context = {}, decision = {}, mlInferenceOutput = {} } = {}) {
+  return {
+    eventType: 'ml_phase1_decision',
+    cycleId: context.cycleId || 'n/a',
+    ticker: context.ticker || 'n/a',
+    exchange: context.exchange || 'n/a',
+    mode: context.mode || 'live',
+    module: 'mlPhase1DecisionModifier',
+    layer: 'entry.finalDecision',
+    marketRegime: context.marketRegime || 'unknown',
+    capitalRegime: context.capitalRegime || decision.capitalRegime || 'NORMAL',
+    finalDecision: decision.effectiveDecisionMode || 'no_entry',
+    payload: {
+      baseRuleDecision: decision.baseRuleDecision || 'no_entry',
+      mlMode: decision.mlMode || 'advisory_only',
+      mlScore: Number.isFinite(Number(decision.mlScore)) ? Number(decision.mlScore) : 0,
+      mlConfidence: Number.isFinite(Number(decision.mlConfidence)) ? Number(decision.mlConfidence) : 0,
+      mlDecisionEffect: decision.mlDecisionEffect || 'no_effect',
+      capitalRegimeImpact: decision.capitalRegimeImpact || 'no_block',
+      forecastImpact: decision.forecastImpact || 'no_block',
+      fallbackWithoutModelState: decision.fallbackWithoutModelState || 'n/a',
+      confidenceSizingHookApplied: decision.confidenceSizingHookApplied === true,
+      ownership: decision.ownership || {},
+      sizingHook: decision.sizingHook || { enabled: false, aggressivenessMultiplier: 1, owner: 'ml_phase1_hint_only' },
+      reasonCodes: Array.isArray(decision.reasonCodes) ? decision.reasonCodes : [],
+      telemetry: {
+        mlInference: {
+          fallbackState: mlInferenceOutput.mlFallbackState || 'none',
+          dataQualityState: mlInferenceOutput.mlDataQualityState || 'unknown',
+          reasonCodes: Array.isArray(mlInferenceOutput.mlReasonCodes) ? mlInferenceOutput.mlReasonCodes : [],
+          metadata: mlInferenceOutput.metadata || {},
+        },
+        downstreamContext: {
+          mlPhase1Decision: {
+            baseRuleDecision: decision.baseRuleDecision || 'no_entry',
+            effectiveDecisionMode: decision.effectiveDecisionMode || 'no_entry',
+            effectiveApproved: decision.effectiveApproved === true,
+            mlMode: decision.mlMode || 'advisory_only',
+            mlScore: Number.isFinite(Number(decision.mlScore)) ? Number(decision.mlScore) : 0,
+            mlConfidence: Number.isFinite(Number(decision.mlConfidence)) ? Number(decision.mlConfidence) : 0,
+            mlDecisionEffect: decision.mlDecisionEffect || 'no_effect',
+            capitalRegimeImpact: decision.capitalRegimeImpact || 'no_block',
+            forecastImpact: decision.forecastImpact || 'no_block',
+            fallbackWithoutModelState: decision.fallbackWithoutModelState || 'n/a',
+            confidenceSizingHookApplied: decision.confidenceSizingHookApplied === true,
+            sizingHook: decision.sizingHook || { enabled: false, aggressivenessMultiplier: 1, owner: 'ml_phase1_hint_only' },
+            ownership: decision.ownership || {},
+            featureComputation: ((decision.telemetry || {}).featureComputation) || { recomputedHeavyFeatures: false },
+            mlInferenceFallbackState: mlInferenceOutput.mlFallbackState || 'none',
+          },
+        },
+      },
+    },
+  };
+}
+
 module.exports = {
   createMlPhase1DecisionModifier,
   normalizeMlPhase1DecisionModifierConfig: normalizeConfig,
+  toMlPhase1DecisionEvent,
 };
