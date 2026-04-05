@@ -2987,6 +2987,14 @@
     "slippageBps": 0,
     "feeBps": 0
   },
+  "mlPhase1Integration": {
+    "enableMlFilter": true,
+    "mlMode": "advisory_only",
+    "minConfidenceForEntry": 0.45,
+    "minConfidenceForFullSize": 0.75,
+    "allowFallbackWithoutModel": true,
+    "mlInferenceBudget": 12
+  },
   "finalEntryDecisionEngine": {
     "enabled": true,
     "entryScoreThreshold": 0.68,

@@ -35,6 +35,82 @@ function emitObservabilityEvent(strategy, event) {
   }
 }
 
+function clamp01(value, fallback = 0) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return fallback;
+  if (num <= 0) return 0;
+  if (num >= 1) return 1;
+  return num;
+}
+
+function resolveRuntimeMode(strategy, context = {}) {
+  if (context && context.mode === 'paper') return 'paper';
+  if (context && context.mode === 'live') return 'live';
+  const isPaper = !!(strategy
+    && strategy.runtimeEngines
+    && strategy.runtimeEngines.executionEngine
+    && typeof strategy.runtimeEngines.executionEngine.isPaperMode === 'function'
+    && strategy.runtimeEngines.executionEngine.isPaperMode());
+  return isPaper ? 'paper' : 'live';
+}
+
+function createMlIntegrationFallbackOutput(input = {}, fallbackState, reasonCode, integrationConfig = {}) {
+  const context = input && input.context ? input.context : {};
+  const cycleId = context.cycleId || 'n/a';
+  const ticker = context.ticker || 'n/a';
+  return {
+    mlScore: 0.5,
+    mlConfidence: 0,
+    mlDirectionSupport: 'neutral',
+    mlDecisionHint: fallbackState === 'safe_disabled' ? 'ml_safe_disabled' : 'ml_integration_fallback',
+    mlDataQualityState: 'unknown',
+    mlReasonCodes: [
+      'ml_phase1_integration_guard',
+      reasonCode || 'ml_integration_fallback',
+    ],
+    mlFallbackState: fallbackState,
+    metadata: {
+      cycleId,
+      ticker,
+      mlMode: integrationConfig.mlMode,
+      enableMlFilter: integrationConfig.enableMlFilter,
+      allowFallbackWithoutModel: integrationConfig.allowFallbackWithoutModel,
+      ownership: {
+        isFinalDecisionOwner: false,
+        isSizingOwner: false,
+        isExecutionOwner: false,
+        recalculatesMarketData: false,
+        recalculatesHeavyFeatures: false,
+      },
+    },
+  };
+}
+
+function resolveMlPhase1IntegrationConfig(runtimeConfig = {}) {
+  const source = runtimeConfig && runtimeConfig.mlPhase1Integration
+    ? runtimeConfig.mlPhase1Integration
+    : {};
+  const rawMode = String(source.mlMode || source.mode || 'advisory_only').toLowerCase();
+  const mlMode = ['advisory_only', 'confirm_only', 'veto_mode', 'confidence_sizing'].includes(rawMode)
+    ? rawMode
+    : 'advisory_only';
+  const minConfidenceForEntry = clamp01(source.minConfidenceForEntry, 0.45);
+  const minConfidenceForFullSize = clamp01(source.minConfidenceForFullSize, 0.75);
+  const validThresholds = Number.isFinite(Number(source.minConfidenceForEntry ?? 0.45))
+    && Number.isFinite(Number(source.minConfidenceForFullSize ?? 0.75))
+    && minConfidenceForFullSize >= minConfidenceForEntry;
+
+  return {
+    enableMlFilter: source.enableMlFilter !== false,
+    mlMode,
+    minConfidenceForEntry,
+    minConfidenceForFullSize,
+    allowFallbackWithoutModel: source.allowFallbackWithoutModel !== false,
+    mlInferenceBudget: Number(source.mlInferenceBudget || (((source.mlInferenceBudgetMs || 0) > 0) ? source.mlInferenceBudgetMs : 0)) || null,
+    isValid: validThresholds,
+  };
+}
+
 // Русский комментарий: движки пока выступают как адаптеры к существующим методам стратегии (fallback без изменения поведения).
 function createEngines(strategy) {
   const paperExecutor = createPaperTradingExecutor(strategy, strategy && strategy.config ? strategy.config : {});
@@ -90,22 +166,70 @@ function createEngines(strategy) {
       },
       // Русский комментарий: ML phase 1 modifier работает после finalEntryDecisionEngine и до sizing как ограниченный filter/hint слой.
       evaluateMlPhase1DecisionModifier: (input, runtimeConfig = {}) => {
+        const integrationConfig = resolveMlPhase1IntegrationConfig(runtimeConfig);
+        const context = input && input.context ? input.context : {};
+        const runtimeMode = resolveRuntimeMode(strategy, context);
+        const mlInferenceOutput = input && input.mlInferenceOutput ? input.mlInferenceOutput : {};
+        const inferenceFallbackState = String(mlInferenceOutput.mlFallbackState || 'none');
         const phase1Config = runtimeConfig && runtimeConfig.mlPhase1DecisionModifier
           ? runtimeConfig.mlPhase1DecisionModifier
           : (runtimeConfig && runtimeConfig.mlPhase1 ? runtimeConfig.mlPhase1 : {});
-        const modifier = createMlPhase1DecisionModifier(normalizeMlPhase1DecisionModifierConfig(phase1Config), {
+        const safeDisabledByFallback = !integrationConfig.allowFallbackWithoutModel && inferenceFallbackState !== 'none';
+        const safeDisabled = !integrationConfig.enableMlFilter || !integrationConfig.isValid || safeDisabledByFallback;
+        if (strategy && typeof strategy.log === 'function') {
+          strategy.log(`[mlPhase1Integration] cycle=${context.cycleId || 'n/a'} ticker=${context.ticker || 'n/a'} runtime=${runtimeMode} mlMode=${integrationConfig.mlMode} enableMlFilter=${integrationConfig.enableMlFilter} fallbackWithoutModel=${integrationConfig.allowFallbackWithoutModel} decisionSemanticsMarker=paper_live_equivalent`);
+          if (safeDisabledByFallback) {
+            strategy.log(`[mlPhase1Integration] cycle=${context.cycleId || 'n/a'} ticker=${context.ticker || 'n/a'} runtime=${runtimeMode} fallbackWithoutModel=false fallbackState=${inferenceFallbackState} action=safe_disable_filter`);
+          }
+          if (!integrationConfig.isValid) {
+            strategy.log(`[mlPhase1Integration] cycle=${context.cycleId || 'n/a'} ticker=${context.ticker || 'n/a'} runtime=${runtimeMode} invalidConfig=true action=safe_disable_filter`);
+          }
+        }
+        const modifier = createMlPhase1DecisionModifier(normalizeMlPhase1DecisionModifierConfig({
+          ...phase1Config,
+          enabled: !safeDisabled,
+          mode: integrationConfig.mlMode,
+          thresholds: {
+            ...((phase1Config || {}).thresholds || {}),
+            confirmMinConfidence: integrationConfig.minConfidenceForEntry,
+          },
+        }), {
           log: (message) => {
             if (strategy && typeof strategy.log === 'function') strategy.log(message);
           },
         });
-        return modifier.evaluate(input);
+        return modifier.evaluate({
+          ...input,
+          mlMode: integrationConfig.mlMode,
+          mlInferenceOutput,
+          mlFilterRuntimeState: safeDisabled ? 'safe_disabled' : 'enabled',
+        });
       },
       // Русский комментарий: ML phase 1 работает только как advisory-слой и не перехватывает final decision/sizing/execution ownership.
       evaluateMlInferencePhase1: (input, runtimeConfig = {}, runtime = {}) => {
+        const integrationConfig = resolveMlPhase1IntegrationConfig(runtimeConfig);
+        const context = input && input.context ? input.context : {};
+        const runtimeMode = resolveRuntimeMode(strategy, context);
+        if (strategy && typeof strategy.log === 'function') {
+          strategy.log(`[mlPhase1Integration] cycle=${context.cycleId || 'n/a'} ticker=${context.ticker || 'n/a'} runtime=${runtimeMode} mlMode=${integrationConfig.mlMode} enableMlFilter=${integrationConfig.enableMlFilter} fallbackWithoutModel=${integrationConfig.allowFallbackWithoutModel} decisionSemanticsMarker=paper_live_equivalent`);
+        }
+        if (!integrationConfig.enableMlFilter) {
+          return createMlIntegrationFallbackOutput(input, 'safe_disabled', 'ml_filter_disabled_by_config', integrationConfig);
+        }
+        if (!integrationConfig.isValid) {
+          return createMlIntegrationFallbackOutput(input, 'safe_disabled', 'ml_filter_invalid_config', integrationConfig);
+        }
         const mlConfig = runtimeConfig && runtimeConfig.mlInferenceLayer
           ? runtimeConfig.mlInferenceLayer
           : (runtimeConfig && runtimeConfig.mlPhase1Inference ? runtimeConfig.mlPhase1Inference : {});
-        const normalizedMlConfig = normalizeMlInferenceConfig(mlConfig);
+        const normalizedMlConfig = normalizeMlInferenceConfig({
+          ...mlConfig,
+          budgets: {
+            ...((mlConfig || {}).budgets || {}),
+            inferenceMs: integrationConfig.mlInferenceBudget
+              || (((mlConfig || {}).budgets || {}).inferenceMs),
+          },
+        });
         const localLayer = createMlInferenceLayer(normalizedMlConfig, {
           log: (message) => {
             if (strategy && typeof strategy.log === 'function') strategy.log(message);
@@ -116,11 +240,20 @@ function createEngines(strategy) {
           ? runtime.performanceGovernor
           : null;
 
-        return localLayer.evaluate(input, {
+        const output = localLayer.evaluate(input, {
           registerLayerExecution: governor
             ? (layerName, durationMs, mode) => governor.registerLayerExecution(layerName, durationMs, mode)
             : null,
         });
+        if (output && output.mlFallbackState && output.mlFallbackState !== 'none'
+          && !integrationConfig.allowFallbackWithoutModel
+        ) {
+          if (strategy && typeof strategy.log === 'function') {
+            strategy.log(`[mlPhase1Integration] cycle=${context.cycleId || 'n/a'} ticker=${context.ticker || 'n/a'} runtime=${runtimeMode} fallbackWithoutModel=false fallbackState=${output.mlFallbackState} action=safe_disable_filter`);
+          }
+          return createMlIntegrationFallbackOutput(input, 'safe_disabled', 'ml_fallback_blocked_by_config', integrationConfig);
+        }
+        return output;
       },
       // Русский комментарий: confluence режим стоит после regime-router и до sizing/execution; legacy остаётся fallback.
       predictPriceDirection: async (ticker) => {
