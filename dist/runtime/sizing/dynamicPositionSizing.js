@@ -168,6 +168,7 @@ function evaluateDynamicPositionSizing(input = {}, rawConfig = {}, runtime = {})
     baseSizingResult: null,
     capitalRegimeAdjustment: null,
     forecastSizingAdjustment: null,
+    mlPhase1SizingAdjustment: null,
     finalSizeMultiplier: 0,
     finalLeverageCap: 0,
     sizingReasonCodes: reasonCodes,
@@ -278,12 +279,32 @@ function evaluateDynamicPositionSizing(input = {}, rawConfig = {}, runtime = {})
     const forecastMultiplier = config.forecastSizingHooks.enabled
       ? clamp(forecastPayload.multiplier, 0, 1) * forecastAggressionCap * forecastReduction
       : 1;
+
+    const mlPhase1Sizing = input.mlPhase1Decision || input.mlPhase1Modifier || {};
+    const mlSizingHook = (mlPhase1Sizing && mlPhase1Sizing.sizingHook) || {};
     sizeMultiplier *= forecastMultiplier;
     if (forecastConservativeCap < 1 && approvedEntry.decisionMode === 'weak_entry') {
       sizeMultiplier = Math.min(sizeMultiplier, forecastConservativeCap);
     }
     if (forecastMultiplier < 1 || forecastConservativeCap < 1) {
       reasonCodes.push(`forecast_sizing_tightening:${forecastPayload.reason}`);
+    }
+
+    if (
+      config.mlCompatibilityHooks.phase1ConfidenceModifierHookEnabled
+      && mlPhase1Sizing.mode === 'confidence_sizing'
+      && mlSizingHook.enabled === true
+      && Number.isFinite(Number(mlSizingHook.aggressivenessMultiplier))
+    ) {
+      const mlMultiplier = clamp(Number(mlSizingHook.aggressivenessMultiplier), 0.75, 1);
+      sizeMultiplier *= mlMultiplier;
+      reasonCodes.push('ml_phase1_confidence_sizing_modifier');
+      structuredDetails.mlPhase1SizingAdjustment = {
+        hookEnabled: true,
+        mode: mlPhase1Sizing.mode,
+        aggressivenessMultiplier: Number(mlMultiplier.toFixed(8)),
+        owner: 'ml_phase1_hint_only',
+      };
     }
     structuredDetails.forecastSizingAdjustment = {
       hookEnabled: config.forecastSizingHooks.enabled,
@@ -320,7 +341,7 @@ function evaluateDynamicPositionSizing(input = {}, rawConfig = {}, runtime = {})
   structuredDetails.finalLeverageCap = leverageCap;
 
   if (runtime && typeof runtime.log === 'function') {
-    runtime.log(`[dynamicPositionSizing] cycle=${(input.context || {}).cycleId || 'n/a'} ticker=${(input.context || {}).ticker || 'n/a'} runtime=${runtimeMode} approvedEntryDecisionMode=${approvedEntry.decisionMode} baseSizingResult=${JSON.stringify(structuredDetails.baseSizingResult || {})} capitalRegimeAdjustment=${JSON.stringify(structuredDetails.capitalRegimeAdjustment || {})} forecastSizingAdjustment=${JSON.stringify(structuredDetails.forecastSizingAdjustment || {})} finalSizeMultiplier=${sizeMultiplier.toFixed(4)} finalLeverageCap=${leverageCap} targetMarginSize=${targetMarginSize} aggressiveness=${aggressivenessMode} capitalRegime=${capitalRegime} fallback=${fallbackMode ? 'yes' : 'no'} hardBlocked=${hardBlocked ? 'yes' : 'no'} quality=${sizingDataQualityState} reasonCodes=${reasonCodes.join('|') || 'none'}`);
+    runtime.log(`[dynamicPositionSizing] cycle=${(input.context || {}).cycleId || 'n/a'} ticker=${(input.context || {}).ticker || 'n/a'} runtime=${runtimeMode} approvedEntryDecisionMode=${approvedEntry.decisionMode} baseSizingResult=${JSON.stringify(structuredDetails.baseSizingResult || {})} capitalRegimeAdjustment=${JSON.stringify(structuredDetails.capitalRegimeAdjustment || {})} forecastSizingAdjustment=${JSON.stringify(structuredDetails.forecastSizingAdjustment || {})} mlPhase1SizingAdjustment=${JSON.stringify(structuredDetails.mlPhase1SizingAdjustment || {})} finalSizeMultiplier=${sizeMultiplier.toFixed(4)} finalLeverageCap=${leverageCap} targetMarginSize=${targetMarginSize} aggressiveness=${aggressivenessMode} capitalRegime=${capitalRegime} fallback=${fallbackMode ? 'yes' : 'no'} hardBlocked=${hardBlocked ? 'yes' : 'no'} quality=${sizingDataQualityState} reasonCodes=${reasonCodes.join('|') || 'none'}`);
   }
 
   return {
@@ -372,6 +393,7 @@ function toDynamicPositionSizingEvent({ context = {}, decision = {} } = {}) {
     baseSizingResult: ((decision.explanation || {}).structured || {}).baseSizingResult || null,
     capitalRegimeAdjustment: ((decision.explanation || {}).structured || {}).capitalRegimeAdjustment || null,
     forecastSizingAdjustment: ((decision.explanation || {}).structured || {}).forecastSizingAdjustment || null,
+    mlPhase1SizingAdjustment: ((decision.explanation || {}).structured || {}).mlPhase1SizingAdjustment || null,
     finalSizeMultiplier: Number.isFinite(decision.sizeMultiplier) ? decision.sizeMultiplier : 0,
     finalLeverageCap: Number.isFinite(decision.leverageCap) ? decision.leverageCap : 0,
     sizingReasonCodes: Array.isArray(decision.sizingReasonCodes) ? decision.sizingReasonCodes : [],
