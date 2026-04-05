@@ -7,7 +7,11 @@ const { createObservabilityLayer } = require('../observability/reportingLayer');
 const { createPaperTradingExecutor } = require('../execution/paperTrading');
 const { createMlDatasetBuilder } = require('../analytics/mlDatasetBuilder');
 const { createMlInferenceLayer, normalizeMlInferenceConfig } = require('../ml/mlInferenceLayer');
-const { createMlPhase1DecisionModifier, normalizeMlPhase1DecisionModifierConfig } = require('../ml/mlPhase1DecisionModifier');
+const {
+  createMlPhase1DecisionModifier,
+  normalizeMlPhase1DecisionModifierConfig,
+  toMlPhase1DecisionEvent,
+} = require('../ml/mlPhase1DecisionModifier');
 const {
   evaluateHigherTimeframeBiasWithCache,
   applyHtfBiasToEntryDecision,
@@ -198,12 +202,23 @@ function createEngines(strategy) {
             if (strategy && typeof strategy.log === 'function') strategy.log(message);
           },
         });
-        return modifier.evaluate({
+        const decision = modifier.evaluate({
           ...input,
           mlMode: integrationConfig.mlMode,
           mlInferenceOutput,
           mlFilterRuntimeState: safeDisabled ? 'safe_disabled' : 'enabled',
+          fallbackWithoutModelState: integrationConfig.allowFallbackWithoutModel ? 'enabled' : 'disabled',
         });
+        if (strategy.emitStructuredEvent) {
+          const event = toMlPhase1DecisionEvent({
+            context,
+            decision,
+            mlInferenceOutput,
+          });
+          strategy.emitStructuredEvent(event);
+          emitObservabilityEvent(strategy, event);
+        }
+        return decision;
       },
       // Русский комментарий: ML phase 1 работает только как advisory-слой и не перехватывает final decision/sizing/execution ownership.
       evaluateMlInferencePhase1: (input, runtimeConfig = {}, runtime = {}) => {
