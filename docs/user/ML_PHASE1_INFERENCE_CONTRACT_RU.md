@@ -1,5 +1,7 @@
 # ML phase 1: контракт `mlInferenceLayer` (шаг 37, подэтап 1)
 
+> Дополнение по интеграционным режимам/ownership/future compatibility (шаг 37C): см. `docs/user/ML_PHASE1_INTEGRATION_CONTRACT_RU.md`.
+
 ## Назначение
 - `mlInferenceLayer` — отдельный advisory-слой поверх rule-based архитектуры.
 - Слой не заменяет и не обходит risk/final-decision/sizing/execution ownership.
