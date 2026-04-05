@@ -7,6 +7,7 @@ const { createObservabilityLayer } = require('../observability/reportingLayer');
 const { createPaperTradingExecutor } = require('../execution/paperTrading');
 const { createMlDatasetBuilder } = require('../analytics/mlDatasetBuilder');
 const { createMlInferenceLayer, normalizeMlInferenceConfig } = require('../ml/mlInferenceLayer');
+const { createMlPhase1DecisionModifier, normalizeMlPhase1DecisionModifierConfig } = require('../ml/mlPhase1DecisionModifier');
 const {
   evaluateHigherTimeframeBiasWithCache,
   applyHtfBiasToEntryDecision,
@@ -86,6 +87,18 @@ function createEngines(strategy) {
           emitObservabilityEvent(strategy, event);
         }
         return decision;
+      },
+      // Русский комментарий: ML phase 1 modifier работает после finalEntryDecisionEngine и до sizing как ограниченный filter/hint слой.
+      evaluateMlPhase1DecisionModifier: (input, runtimeConfig = {}) => {
+        const phase1Config = runtimeConfig && runtimeConfig.mlPhase1DecisionModifier
+          ? runtimeConfig.mlPhase1DecisionModifier
+          : (runtimeConfig && runtimeConfig.mlPhase1 ? runtimeConfig.mlPhase1 : {});
+        const modifier = createMlPhase1DecisionModifier(normalizeMlPhase1DecisionModifierConfig(phase1Config), {
+          log: (message) => {
+            if (strategy && typeof strategy.log === 'function') strategy.log(message);
+          },
+        });
+        return modifier.evaluate(input);
       },
       // Русский комментарий: ML phase 1 работает только как advisory-слой и не перехватывает final decision/sizing/execution ownership.
       evaluateMlInferencePhase1: (input, runtimeConfig = {}, runtime = {}) => {
