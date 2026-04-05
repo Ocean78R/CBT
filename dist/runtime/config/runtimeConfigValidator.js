@@ -18,6 +18,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const portfolioRiskContour = merged.portfolioRiskContour || {};
   const tradeAnalytics = merged.tradeAnalytics || {};
   const paperTrading = merged.paperTrading || {};
+  const mlPhase1Integration = merged.mlPhase1Integration || {};
   const mlDatasetBuilder = merged.mlDatasetBuilder || {};
   const higherTimeframeBiasEngine = merged.higherTimeframeBiasEngine || {};
   const confluenceEntryEngine = merged.confluenceEntryEngine || {};
@@ -743,6 +744,22 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
       initialBalance: Number(paperTrading.initialBalance || 10000),
       slippageBps: Number(paperTrading.slippageBps || 0),
       feeBps: Number(paperTrading.feeBps || 0),
+    },
+    mlPhase1Integration: {
+      enableMlFilter: mlPhase1Integration.enableMlFilter !== false,
+      mlMode: ['advisory_only', 'confirm_only', 'veto_mode', 'confidence_sizing'].includes(mlPhase1Integration.mlMode)
+        ? mlPhase1Integration.mlMode
+        : 'advisory_only',
+      minConfidenceForEntry: Number.isFinite(Number(mlPhase1Integration.minConfidenceForEntry))
+        ? Number(mlPhase1Integration.minConfidenceForEntry)
+        : 0.45,
+      minConfidenceForFullSize: Number.isFinite(Number(mlPhase1Integration.minConfidenceForFullSize))
+        ? Number(mlPhase1Integration.minConfidenceForFullSize)
+        : 0.75,
+      allowFallbackWithoutModel: mlPhase1Integration.allowFallbackWithoutModel !== false,
+      mlInferenceBudget: Number.isFinite(Number(mlPhase1Integration.mlInferenceBudget))
+        ? Number(mlPhase1Integration.mlInferenceBudget)
+        : null,
     },
     tradeAnalytics: {
       enabled: tradeAnalytics.enabled !== false,
