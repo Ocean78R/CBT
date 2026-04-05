@@ -374,6 +374,12 @@ Fallback и безопасность:
 - `forecastSizingHooks.aggressionCaps/exposureReductionHints/conservativeMultiplierCap`: hooks для forecast-подсказок (только ужесточение).
 - `mlCompatibilityHooks.*`: контракт совместимости для future ML phase 1/2 без смены owner-логики.
 
+Дополнение по ML phase 1 integration (шаг 37C):
+- режимы `mlPhase1Integration.mlMode`: `advisory_only`, `confirm_only`, `veto_mode`, `confidence_sizing`;
+- `finalEntryDecisionEngine` остаётся final interpreter veto, ML не получает ownership решения;
+- ML не может override `capitalRegime` запреты и forecast hard restrictions;
+- `confidence_sizing` отдаёт только bounded sizing hint, ownership sizing не передаётся.
+
 Ограничения ownership:
 - dynamic sizing не пересчитывает market data и block scores;
 - не разрешает вход без approved entry;

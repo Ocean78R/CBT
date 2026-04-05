@@ -1,3 +1,11 @@
+## 2026-04-05 (ML phase 1 integration, step 37C / substep 3)
+- Изменение: добавлен финальный интеграционный документ `docs/user/ML_PHASE1_INTEGRATION_CONTRACT_RU.md` с ролью ML phase 1, ограничениями ownership и описанием режимов `advisory_only/confirm_only/veto_mode/confidence_sizing`.
+- Изменение: зафиксирован future compatibility contract для шага 39 (разрешённые ML-поля для downstream/meta-controller, bounded read-only доступ, явный запрет передачи ownership).
+- Изменение: обновлены пользовательские документы (`README_RU`, `CONFIG_GUIDE_RU`, `ML_PHASE1_INFERENCE_CONTRACT_RU`) для синхронизации шага 37C с уже реализованными 37A/37B/37C-1/37C-2.
+- Изменение: добавлены финальные regression/contract тесты на no-ownership-takeover, primary rule-based ownership, запрет override для capital/forecast и docs/config/runtime consistency.
+- Связанные файлы кода: `tests/regression/ml-phase1-step37c-final-contract.test.js`.
+- Связанные разделы docs: `docs/user/ML_PHASE1_INTEGRATION_CONTRACT_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/ML_PHASE1_INFERENCE_CONTRACT_RU.md`, `docs/user/README_RU.md`.
+
 ## 2026-04-04 (dynamicPositionSizing integration, step 36 / substep 2)
 - Изменение: добавлена production-like интеграция `dynamicPositionSizing` с `capitalRegime` tightening (`CAUTION/DEFENSIVE/CAPITAL_PRESERVATION/HALT_NEW_ENTRIES`) без смены ownership-path.
 - Изменение: расширен config-контракт (`enableDynamicPositionSizing`, `baseSizingRules`, `weakEntrySizeMultiplier`, `capitalRegimeSizingRules`, `leverageCapsByRegime`, `fallbackFixedSizingConfig`, forecast/ML hooks).
