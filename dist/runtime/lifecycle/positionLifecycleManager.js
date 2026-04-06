@@ -8,6 +8,23 @@ const LIFECYCLE_STATES = {
   TERMINAL: 'fully_closed_terminal_state',
 };
 
+const POSITION_CAPABILITY_STATES = {
+  NORMAL: 'NORMAL_POSITION',
+  LEVERAGE_MISMATCH: 'LEVERAGE_MISMATCH_POSITION',
+  LEGACY_RESTRICTED: 'LEGACY_RESTRICTED_POSITION',
+};
+
+const LIFECYCLE_ACTIONS = {
+  PARTIAL_CLOSE: 'partial_close',
+  MOVE_TO_BREAKEVEN: 'move_to_breakeven',
+  ACTIVATE_TRAILING: 'activate_trailing',
+  REDUCE_ONLY_PROFIT_CLOSE: 'reduce_only_profit_close',
+  PROTECTIVE_CLOSE: 'protective_close',
+  CLEANUP_PROTECTIVE_ORDERS: 'cleanup_protective_orders',
+  AVERAGING: 'averaging',
+  LEVERAGE_SENSITIVE_ACTIONS: 'leverage_sensitive_actions',
+};
+
 function clamp01(value, fallback = 0) {
   const number = Number(value);
   if (!Number.isFinite(number)) return fallback;
@@ -98,6 +115,10 @@ function toTransition(previousState, nextState, reasonCodes) {
 }
 
 function createLifecycleOutput(input, normalizedRules, state, profitability) {
+  const positionCapabilityState = input.positionCapabilityState || POSITION_CAPABILITY_STATES.NORMAL;
+  const restrictedLifecycleMode = input.restrictedLifecycleMode === true;
+  const allowedActions = Array.isArray(input.allowedActions) ? input.allowedActions : [];
+  const blockedActions = Array.isArray(input.blockedActions) ? input.blockedActions : [];
   return {
     lifecycleActionIntent: {
       action: 'hold',
@@ -113,9 +134,34 @@ function createLifecycleOutput(input, normalizedRules, state, profitability) {
     breakevenIntent: { enabled: false, shouldMove: false, targetStopPrice: null },
     partialCloseIntent: { enabled: false, shouldClosePartially: false, closeShare: 0 },
     trailingIntent: { enabled: false, shouldTrail: false, trailingStopPrice: null },
-    lifecycleReasonCodes: [],
+      lifecycleReasonCodes: [],
+    lifecycleActionAllowed: true,
+    lifecycleActionBlocked: false,
+    positionCapabilityState,
+    restrictedLifecycleMode,
+    allowedActions,
+    blockedActions,
     lifecycleState: state,
     profitability,
+    managerRouting: {
+      executionLifecycleManager: {
+        owner: 'execution_lifecycle_manager',
+        route: 'lifecycle_intent_dispatch_only',
+      },
+      serverTakeProfitManager: {
+        owner: 'server_take_profit_manager',
+        route: 'protective_orders_cleanup_via_owner',
+      },
+      serverStopLossManager: {
+        owner: 'server_stop_loss_manager',
+        route: 'protective_orders_cleanup_via_owner',
+      },
+      reconciliationCleanupPath: {
+        owner: 'execution_reconciliation_cleanup',
+        route: 'state_sync_and_orphan_cleanup',
+      },
+    },
+    lifecycleEvents: [],
     contract: {
       input: {
         usesExistingRuntimeContext: true,
@@ -127,10 +173,61 @@ function createLifecycleOutput(input, normalizedRules, state, profitability) {
         intentsOnly: true,
         executionOwner: false,
         serverTpSlOwner: false,
+        directExchangeActions: false,
       },
       ownershipMetadata: input.ownershipMetadata || null,
     },
   };
+}
+
+function deriveCapabilityState(positionState = {}, context = {}) {
+  const externalState = context.positionCapabilityState || positionState.positionCapabilityState;
+  if (Object.values(POSITION_CAPABILITY_STATES).includes(externalState)) {
+    return externalState;
+  }
+  return POSITION_CAPABILITY_STATES.NORMAL;
+}
+
+function buildLifecycleActionsProfile(positionCapabilityState) {
+  const baseSafe = [
+    LIFECYCLE_ACTIONS.REDUCE_ONLY_PROFIT_CLOSE,
+    LIFECYCLE_ACTIONS.PROTECTIVE_CLOSE,
+    LIFECYCLE_ACTIONS.CLEANUP_PROTECTIVE_ORDERS,
+  ];
+  const restrictedStates = new Set([
+    POSITION_CAPABILITY_STATES.LEVERAGE_MISMATCH,
+    POSITION_CAPABILITY_STATES.LEGACY_RESTRICTED,
+  ]);
+  if (restrictedStates.has(positionCapabilityState)) {
+    return {
+      restrictedLifecycleMode: true,
+      allowedActions: [...baseSafe, LIFECYCLE_ACTIONS.PARTIAL_CLOSE],
+      blockedActions: [
+        LIFECYCLE_ACTIONS.AVERAGING,
+        LIFECYCLE_ACTIONS.LEVERAGE_SENSITIVE_ACTIONS,
+        LIFECYCLE_ACTIONS.MOVE_TO_BREAKEVEN,
+        LIFECYCLE_ACTIONS.ACTIVATE_TRAILING,
+      ],
+      reasonCodes: ['restricted_lifecycle_mode_enabled', 'restricted_capability_state'],
+    };
+  }
+
+  return {
+    restrictedLifecycleMode: false,
+    allowedActions: [
+      ...baseSafe,
+      LIFECYCLE_ACTIONS.PARTIAL_CLOSE,
+      LIFECYCLE_ACTIONS.MOVE_TO_BREAKEVEN,
+      LIFECYCLE_ACTIONS.ACTIVATE_TRAILING,
+    ],
+    blockedActions: [],
+    reasonCodes: ['normal_lifecycle_mode'],
+  };
+}
+
+function isActionAllowed(actionName, actionsProfile) {
+  if (!actionName || !actionsProfile) return true;
+  return !actionsProfile.blockedActions.includes(actionName);
 }
 
 function evaluatePositionLifecycle(input = {}, config = {}, runtime = {}) {
@@ -142,7 +239,32 @@ function evaluatePositionLifecycle(input = {}, config = {}, runtime = {}) {
   const profitability = resolveProfitability(positionState, input.profitability || {});
   const rules = normalizeLifecycleRules(config);
   const base = resolveBaseContracts(positionState, context);
-  const output = createLifecycleOutput({ ownershipMetadata }, rules, state, profitability);
+  const positionCapabilityState = deriveCapabilityState(positionState, context);
+  const actionsProfile = buildLifecycleActionsProfile(positionCapabilityState);
+  const output = createLifecycleOutput({
+    ownershipMetadata,
+    positionCapabilityState,
+    restrictedLifecycleMode: actionsProfile.restrictedLifecycleMode,
+    allowedActions: actionsProfile.allowedActions,
+    blockedActions: actionsProfile.blockedActions,
+  }, rules, state, profitability);
+  output.lifecycleReasonCodes.push(...actionsProfile.reasonCodes);
+  output.lifecycleEvents.push({
+    event: 'positionCapabilityState',
+    payload: { positionCapabilityState },
+  });
+  output.lifecycleEvents.push({
+    event: 'restrictedLifecycleMode',
+    payload: { restrictedLifecycleMode: actionsProfile.restrictedLifecycleMode },
+  });
+  output.lifecycleEvents.push({
+    event: 'allowedActions',
+    payload: { actions: actionsProfile.allowedActions },
+  });
+  output.lifecycleEvents.push({
+    event: 'blockedActions',
+    payload: { actions: actionsProfile.blockedActions },
+  });
 
   if (!rules.enabled) {
     output.lifecycleActionIntent = {
@@ -185,6 +307,18 @@ function evaluatePositionLifecycle(input = {}, config = {}, runtime = {}) {
   if (rules.partialClose.enabled
     && !state.partialCloseDone
     && profitability.unrealizedPnlPercent >= rules.partialClose.triggerProfitPercent) {
+    if (!isActionAllowed(LIFECYCLE_ACTIONS.PARTIAL_CLOSE, actionsProfile)) {
+      output.lifecycleActionAllowed = false;
+      output.lifecycleActionBlocked = true;
+      output.lifecycleEvents.push({
+        event: 'lifecycleActionBlocked',
+        payload: {
+          action: LIFECYCLE_ACTIONS.PARTIAL_CLOSE,
+          reasonCodes: ['action_blocked_by_capability_contract'],
+        },
+      });
+      reasonCodes.push('partial_close_blocked_by_capability_contract');
+    } else {
     output.partialCloseIntent = {
       enabled: true,
       shouldClosePartially: true,
@@ -204,12 +338,29 @@ function evaluatePositionLifecycle(input = {}, config = {}, runtime = {}) {
     nextState.partialCloseDone = true;
     nextState.stage = LIFECYCLE_STATES.PARTIAL_PROFIT;
     reasonCodes.push('partial_close_triggered');
+      output.lifecycleEvents.push({
+        event: 'lifecycleActionAllowed',
+        payload: { action: LIFECYCLE_ACTIONS.PARTIAL_CLOSE },
+      });
+    }
   }
 
   if (rules.breakeven.enabled
     && !state.breakevenMoved
     && profitability.unrealizedPnlPercent >= rules.breakeven.triggerProfitPercent
     && Number.isFinite(base.entryPrice)) {
+    if (!isActionAllowed(LIFECYCLE_ACTIONS.MOVE_TO_BREAKEVEN, actionsProfile)) {
+      output.lifecycleActionAllowed = false;
+      output.lifecycleActionBlocked = true;
+      output.lifecycleEvents.push({
+        event: 'lifecycleActionBlocked',
+        payload: {
+          action: LIFECYCLE_ACTIONS.MOVE_TO_BREAKEVEN,
+          reasonCodes: ['action_blocked_by_capability_contract'],
+        },
+      });
+      reasonCodes.push('breakeven_blocked_by_capability_contract');
+    } else {
     const directionMultiplier = String(base.side).toLowerCase() === 'short' ? -1 : 1;
     const targetStopPrice = base.entryPrice * (1 + (rules.breakeven.offsetPercent / 100) * directionMultiplier);
     output.breakevenIntent = {
@@ -231,6 +382,11 @@ function evaluatePositionLifecycle(input = {}, config = {}, runtime = {}) {
     nextState.breakevenMoved = true;
     nextState.stage = LIFECYCLE_STATES.BREAKEVEN_MOVED;
     reasonCodes.push('breakeven_triggered');
+      output.lifecycleEvents.push({
+        event: 'lifecycleActionAllowed',
+        payload: { action: LIFECYCLE_ACTIONS.MOVE_TO_BREAKEVEN },
+      });
+    }
   }
 
   const trailingAllowed = rules.trailing.enabled
@@ -240,6 +396,18 @@ function evaluatePositionLifecycle(input = {}, config = {}, runtime = {}) {
     && rules.trailing.distancePercent > 0;
 
   if (trailingAllowed) {
+    if (!isActionAllowed(LIFECYCLE_ACTIONS.ACTIVATE_TRAILING, actionsProfile)) {
+      output.lifecycleActionAllowed = false;
+      output.lifecycleActionBlocked = true;
+      output.lifecycleEvents.push({
+        event: 'lifecycleActionBlocked',
+        payload: {
+          action: LIFECYCLE_ACTIONS.ACTIVATE_TRAILING,
+          reasonCodes: ['action_blocked_by_capability_contract'],
+        },
+      });
+      reasonCodes.push('trailing_blocked_by_capability_contract');
+    } else {
     const side = String(base.side || '').toLowerCase();
     const trailingStopPrice = side === 'short'
       ? base.markPrice * (1 + rules.trailing.distancePercent / 100)
@@ -265,18 +433,23 @@ function evaluatePositionLifecycle(input = {}, config = {}, runtime = {}) {
     nextState.trailingStopPrice = trailingStopPrice;
     nextState.stage = LIFECYCLE_STATES.TRAILING_ACTIVE;
     reasonCodes.push('trailing_triggered');
+      output.lifecycleEvents.push({
+        event: 'lifecycleActionAllowed',
+        payload: { action: LIFECYCLE_ACTIONS.ACTIVATE_TRAILING },
+      });
+    }
   }
 
   if (reasonCodes.length === 0) {
     reasonCodes.push('no_lifecycle_action');
   }
 
-  output.lifecycleReasonCodes = reasonCodes;
+  output.lifecycleReasonCodes = [...new Set([...(output.lifecycleReasonCodes || []), ...reasonCodes])];
   output.lifecycleState = nextState;
   output.lifecycleStateTransition = toTransition(state, nextState, reasonCodes);
 
   logger.log(
-    `[positionLifecycle] cycle=${context.cycleId || 'n/a'} ticker=${base.ticker || 'n/a'} stage=${state.stage} nextStage=${nextState.stage} action=${output.lifecycleActionIntent.action} reasons=${reasonCodes.join('|')}`,
+    `[positionLifecycle] cycle=${context.cycleId || 'n/a'} ticker=${base.ticker || 'n/a'} stage=${state.stage} nextStage=${nextState.stage} action=${output.lifecycleActionIntent.action} positionCapabilityState=${positionCapabilityState} restrictedLifecycleMode=${actionsProfile.restrictedLifecycleMode} allowedActions=${actionsProfile.allowedActions.join(',')} blockedActions=${actionsProfile.blockedActions.join(',')} lifecycleActionAllowed=${output.lifecycleActionAllowed} lifecycleActionBlocked=${output.lifecycleActionBlocked} reasons=${reasonCodes.join('|')}`,
   );
 
   return output;
@@ -284,6 +457,7 @@ function evaluatePositionLifecycle(input = {}, config = {}, runtime = {}) {
 
 module.exports = {
   LIFECYCLE_STATES,
+  POSITION_CAPABILITY_STATES,
   normalizeLifecycleRules,
   evaluatePositionLifecycle,
 };
