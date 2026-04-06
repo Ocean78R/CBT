@@ -181,3 +181,112 @@ test('contract: safe close path остаётся доступен для restric
   assert.equal(result.lifecycleActionIntent.ownership.ownsServerTpSl, false);
   assert.equal(result.contract.output.serverTpSlOwner, false);
 });
+
+test('contract: capitalRegime CAUTION включает более ранний breakeven через lifecycle modifiers', () => {
+  const result = evaluatePositionLifecycle(baseInput({
+    context: {
+      ...baseInput().context,
+      capitalRegime: 'CAUTION',
+    },
+    profitability: { unrealizedPnl: 0.9, unrealizedPnlPercent: 1.05 },
+    positionState: { ...baseInput().positionState, percentage: 1.05, markPrice: 101.05 },
+  }), normalizeLifecycleRules({
+    enableAdvancedLifecycle: true,
+    partialTakeProfitRules: { enabled: false },
+    breakevenRules: { enabled: true, triggerProfitPercent: 1.2, offsetPercent: 0 },
+    trailingRules: { enabled: false },
+  }));
+
+  assert.equal(result.breakevenIntent.shouldMove, true);
+  assert.ok(result.lifecycleReasonCodes.includes('capital_regime_caution_early_breakeven'));
+  assert.equal(result.lifecycleActionIntent.ownership.isExecutionOwner, false);
+});
+
+test('contract: HALT_NEW_ENTRIES не ломает lifecycle already-open позиции', () => {
+  const result = evaluatePositionLifecycle(baseInput({
+    context: {
+      ...baseInput().context,
+      capitalRegime: 'HALT_NEW_ENTRIES',
+    },
+  }), normalizeLifecycleRules({
+    enableAdvancedLifecycle: true,
+    partialTakeProfitRules: { enabled: true, triggerProfitPercent: 1.5, closeShare: 0.3 },
+    breakevenRules: { enabled: false },
+    trailingRules: { enabled: false },
+    capitalRegimeLifecycleModifiers: {
+      enabled: true,
+      HALT_NEW_ENTRIES: { preserveOpenLifecycle: true },
+    },
+  }));
+
+  assert.equal(result.partialCloseIntent.shouldClosePartially, true);
+  assert.ok(result.lifecycleReasonCodes.includes('capital_regime_halt_new_entries_preserves_open_lifecycle'));
+});
+
+test('contract: forecast hints подключаются только как lifecycle modifiers без takeover ownership', () => {
+  const result = evaluatePositionLifecycle(baseInput({
+    forecastLifecycleHints: {
+      earlyBreakevenHint: true,
+      reduceExposureHint: true,
+      protectiveTighteningHint: true,
+    },
+    profitability: { unrealizedPnl: 1.4, unrealizedPnlPercent: 1.4 },
+    positionState: { ...baseInput().positionState, percentage: 1.4, markPrice: 101.4 },
+  }), normalizeLifecycleRules({
+    enableAdvancedLifecycle: true,
+    partialTakeProfitRules: { enabled: true, triggerProfitPercent: 1.6, closeShare: 0.4 },
+    breakevenRules: { enabled: true, triggerProfitPercent: 1.5, offsetPercent: 0 },
+    trailingRules: { enabled: true, triggerProfitPercent: 2.2, distancePercent: 1, requireBreakevenBeforeTrailing: false },
+    forecastLifecycleModifiers: { enabled: true },
+  }));
+
+  assert.ok(result.lifecycleReasonCodes.includes('forecast_hint_early_breakeven'));
+  assert.ok(result.lifecycleReasonCodes.includes('forecast_hint_reduce_exposure'));
+  assert.ok(result.lifecycleReasonCodes.includes('forecast_hint_protective_tightening'));
+  assert.equal(result.lifecycleActionIntent.ownership.isExecutionOwner, false);
+  assert.equal(result.lifecycleActionIntent.ownership.sendsOrdersDirectly, false);
+});
+
+test('contract: paper/live mode сохраняет одинаковую decision-semantics lifecycle', () => {
+  const inputLive = baseInput({ context: { ...baseInput().context, mode: 'live', capitalRegime: 'DEFENSIVE' } });
+  const inputPaper = baseInput({ context: { ...baseInput().context, mode: 'paper', capitalRegime: 'DEFENSIVE' } });
+  const config = normalizeLifecycleRules({
+    enableAdvancedLifecycle: true,
+    partialTakeProfitRules: { enabled: true, triggerProfitPercent: 1.8, closeShare: 0.35 },
+    breakevenRules: { enabled: true, triggerProfitPercent: 2, offsetPercent: 0 },
+    trailingRules: { enabled: false },
+    capitalRegimeLifecycleModifiers: { enabled: true },
+  });
+
+  const liveResult = evaluatePositionLifecycle(inputLive, config);
+  const paperResult = evaluatePositionLifecycle(inputPaper, config);
+
+  assert.equal(liveResult.lifecycleActionIntent.action, paperResult.lifecycleActionIntent.action);
+  assert.equal(liveResult.partialCloseIntent.shouldClosePartially, paperResult.partialCloseIntent.shouldClosePartially);
+  assert.deepEqual(liveResult.lifecycleReasonCodes, paperResult.lifecycleReasonCodes);
+});
+
+test('contract: restricted lifecycle mode содержит полный logging/audit trail', () => {
+  const result = evaluatePositionLifecycle(baseInput({
+    context: {
+      ...baseInput().context,
+      positionCapabilityState: 'LEVERAGE_MISMATCH_POSITION',
+      capitalRegime: 'CAPITAL_PRESERVATION',
+    },
+  }), normalizeLifecycleRules({
+    enableAdvancedLifecycle: true,
+    partialTakeProfitRules: { enabled: true, triggerProfitPercent: 2, closeShare: 0.3 },
+    breakevenRules: { enabled: true, triggerProfitPercent: 2.2, offsetPercent: 0 },
+    trailingRules: { enabled: true, triggerProfitPercent: 2.8, distancePercent: 1, requireBreakevenBeforeTrailing: false },
+    capitalRegimeLifecycleModifiers: { enabled: true },
+    restrictedLifecycleRules: { allowPartialClose: true, allowBreakeven: false, allowTrailing: false },
+  }));
+
+  const eventNames = result.lifecycleEvents.map((event) => event.event);
+  assert.ok(eventNames.includes('lifecycleBaseState'));
+  assert.ok(eventNames.includes('capitalRegimeLifecycleAdjustment'));
+  assert.ok(eventNames.includes('restrictedLifecycleMode'));
+  assert.ok(eventNames.includes('lifecycleActionIntent'));
+  assert.ok(eventNames.includes('finalLifecycleAction'));
+  assert.ok(eventNames.includes('lifecycleReasonCodes'));
+});

@@ -1,3 +1,12 @@
+## 2026-04-06 (position lifecycle integration, step 38 / substep 3)
+- Изменение: расширен config lifecycle-подсистемы полями `enableAdvancedLifecycle`, `partialTakeProfitRules`, `breakevenRules`, `trailingRules`, `capitalRegimeLifecycleModifiers`, `restrictedLifecycleRules`, `forecastLifecycleModifiers`.
+- Изменение: реализованы lifecycle modifiers от `capitalRegime` (`CAUTION/DEFENSIVE/CAPITAL_PRESERVATION/HALT_NEW_ENTRIES`) без изменения execution/lifecycle owner-path.
+- Изменение: подключены forecast lifecycle hints (`earlyBreakevenHint`, `reduceExposureHint`, `protectiveTighteningHint`) только как входные modifiers; forecast layer не выполняет lifecycle actions напрямую.
+- Изменение: добавлены structured lifecycle events для logging/audit (`lifecycleBaseState`, `lifecycleActionIntent`, `capitalRegimeLifecycleAdjustment`, `forecastLifecycleAdjustment`, `restrictedLifecycleMode`, `finalLifecycleAction`, `lifecycleReasonCodes`).
+- Изменение: добавлены regression/contract тесты на ветки capitalRegime, HALT_NEW_ENTRIES, forecast hints, paper/live semantic parity, полноту restricted lifecycle audit trail и no-ownership-takeover by forecast layer.
+- Связанные файлы кода: `dist/runtime/lifecycle/positionLifecycleManager.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/position-lifecycle-manager.test.js`.
+- Связанные разделы docs: `docs/user/POSITION_LIFECYCLE_CONTRACT_RU.md`.
+
 ## 2026-04-06 (position lifecycle scaffold, step 38 / substep 1)
 - Изменение: добавлен отдельный lifecycle-модуль `positionLifecycleManager` с intent-only контрактом для управления уже открытой прибыльной позицией без execution/server TP-SL ownership.
 - Изменение: зафиксированы входной/выходной контракты (`positionState`, `lifecycleState`, `profitability`, `config`, `ownershipMetadata` -> `lifecycleActionIntent`, `lifecycleStateTransition`, `partialCloseIntent`, `breakevenIntent`, `trailingIntent`, `lifecycleReasonCodes`).

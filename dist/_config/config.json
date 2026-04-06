@@ -3252,6 +3252,68 @@
       }
     }
   },
+  "positionLifecycle": {
+    "enableAdvancedLifecycle": false,
+    "partialTakeProfitRules": {
+      "enabled": true,
+      "triggerProfitPercent": 1.1,
+      "closeShare": 0.45
+    },
+    "breakevenRules": {
+      "enabled": true,
+      "triggerProfitPercent": 1.25,
+      "offsetPercent": 0
+    },
+    "trailingRules": {
+      "enabled": true,
+      "triggerProfitPercent": 1.6,
+      "distancePercent": 0.65,
+      "requireBreakevenBeforeTrailing": true
+    },
+    "capitalRegimeLifecycleModifiers": {
+      "enabled": true,
+      "CAUTION": {
+        "breakevenTriggerMultiplier": 0.85
+      },
+      "DEFENSIVE": {
+        "partialTakeProfitTriggerMultiplier": 0.85,
+        "partialTakeProfitShareDelta": 0.1
+      },
+      "CAPITAL_PRESERVATION": {
+        "partialTakeProfitTriggerMultiplier": 0.8,
+        "partialTakeProfitShareDelta": 0.15,
+        "trailingDistanceMultiplier": 0.7,
+        "trailingTriggerMultiplier": 0.9
+      },
+      "HALT_NEW_ENTRIES": {
+        "preserveOpenLifecycle": true
+      }
+    },
+    "restrictedLifecycleRules": {
+      "allowPartialClose": true,
+      "allowBreakeven": false,
+      "allowTrailing": false
+    },
+    "forecastLifecycleModifiers": {
+      "enabled": true,
+      "hints": {
+        "earlyBreakevenHint": {
+          "enabled": true,
+          "breakevenTriggerMultiplier": 0.9
+        },
+        "reduceExposureHint": {
+          "enabled": true,
+          "partialTakeProfitTriggerMultiplier": 0.88,
+          "partialTakeProfitShareDelta": 0.1
+        },
+        "protectiveTighteningHint": {
+          "enabled": true,
+          "trailingDistanceMultiplier": 0.75,
+          "trailingTriggerMultiplier": 0.9
+        }
+      }
+    }
+  },
   "unloadMode": {
     "enabled": false,
     "safeEntryAssets": [
