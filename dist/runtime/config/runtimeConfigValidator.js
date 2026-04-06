@@ -123,6 +123,14 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const dynamicForecastExposureHints = dynamicForecastSizingHooks.exposureReductionHints || {};
   const dynamicMlHooks = dynamicPositionSizing.mlCompatibilityHooks || {};
   const dynamicMlHookLimits = dynamicMlHooks.phase2BoundedAdjustmentLimits || {};
+  const positionLifecycle = merged.positionLifecycle || {};
+  const lifecyclePartialTakeProfitRules = positionLifecycle.partialTakeProfitRules || positionLifecycle.partialClose || {};
+  const lifecycleBreakevenRules = positionLifecycle.breakevenRules || positionLifecycle.breakeven || {};
+  const lifecycleTrailingRules = positionLifecycle.trailingRules || positionLifecycle.trailing || {};
+  const lifecycleCapitalRegimeModifiers = positionLifecycle.capitalRegimeLifecycleModifiers || {};
+  const lifecycleRestrictedRules = positionLifecycle.restrictedLifecycleRules || {};
+  const lifecycleForecastModifiers = positionLifecycle.forecastLifecycleModifiers || {};
+  const lifecycleForecastHints = lifecycleForecastModifiers.hints || {};
 
   const normalized = {
     ...merged,
@@ -983,6 +991,59 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
         cautionRiskSignals: Array.isArray(capitalRegime.cautionRiskSignals) ? capitalRegime.cautionRiskSignals : [],
         defensiveRiskSignals: Array.isArray(capitalRegime.defensiveRiskSignals) ? capitalRegime.defensiveRiskSignals : [],
         haltRiskSignals: Array.isArray(capitalRegime.haltRiskSignals) ? capitalRegime.haltRiskSignals : [],
+      },
+    },
+    positionLifecycle: {
+      enableAdvancedLifecycle: positionLifecycle.enableAdvancedLifecycle === true || positionLifecycle.enabled === true,
+      partialTakeProfitRules: {
+        enabled: lifecyclePartialTakeProfitRules.enabled !== false,
+        triggerProfitPercent: Number(lifecyclePartialTakeProfitRules.triggerProfitPercent || 1),
+        closeShare: Number(lifecyclePartialTakeProfitRules.closeShare || 0.5),
+      },
+      breakevenRules: {
+        enabled: lifecycleBreakevenRules.enabled !== false,
+        triggerProfitPercent: Number(lifecycleBreakevenRules.triggerProfitPercent || 1.2),
+        offsetPercent: Number(lifecycleBreakevenRules.offsetPercent || 0),
+      },
+      trailingRules: {
+        enabled: lifecycleTrailingRules.enabled !== false,
+        triggerProfitPercent: Number(lifecycleTrailingRules.triggerProfitPercent || 1.5),
+        distancePercent: Number(lifecycleTrailingRules.distancePercent || 0.6),
+        requireBreakevenBeforeTrailing: lifecycleTrailingRules.requireBreakevenBeforeTrailing !== false,
+      },
+      capitalRegimeLifecycleModifiers: {
+        enabled: lifecycleCapitalRegimeModifiers.enabled !== false,
+        CAUTION: typeof lifecycleCapitalRegimeModifiers.CAUTION === 'object' && lifecycleCapitalRegimeModifiers.CAUTION
+          ? lifecycleCapitalRegimeModifiers.CAUTION
+          : {},
+        DEFENSIVE: typeof lifecycleCapitalRegimeModifiers.DEFENSIVE === 'object' && lifecycleCapitalRegimeModifiers.DEFENSIVE
+          ? lifecycleCapitalRegimeModifiers.DEFENSIVE
+          : {},
+        CAPITAL_PRESERVATION: typeof lifecycleCapitalRegimeModifiers.CAPITAL_PRESERVATION === 'object' && lifecycleCapitalRegimeModifiers.CAPITAL_PRESERVATION
+          ? lifecycleCapitalRegimeModifiers.CAPITAL_PRESERVATION
+          : {},
+        HALT_NEW_ENTRIES: typeof lifecycleCapitalRegimeModifiers.HALT_NEW_ENTRIES === 'object' && lifecycleCapitalRegimeModifiers.HALT_NEW_ENTRIES
+          ? lifecycleCapitalRegimeModifiers.HALT_NEW_ENTRIES
+          : {},
+      },
+      restrictedLifecycleRules: {
+        allowPartialClose: lifecycleRestrictedRules.allowPartialClose !== false,
+        allowBreakeven: lifecycleRestrictedRules.allowBreakeven !== false,
+        allowTrailing: lifecycleRestrictedRules.allowTrailing !== false,
+      },
+      forecastLifecycleModifiers: {
+        enabled: lifecycleForecastModifiers.enabled !== false,
+        hints: {
+          earlyBreakevenHint: typeof lifecycleForecastHints.earlyBreakevenHint === 'object' && lifecycleForecastHints.earlyBreakevenHint
+            ? lifecycleForecastHints.earlyBreakevenHint
+            : {},
+          reduceExposureHint: typeof lifecycleForecastHints.reduceExposureHint === 'object' && lifecycleForecastHints.reduceExposureHint
+            ? lifecycleForecastHints.reduceExposureHint
+            : {},
+          protectiveTighteningHint: typeof lifecycleForecastHints.protectiveTighteningHint === 'object' && lifecycleForecastHints.protectiveTighteningHint
+            ? lifecycleForecastHints.protectiveTighteningHint
+            : {},
+        },
       },
     },
   };
