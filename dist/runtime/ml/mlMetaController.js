@@ -38,9 +38,62 @@ const FORBIDDEN_PARAMETERS = [
   'directServerTpSlControl',
 ];
 
+function cloneBounds() {
+  return JSON.parse(JSON.stringify(ALLOWED_ADJUSTMENT_BOUNDS));
+}
+
+function sanitizeAllowedAdjustments(rawAllowed) {
+  if (!Array.isArray(rawAllowed) || rawAllowed.length === 0) return [...ALLOWED_PARAMETERS];
+  return Array.from(new Set(rawAllowed.filter((key) => ALLOWED_PARAMETERS.includes(String(key)))));
+}
+
+function sanitizeBoundsByAdjustmentType(rawBounds) {
+  const result = cloneBounds();
+  const input = rawBounds && typeof rawBounds === 'object' ? rawBounds : {};
+  Object.keys(input).forEach((key) => {
+    if (!Object.prototype.hasOwnProperty.call(result, key)) return;
+    if (key === 'regimePreferenceWeights') {
+      const nestedInput = input.regimePreferenceWeights && typeof input.regimePreferenceWeights === 'object'
+        ? input.regimePreferenceWeights
+        : {};
+      Object.keys(result.regimePreferenceWeights).forEach((nestedKey) => {
+        const bound = nestedInput[nestedKey];
+        if (!bound || typeof bound !== 'object') return;
+        const min = Number(bound.min);
+        const max = Number(bound.max);
+        if (Number.isFinite(min)) result.regimePreferenceWeights[nestedKey].min = min;
+        if (Number.isFinite(max)) result.regimePreferenceWeights[nestedKey].max = max;
+      });
+      return;
+    }
+    const bound = input[key];
+    if (!bound || typeof bound !== 'object') return;
+    const min = Number(bound.min);
+    const max = Number(bound.max);
+    if (Number.isFinite(min)) result[key].min = min;
+    if (Number.isFinite(max)) result[key].max = max;
+  });
+  return result;
+}
+
 function normalizeConfig(raw = {}) {
+  const enabled = raw.enableMlMetaController !== undefined
+    ? raw.enableMlMetaController !== false
+    : raw.enabled !== false;
+  const rawMode = String(raw.metaControllerMode || raw.mode || 'bounded_modifier').toLowerCase();
+  const metaControllerMode = ['bounded_modifier', 'manual_policy_fallback'].includes(rawMode)
+    ? rawMode
+    : 'bounded_modifier';
   return {
-    enabled: raw.enabled !== false,
+    enabled,
+    enableMlMetaController: enabled,
+    metaControllerMode,
+    allowedMetaAdjustments: sanitizeAllowedAdjustments(raw.allowedMetaAdjustments),
+    boundsByAdjustmentType: sanitizeBoundsByAdjustmentType(raw.boundsByAdjustmentType),
+    allowMetaFallbackWithoutModel: raw.allowMetaFallbackWithoutModel !== false,
+    metaControllerBudget: Number.isFinite(Number(raw.metaControllerBudget)) ? Number(raw.metaControllerBudget) : null,
+    exchangeAgnosticMode: raw.exchangeAgnosticMode !== false,
+    capabilityMatrixHandling: String(raw.capabilityMatrixHandling || 'downstream_only'),
     loggingEnabled: raw.loggingEnabled !== false,
     minInputQualityState: String(raw.minInputQualityState || 'cached'),
     strictOwnershipGuards: raw.strictOwnershipGuards !== false,
@@ -120,23 +173,24 @@ function createNoopAdjustmentSet() {
   };
 }
 
-function clampSuggestion(key, value, blockedReasons) {
-  if (!ALLOWED_PARAMETERS.includes(key)) {
+function clampSuggestion(key, value, blockedReasons, allowedParameters, boundsByAdjustmentType) {
+  if (!allowedParameters.includes(key)) {
     blockedReasons.push(`unknown_or_forbidden_parameter:${key}`);
     return undefined;
   }
 
   if (key === 'regimePreferenceWeights') {
     const inputWeights = value && typeof value === 'object' ? value : {};
+    const bounds = boundsByAdjustmentType.regimePreferenceWeights || ALLOWED_ADJUSTMENT_BOUNDS.regimePreferenceWeights;
     return {
-      trend: clamp(inputWeights.trend, ALLOWED_ADJUSTMENT_BOUNDS.regimePreferenceWeights.trend.min, ALLOWED_ADJUSTMENT_BOUNDS.regimePreferenceWeights.trend.max),
-      meanReversion: clamp(inputWeights.meanReversion, ALLOWED_ADJUSTMENT_BOUNDS.regimePreferenceWeights.meanReversion.min, ALLOWED_ADJUSTMENT_BOUNDS.regimePreferenceWeights.meanReversion.max),
-      breakoutRejection: clamp(inputWeights.breakoutRejection, ALLOWED_ADJUSTMENT_BOUNDS.regimePreferenceWeights.breakoutRejection.min, ALLOWED_ADJUSTMENT_BOUNDS.regimePreferenceWeights.breakoutRejection.max),
-      noTradeFlat: clamp(inputWeights.noTradeFlat, ALLOWED_ADJUSTMENT_BOUNDS.regimePreferenceWeights.noTradeFlat.min, ALLOWED_ADJUSTMENT_BOUNDS.regimePreferenceWeights.noTradeFlat.max),
+      trend: clamp(inputWeights.trend, bounds.trend.min, bounds.trend.max),
+      meanReversion: clamp(inputWeights.meanReversion, bounds.meanReversion.min, bounds.meanReversion.max),
+      breakoutRejection: clamp(inputWeights.breakoutRejection, bounds.breakoutRejection.min, bounds.breakoutRejection.max),
+      noTradeFlat: clamp(inputWeights.noTradeFlat, bounds.noTradeFlat.min, bounds.noTradeFlat.max),
     };
   }
 
-  const bound = ALLOWED_ADJUSTMENT_BOUNDS[key];
+  const bound = boundsByAdjustmentType[key] || { min: 0, max: 0 };
   const raw = Number(value);
   if (!Number.isFinite(raw)) return 0;
   return clamp(raw, bound.min, bound.max);
@@ -144,18 +198,19 @@ function clampSuggestion(key, value, blockedReasons) {
 
 function createFallbackOutput({
   normalizedInput,
+  config,
   fallbackState,
   contractIssues = [],
   blockedReasons = [],
 }) {
   return {
     metaAdjustmentSet: createNoopAdjustmentSet(),
-    allowedAdjustmentBounds: ALLOWED_ADJUSTMENT_BOUNDS,
+    allowedAdjustmentBounds: config.boundsByAdjustmentType,
     appliedAdjustmentReasons: ['ml_phase2_meta_controller_fallback_noop'],
     blockedAdjustmentReasons: Array.from(new Set(blockedReasons.concat(contractIssues))),
     metaControllerDataQualityState: normalizedInput.runtimeDataQualityState,
     metaControllerFallbackState: fallbackState,
-    allowedParameters: ALLOWED_PARAMETERS,
+    allowedParameters: config.allowedMetaAdjustments,
     forbiddenParameters: FORBIDDEN_PARAMETERS,
     ownershipGuards: {
       ownershipPathChanged: false,
@@ -175,6 +230,15 @@ function createFallbackOutput({
       },
       inputContractVersion: 'ml_phase2_meta_controller_input.v1',
       outputContractVersion: 'ml_phase2_meta_controller_output.v1',
+      auditTrail: {
+        sourceLayer: 'mlMetaController',
+        integrationStage: 'step39c_production_like',
+        mode: config.metaControllerMode,
+        fallbackState,
+        exchangeAgnosticMode: config.exchangeAgnosticMode,
+        capabilityMatrixHandling: config.capabilityMatrixHandling,
+        metaControllerBudget: config.metaControllerBudget,
+      },
     },
   };
 }
@@ -204,55 +268,67 @@ function createMlMetaController(rawConfig = {}, dependencies = {}) {
     if (!config.enabled) {
       const output = createFallbackOutput({
         normalizedInput,
+        config,
         fallbackState: 'disabled',
         contractIssues: contractState.contractIssues,
         blockedReasons,
       });
-      log(`[mlMetaController] cycle=${cycleId} ticker=${ticker} fallback=disabled quality=${normalizedInput.runtimeDataQualityState} blocked=${output.blockedAdjustmentReasons.join('|') || 'none'}`);
+      log(`[mlMetaController] cycle=${cycleId} ticker=${ticker} fallback=disabled mode=${config.metaControllerMode} quality=${normalizedInput.runtimeDataQualityState} blocked=${output.blockedAdjustmentReasons.join('|') || 'none'}`);
       return output;
     }
 
     if (!modelAvailable) {
+      const fallbackState = config.allowMetaFallbackWithoutModel ? 'model_unavailable' : 'model_unavailable_blocking';
       const output = createFallbackOutput({
         normalizedInput,
-        fallbackState: 'model_unavailable',
+        config,
+        fallbackState,
         contractIssues: contractState.contractIssues,
         blockedReasons,
       });
-      log(`[mlMetaController] cycle=${cycleId} ticker=${ticker} fallback=model_unavailable quality=${normalizedInput.runtimeDataQualityState} blocked=${output.blockedAdjustmentReasons.join('|') || 'none'}`);
+      log(`[mlMetaController] cycle=${cycleId} ticker=${ticker} fallback=${fallbackState} mode=${config.metaControllerMode} quality=${normalizedInput.runtimeDataQualityState} blocked=${output.blockedAdjustmentReasons.join('|') || 'none'}`);
       return output;
     }
 
     if (!contractState.valid) {
       const output = createFallbackOutput({
         normalizedInput,
+        config,
         fallbackState: 'input_quality_insufficient',
         contractIssues: contractState.contractIssues,
         blockedReasons,
       });
-      log(`[mlMetaController] cycle=${cycleId} ticker=${ticker} fallback=input_quality_insufficient quality=${normalizedInput.runtimeDataQualityState} blocked=${output.blockedAdjustmentReasons.join('|') || 'none'}`);
+      log(`[mlMetaController] cycle=${cycleId} ticker=${ticker} fallback=input_quality_insufficient mode=${config.metaControllerMode} quality=${normalizedInput.runtimeDataQualityState} blocked=${output.blockedAdjustmentReasons.join('|') || 'none'}`);
       return output;
     }
 
     const metaAdjustmentSet = createNoopAdjustmentSet();
     const appliedReasons = ['ml_phase2_meta_controller_bounded_adjustments'];
 
-    ALLOWED_PARAMETERS.forEach((key) => {
+    config.allowedMetaAdjustments.forEach((key) => {
       if (!Object.prototype.hasOwnProperty.call(normalizedInput.metaSuggestions, key)) return;
-      const boundedValue = clampSuggestion(key, normalizedInput.metaSuggestions[key], blockedReasons);
+      log(`[mlMetaController:event] event=metaAdjustmentRequested cycle=${cycleId} ticker=${ticker} adjustment=${key} affectedLayer=bounded_modifier requested=${JSON.stringify(normalizedInput.metaSuggestions[key])}`);
+      const boundedValue = clampSuggestion(
+        key,
+        normalizedInput.metaSuggestions[key],
+        blockedReasons,
+        config.allowedMetaAdjustments,
+        config.boundsByAdjustmentType,
+      );
       if (typeof boundedValue === 'undefined') return;
       metaAdjustmentSet[key] = boundedValue;
       appliedReasons.push(`applied:${key}`);
+      log(`[mlMetaController:event] event=metaAdjustmentApplied cycle=${cycleId} ticker=${ticker} adjustment=${key} appliedBounds=${JSON.stringify(config.boundsByAdjustmentType[key] || null)} mode=${config.metaControllerMode}`);
     });
 
     const output = {
       metaAdjustmentSet,
-      allowedAdjustmentBounds: ALLOWED_ADJUSTMENT_BOUNDS,
+      allowedAdjustmentBounds: config.boundsByAdjustmentType,
       appliedAdjustmentReasons: Array.from(new Set(appliedReasons)),
       blockedAdjustmentReasons: Array.from(new Set(blockedReasons)),
       metaControllerDataQualityState: normalizedInput.runtimeDataQualityState,
       metaControllerFallbackState: 'none',
-      allowedParameters: ALLOWED_PARAMETERS,
+      allowedParameters: config.allowedMetaAdjustments,
       forbiddenParameters: FORBIDDEN_PARAMETERS,
       ownershipGuards: {
         ownershipPathChanged: false,
@@ -272,10 +348,19 @@ function createMlMetaController(rawConfig = {}, dependencies = {}) {
         },
         inputContractVersion: 'ml_phase2_meta_controller_input.v1',
         outputContractVersion: 'ml_phase2_meta_controller_output.v1',
+        auditTrail: {
+          sourceLayer: 'mlMetaController',
+          integrationStage: 'step39c_production_like',
+          mode: config.metaControllerMode,
+          fallbackState: 'none',
+          exchangeAgnosticMode: config.exchangeAgnosticMode,
+          capabilityMatrixHandling: config.capabilityMatrixHandling,
+          metaControllerBudget: config.metaControllerBudget,
+        },
       },
     };
 
-    log(`[mlMetaController] cycle=${cycleId} ticker=${ticker} fallback=none quality=${normalizedInput.runtimeDataQualityState} applied=${output.appliedAdjustmentReasons.join('|')} blocked=${output.blockedAdjustmentReasons.join('|') || 'none'}`);
+    log(`[mlMetaController] cycle=${cycleId} ticker=${ticker} fallback=none mode=${config.metaControllerMode} quality=${normalizedInput.runtimeDataQualityState} applied=${output.appliedAdjustmentReasons.join('|')} blocked=${output.blockedAdjustmentReasons.join('|') || 'none'} exchangeAgnostic=${config.exchangeAgnosticMode ? 'yes' : 'no'} capabilityMatrix=${config.capabilityMatrixHandling}`);
 
     return output;
   }

@@ -58,7 +58,11 @@ function createValidInput(overrides = {}) {
 }
 
 test('mlMetaController: корректный входной контракт и выходной контракт', () => {
-  const controller = createMlMetaController({ enabled: true });
+  const controller = createMlMetaController({
+    enableMlMetaController: true,
+    metaControllerMode: 'bounded_modifier',
+    metaControllerBudget: 9,
+  });
   const output = controller.evaluate(createValidInput());
 
   assert.equal(output.metaControllerFallbackState, 'none');
@@ -67,6 +71,8 @@ test('mlMetaController: корректный входной контракт и 
   assert.ok(Array.isArray(output.appliedAdjustmentReasons));
   assert.ok(Array.isArray(output.blockedAdjustmentReasons));
   assert.equal(output.metaControllerDataQualityState, 'ok');
+  assert.equal(output.telemetry.auditTrail.mode, 'bounded_modifier');
+  assert.equal(output.telemetry.auditTrail.metaControllerBudget, 9);
 });
 
 test('mlMetaController: allowed vs forbidden parameters фиксируются явно', () => {
@@ -120,10 +126,10 @@ test('mlMetaController: safe fallback срабатывает при disabled', (
 });
 
 test('mlMetaController: safe fallback срабатывает при недоступной модели', () => {
-  const controller = createMlMetaController({ enabled: true });
+  const controller = createMlMetaController({ enableMlMetaController: true, allowMetaFallbackWithoutModel: false });
   const output = controller.evaluate(createValidInput({ modelState: { available: false } }));
 
-  assert.equal(output.metaControllerFallbackState, 'model_unavailable');
+  assert.equal(output.metaControllerFallbackState, 'model_unavailable_blocking');
   assert.equal(output.metaAdjustmentSet.sizingAggressivenessModifier, 0);
 });
 
@@ -155,4 +161,26 @@ test('mlMetaController: отсутствие ownership takeover закрепле
   assert.equal(output.ownershipGuards.isLifecycleOwner, false);
   assert.equal(output.telemetry.featureComputation.recomputedHeavyFeatures, false);
   assert.equal(output.telemetry.featureComputation.recomputedMarketData, false);
+});
+
+test('mlMetaController: config branch allowedMetaAdjustments и boundsByAdjustmentType применяются', () => {
+  const controller = createMlMetaController({
+    enableMlMetaController: true,
+    allowedMetaAdjustments: ['entryThresholdModifier'],
+    boundsByAdjustmentType: {
+      entryThresholdModifier: { min: -0.01, max: 0.01 },
+    },
+  });
+
+  const output = controller.evaluate(createValidInput({
+    metaSuggestions: {
+      entryThresholdModifier: 0.08,
+      sizingAggressivenessModifier: 0.1,
+    },
+  }));
+
+  assert.equal(output.allowedParameters.length, 1);
+  assert.equal(output.allowedParameters[0], 'entryThresholdModifier');
+  assert.equal(output.metaAdjustmentSet.entryThresholdModifier, 0.01);
+  assert.equal(output.metaAdjustmentSet.sizingAggressivenessModifier, 0);
 });

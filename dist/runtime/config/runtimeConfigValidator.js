@@ -24,6 +24,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const confluenceEntryEngine = merged.confluenceEntryEngine || {};
   const finalEntryDecisionEngine = merged.finalEntryDecisionEngine || {};
   const dynamicPositionSizing = merged.dynamicPositionSizing || {};
+  const mlMetaController = merged.mlMetaController || merged.mlPhase2MetaController || {};
 
   const observabilityReporting = merged.observabilityReporting || {};
   const observabilitySampling = observabilityReporting.sampling || {};
@@ -123,6 +124,8 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const dynamicForecastExposureHints = dynamicForecastSizingHooks.exposureReductionHints || {};
   const dynamicMlHooks = dynamicPositionSizing.mlCompatibilityHooks || {};
   const dynamicMlHookLimits = dynamicMlHooks.phase2BoundedAdjustmentLimits || {};
+  const metaBoundsByAdjustmentType = mlMetaController.boundsByAdjustmentType || {};
+  const metaRegimeBounds = metaBoundsByAdjustmentType.regimePreferenceWeights || {};
   const positionLifecycle = merged.positionLifecycle || {};
   const lifecyclePartialTakeProfitRules = positionLifecycle.partialTakeProfitRules || positionLifecycle.partialClose || {};
   const lifecycleBreakevenRules = positionLifecycle.breakevenRules || positionLifecycle.breakeven || {};
@@ -768,6 +771,68 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
       mlInferenceBudget: Number.isFinite(Number(mlPhase1Integration.mlInferenceBudget))
         ? Number(mlPhase1Integration.mlInferenceBudget)
         : null,
+    },
+    mlMetaController: {
+      enableMlMetaController: mlMetaController.enableMlMetaController !== false && mlMetaController.enabled !== false,
+      metaControllerMode: ['bounded_modifier', 'manual_policy_fallback'].includes(mlMetaController.metaControllerMode)
+        ? mlMetaController.metaControllerMode
+        : 'bounded_modifier',
+      allowedMetaAdjustments: Array.isArray(mlMetaController.allowedMetaAdjustments)
+        ? mlMetaController.allowedMetaAdjustments
+        : [
+          'entryThresholdModifier',
+          'weakEntryBoundaryModifier',
+          'fullEntryBoundaryModifier',
+          'shortlistRankingModifier',
+          'sizingAggressivenessModifier',
+          'regimePreferenceWeights',
+        ],
+      boundsByAdjustmentType: {
+        entryThresholdModifier: {
+          min: Number((metaBoundsByAdjustmentType.entryThresholdModifier || {}).min ?? -0.05),
+          max: Number((metaBoundsByAdjustmentType.entryThresholdModifier || {}).max ?? 0.05),
+        },
+        weakEntryBoundaryModifier: {
+          min: Number((metaBoundsByAdjustmentType.weakEntryBoundaryModifier || {}).min ?? -0.05),
+          max: Number((metaBoundsByAdjustmentType.weakEntryBoundaryModifier || {}).max ?? 0.05),
+        },
+        fullEntryBoundaryModifier: {
+          min: Number((metaBoundsByAdjustmentType.fullEntryBoundaryModifier || {}).min ?? -0.05),
+          max: Number((metaBoundsByAdjustmentType.fullEntryBoundaryModifier || {}).max ?? 0.05),
+        },
+        shortlistRankingModifier: {
+          min: Number((metaBoundsByAdjustmentType.shortlistRankingModifier || {}).min ?? -0.15),
+          max: Number((metaBoundsByAdjustmentType.shortlistRankingModifier || {}).max ?? 0.15),
+        },
+        sizingAggressivenessModifier: {
+          min: Number((metaBoundsByAdjustmentType.sizingAggressivenessModifier || {}).min ?? -0.15),
+          max: Number((metaBoundsByAdjustmentType.sizingAggressivenessModifier || {}).max ?? 0.15),
+        },
+        regimePreferenceWeights: {
+          trend: {
+            min: Number((metaRegimeBounds.trend || {}).min ?? -0.2),
+            max: Number((metaRegimeBounds.trend || {}).max ?? 0.2),
+          },
+          meanReversion: {
+            min: Number((metaRegimeBounds.meanReversion || {}).min ?? -0.2),
+            max: Number((metaRegimeBounds.meanReversion || {}).max ?? 0.2),
+          },
+          breakoutRejection: {
+            min: Number((metaRegimeBounds.breakoutRejection || {}).min ?? -0.2),
+            max: Number((metaRegimeBounds.breakoutRejection || {}).max ?? 0.2),
+          },
+          noTradeFlat: {
+            min: Number((metaRegimeBounds.noTradeFlat || {}).min ?? -0.2),
+            max: Number((metaRegimeBounds.noTradeFlat || {}).max ?? 0.2),
+          },
+        },
+      },
+      allowMetaFallbackWithoutModel: mlMetaController.allowMetaFallbackWithoutModel !== false,
+      metaControllerBudget: Number.isFinite(Number(mlMetaController.metaControllerBudget))
+        ? Number(mlMetaController.metaControllerBudget)
+        : null,
+      exchangeAgnosticMode: mlMetaController.exchangeAgnosticMode !== false,
+      capabilityMatrixHandling: String(mlMetaController.capabilityMatrixHandling || 'downstream_only'),
     },
     tradeAnalytics: {
       enabled: tradeAnalytics.enabled !== false,

@@ -1,3 +1,12 @@
+## 2026-04-06 (ML phase 2: production-like integration package, шаг 39 подэтап 3 / 39C)
+- Изменение: расширен runtime config-контракт `mlMetaController` полями `enableMlMetaController`, `metaControllerMode`, `allowedMetaAdjustments`, `boundsByAdjustmentType`, `allowMetaFallbackWithoutModel`, `metaControllerBudget`, `exchangeAgnosticMode`, `capabilityMatrixHandling`.
+- Изменение: добавлены/уточнены structured meta events (`metaAdjustmentRequested/metaAdjustmentApplied/metaAdjustmentBlocked`) c обязательными полями `affectedLayer/appliedBounds/blockedReason/capitalRegimeImpact/forecastImpact/metaFallbackState` в final-entry, confluence и sizing runtime outputs.
+- Изменение: meta outputs встроены в существующие analytics/audit payloads (без параллельной schema) через `metaRuntimeInfluence` и downstream telemetry contexts.
+- Изменение: обновлена пользовательская документация по роли ML phase 2, allowed/forbidden adjustments, bounds, связи с rule-based stack/capitalRegime/forecast/ML phase 1 и контракту ownership.
+- Изменение: зафиксирована future compatibility для шага 40: meta-controller остаётся exchange-agnostic, exchange-specific различия остаются downstream через capability matrix.
+- Изменение: добавлены regression/contract тесты на config branches, полноту logging/audit полей, сохранение bounds, no-ownership-takeover, exchange-agnostic contract и anti-recompute semantics.
+- Связанные файлы кода: `dist/runtime/ml/mlMetaController.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/runtime/engines/finalEntryDecisionEngine.js`, `dist/runtime/engines/confluenceEntryEngine.js`, `dist/runtime/sizing/dynamicPositionSizing.js`, `dist/_config/config.json`, `tests/regression/ml-meta-controller-contract.test.js`, `tests/regression/ml-phase2-runtime-bounded-modifier.test.js`, `tests/regression/ml-phase2-step39c-integration.test.js`, `docs/user/ML_PHASE2_META_CONTROLLER_CONTRACT_RU.md`.
+
 ## 2026-04-06 (ML phase 2: каркас meta-controller, шаг 39 подэтап 1)
 - Изменение: добавлен отдельный модуль `mlMetaController` как bounded modifier layer без takeover ownership-path; слой принимает общий runtime-контекст и уже готовые outputs rule-based/ML phase 1, не пересчитывая market data/heavy features.
 - Изменение: зафиксированы входной/выходной контракты `ml_phase2_meta_controller_input.v1` и `ml_phase2_meta_controller_output.v1`, включая `metaAdjustmentSet`, bounds, reasons, data quality и fallback states.

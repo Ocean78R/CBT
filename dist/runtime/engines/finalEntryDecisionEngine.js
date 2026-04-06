@@ -314,6 +314,9 @@ function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
       affectedLayer: request.affectedLayer,
       ownerLayer: request.ownerLayer,
       requestedValue,
+      metaFallbackState: metaRuntime.output.metaControllerFallbackState || 'none',
+      capitalRegimeImpact: blockedByCapitalRegime ? 'blocked' : 'none',
+      forecastImpact: blockedByForecast ? 'blocked' : 'none',
     });
     const bounds = metaRuntime.bounds[request.key] || { min: 0, max: 0 };
     const outOfBounds = isOutOfBounds(metaRuntime.rawSuggestions, request.key, bounds);
@@ -331,7 +334,11 @@ function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
         ownerLayer: request.ownerLayer,
         requestedValue,
         appliedBounds: bounds,
+        blockedReason: blockedReasons[0],
         blockedReasons,
+        metaFallbackState: metaRuntime.output.metaControllerFallbackState || 'none',
+        capitalRegimeImpact: blockedByCapitalRegime ? 'blocked' : 'none',
+        forecastImpact: blockedByForecast ? 'blocked' : 'none',
       });
       return;
     }
@@ -346,6 +353,10 @@ function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
       ownerLayer: request.ownerLayer,
       appliedValue: requestedValue,
       appliedBounds: bounds,
+      blockedReason: null,
+      metaFallbackState: metaRuntime.output.metaControllerFallbackState || 'none',
+      capitalRegimeImpact: blockedByCapitalRegime ? 'blocked' : 'none',
+      forecastImpact: blockedByForecast ? 'blocked' : 'none',
     });
   });
   const unmetMinimumBlocks = config.minimumRequiredBlocks.filter((name) => !componentScores[name]);
@@ -506,6 +517,7 @@ function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
       metaRuntimeInfluence: {
         enabled: metaEvents.length > 0,
         reasonCodes: Array.from(new Set(metaReasonCodes)),
+        metaFallbackState: metaRuntime.output.metaControllerFallbackState || 'none',
         events: metaEvents,
       },
     },
@@ -550,10 +562,19 @@ function toFinalEntryDecisionEvent({ context = {}, decision = {} } = {}) {
       capitalRegimeImpact: decision.capitalRegimeImpact || {},
       forecastHook: decision.forecastHook || {},
       mlHook: decision.mlHook || {},
+      metaRuntimeInfluence: ((decision.explanation || {}).metaRuntimeInfluence) || {},
       dataQualityState: decision.dataQualityState || 'unknown',
       reasonCodes: decision.explanation && Array.isArray(decision.explanation.reasonCodes)
         ? decision.explanation.reasonCodes
         : [],
+      telemetry: {
+        downstreamContext: {
+          finalEntryDecision: {
+            metaRuntimeInfluence: ((decision.explanation || {}).metaRuntimeInfluence) || {},
+            capitalRegimeImpact: decision.capitalRegimeImpact || {},
+          },
+        },
+      },
     },
   };
 }

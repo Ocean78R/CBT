@@ -1,63 +1,43 @@
-# ML phase 2 meta-controller: контракт каркаса (шаг 39, подэтап 1)
+# ML phase 2 meta-controller: production-like интеграция (шаг 39, подэтапы 39A/39B/39C)
 
-## 1) Назначение
-`mlMetaController` — это **только bounded modifier layer** для ML phase 2.
+## 1) Роль слоя в архитектуре
+`mlMetaController` остаётся **bounded modifier layer** для ML phase 2.
 
 Он:
-- получает уже готовый runtime-контекст,
-- читает готовые outputs rule-based/ML phase 1 слоёв,
-- возвращает только ограниченные (`bounded`) adjustment-подсказки.
+- читает уже вычисленные upstream/downstream outputs;
+- выдаёт только ограниченные (`bounded`) modifiers;
+- не владеет final decision, sizing, execution и lifecycle.
 
-Он **не**:
-- пересчитывает market data/heavy features,
-- не подменяет `finalEntryDecisionEngine`, dynamic sizing owner, execution/lifecycle owners,
-- не обходит hard-risk, unload mode, safeEntryAssets restrictions, portfolio risk contour, hard veto, capitalRegime и forecast restrictions.
+Критично:
+- `finalEntryDecisionEngine` остаётся **final decision owner**;
+- `dynamicPositionSizing` остаётся **sizing owner**;
+- hard-risk, `capitalRegime` и forecast restrictions остаются **выше meta-controller**;
+- ownership execution/lifecycle не передаётся в ML phase 2.
 
-## 2) Входной контракт (`ml_phase2_meta_controller_input.v1`)
-Минимально ожидаемые поля:
-- `decisionContext` — текущий общий DecisionContext;
-- `sharedRuntimeBlockOutputs` — уже вычисленные outputs общих блоков;
-- `finalEntryDecisionOutput` — результат `finalEntryDecisionEngine`;
-- `dynamicPositionSizingOutput` **или** `sizingBaselineMetadata`;
-- `mlPhase1Output` (если доступен);
-- `balanceState` и/или `capitalRegime`;
-- `forecastState` (если доступен);
-- `runtimeDataQualityState`.
+## 2) Config-контракт (39C)
+Минимальные поля production-like конфигурации:
 
-Дополнительно для каркаса:
-- `modelState.available`;
-- `metaSuggestions` — кандидаты bounded-коррекций.
+- `enableMlMetaController` — включение слоя;
+- `metaControllerMode` — режим (`bounded_modifier` / `manual_policy_fallback`);
+- `allowedMetaAdjustments` — whitelist разрешённых bounded-полей;
+- `boundsByAdjustmentType` — жёсткие границы по каждому типу корректировки;
+- `allowMetaFallbackWithoutModel` — разрешать ли noop-fallback при недоступной модели;
+- `metaControllerBudget` — soft budget для будущего runtime-governor контроля;
+- `exchangeAgnosticMode=true`;
+- `capabilityMatrixHandling='downstream_only'`.
 
-## 3) Выходной контракт (`ml_phase2_meta_controller_output.v1`)
-`mlMetaController.evaluate(...)` возвращает:
-- `metaAdjustmentSet`;
-- `allowedAdjustmentBounds`;
-- `appliedAdjustmentReasons`;
-- `blockedAdjustmentReasons`;
-- `metaControllerDataQualityState`;
-- `metaControllerFallbackState`;
-- `allowedParameters` / `forbiddenParameters`;
-- `ownershipGuards`;
-- `telemetry.featureComputation.recomputedMarketData=false` и `recomputedHeavyFeatures=false`.
+Эти поля нормализуются в `runtimeConfigValidator` и доступны без изменения ownership-path.
 
-## 4) Разрешённые параметры (allowed) и жёсткие bounds
-Разрешены только следующие bounded-параметры:
+## 3) Allowed vs forbidden adjustments
+Разрешённые типы корректировок (bounded):
+- `entryThresholdModifier`
+- `weakEntryBoundaryModifier`
+- `fullEntryBoundaryModifier`
+- `shortlistRankingModifier`
+- `sizingAggressivenessModifier`
+- `regimePreferenceWeights`
 
-1. `entryThresholdModifier`: `[-0.05, +0.05]`
-2. `weakEntryBoundaryModifier`: `[-0.05, +0.05]`
-3. `fullEntryBoundaryModifier`: `[-0.05, +0.05]`
-4. `shortlistRankingModifier`: `[-0.15, +0.15]`
-5. `sizingAggressivenessModifier`: `[-0.15, +0.15]`
-6. `regimePreferenceWeights` (по каждому режиму отдельно): `[-0.2, +0.2]`
-   - `trend`
-   - `meanReversion`
-   - `breakoutRejection`
-   - `noTradeFlat`
-
-Все значения жёстко clamp-ятся в bounds.
-
-## 5) Запрещённые параметры (forbidden)
-Запрещены прямые override/ownership-поля:
+Запрещённые (игнорируются + попадают в block reasons):
 - `directHardRiskOverride`
 - `directCapitalRegimeOverride`
 - `directForecastRestrictionOverride`
@@ -65,26 +45,48 @@
 - `directLifecycleOwnership`
 - `directServerTpSlControl`
 
-Если такие поля встречаются во входе, они попадают в `blockedAdjustmentReasons` и игнорируются.
+## 4) Structured logging и runtime semantics
+Для интеграции 39C фиксируются события:
+- `metaAdjustmentRequested`
+- `metaAdjustmentApplied`
+- `metaAdjustmentBlocked`
 
-## 6) Safe fallback
-Каркас возвращает noop-adjustments при:
-- `disabled` (выключен config),
-- `model_unavailable` (нет model state),
-- `input_quality_insufficient` (контракт/качество входа не проходит минимум).
+Минимальные поля событий:
+- `affectedLayer`
+- `appliedBounds`
+- `blockedReason` (+ `blockedReasons`)
+- `capitalRegimeImpact`
+- `forecastImpact`
+- `metaFallbackState`
 
-Во fallback:
-- `metaAdjustmentSet` = нулевые корректировки,
-- ownership guards остаются жёстко запретительными,
-- hard constraints остаются выше meta-controller.
+События передаются в существующие `metaRuntimeInfluence` структуры у:
+- `finalEntryDecisionEngine`
+- `confluenceEntryEngine`
+- `dynamicPositionSizing`
 
-## 7) Ownership path гарантии
-Контракт явно фиксирует:
-- `ownershipPathChanged=false`,
-- `canBecomeDecisionOwner=false`,
-- `canBypassHardConstraints=false`,
-- `isSizingOwner=false`,
-- `isExecutionOwner=false`,
-- `isLifecycleOwner=false`.
+без создания параллельной schema.
 
-Это сохраняет существующую архитектуру шагов 1–38 без takeover со стороны ML phase 2.
+## 5) Analytics / audit trail
+Meta-controller output встраивается в уже существующие payload-контракты:
+- в `final_entry_decision.payload.telemetry.downstreamContext.finalEntryDecision`;
+- в `dynamic_position_sizing.metaRuntimeInfluence`;
+- в `confluence_entry_decision.payload.telemetry.downstreamContext.confluenceEntry.metaRuntimeInfluence`.
+
+Это сохраняет совместимость с текущим observability/audit контуром.
+
+## 6) Связь с rule-based stack, capitalRegime и forecast
+- Rule-based stack остаётся primary owner-path.
+- `capitalRegime` может блокировать meta-adjustments, но не наоборот.
+- Forecast hard restrictions могут блокировать meta-adjustments, но не наоборот.
+- ML phase 1 и ML phase 2 работают как modifiers/hints, без передачи final veto ownership.
+
+## 7) Future compatibility для шага 40
+Meta-controller подготовлен к step 40 следующим контрактом:
+- exchange-agnostic логика остаётся внутри meta-controller;
+- различия бирж учитываются downstream через capability matrix;
+- `capabilityMatrixHandling='downstream_only'` фиксирует, что exchange-specific ограничения не зашиваются в meta-controller.
+
+## 8) Ограничения текущего шага 39C
+- `metaControllerBudget` пока soft-ограничение (без жёсткого runtime-throttling);
+- слой работает только с уже доступными `metaSuggestions` (без обучения/инференса внутри);
+- расширение capability matrix выполнится на шаге 40, а не внутри 39C.
