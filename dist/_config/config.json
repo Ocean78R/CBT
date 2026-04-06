@@ -486,6 +486,19 @@
             "HALT_NEW_ENTRIES": 1.35
           }
         }
+      },
+      "activeExchange": "binance",
+      "exchangeCapabilitiesSource": "matrix_step40a",
+      "enableExchangeCapabilityChecks": true,
+      "safeUnsupportedFeatureMode": "fallback",
+      "exchangeRestrictionPolicy": "enforce",
+      "exchangeLayer": {
+        "activeExchange": "binance",
+        "exchangeCapabilitiesSource": "matrix_step40a",
+        "enableExchangeCapabilityChecks": true,
+        "safeUnsupportedFeatureMode": "fallback",
+        "exchangeRestrictionPolicy": "enforce",
+        "bingxBaselineReference": true
       }
     },
     "bitget": {
@@ -841,6 +854,19 @@
             "HALT_NEW_ENTRIES": 1.35
           }
         }
+      },
+      "activeExchange": "bitget",
+      "exchangeCapabilitiesSource": "matrix_step40a",
+      "enableExchangeCapabilityChecks": true,
+      "safeUnsupportedFeatureMode": "fallback",
+      "exchangeRestrictionPolicy": "enforce",
+      "exchangeLayer": {
+        "activeExchange": "bitget",
+        "exchangeCapabilitiesSource": "matrix_step40a",
+        "enableExchangeCapabilityChecks": true,
+        "safeUnsupportedFeatureMode": "fallback",
+        "exchangeRestrictionPolicy": "enforce",
+        "bingxBaselineReference": true
       }
     },
     "bingx": {
@@ -1531,6 +1557,19 @@
             "HALT_NEW_ENTRIES": 1.35
           }
         }
+      },
+      "activeExchange": "bingx",
+      "exchangeCapabilitiesSource": "matrix_step40a",
+      "enableExchangeCapabilityChecks": true,
+      "safeUnsupportedFeatureMode": "fallback",
+      "exchangeRestrictionPolicy": "enforce",
+      "exchangeLayer": {
+        "activeExchange": "bingx",
+        "exchangeCapabilitiesSource": "matrix_step40a",
+        "enableExchangeCapabilityChecks": true,
+        "safeUnsupportedFeatureMode": "fallback",
+        "exchangeRestrictionPolicy": "enforce",
+        "bingxBaselineReference": true
       }
     },
     "htx": {
@@ -1885,6 +1924,19 @@
             "HALT_NEW_ENTRIES": 1.35
           }
         }
+      },
+      "activeExchange": "htx",
+      "exchangeCapabilitiesSource": "matrix_step40a",
+      "enableExchangeCapabilityChecks": true,
+      "safeUnsupportedFeatureMode": "fallback",
+      "exchangeRestrictionPolicy": "enforce",
+      "exchangeLayer": {
+        "activeExchange": "htx",
+        "exchangeCapabilitiesSource": "matrix_step40a",
+        "enableExchangeCapabilityChecks": true,
+        "safeUnsupportedFeatureMode": "fallback",
+        "exchangeRestrictionPolicy": "enforce",
+        "bingxBaselineReference": true
       }
     },
     "okex": {
@@ -2240,6 +2292,19 @@
             "HALT_NEW_ENTRIES": 1.35
           }
         }
+      },
+      "activeExchange": "okex",
+      "exchangeCapabilitiesSource": "matrix_step40a",
+      "enableExchangeCapabilityChecks": true,
+      "safeUnsupportedFeatureMode": "fallback",
+      "exchangeRestrictionPolicy": "enforce",
+      "exchangeLayer": {
+        "activeExchange": "okex",
+        "exchangeCapabilitiesSource": "matrix_step40a",
+        "enableExchangeCapabilityChecks": true,
+        "safeUnsupportedFeatureMode": "fallback",
+        "exchangeRestrictionPolicy": "enforce",
+        "bingxBaselineReference": true
       }
     },
     "bybit": {
@@ -2594,6 +2659,19 @@
             "HALT_NEW_ENTRIES": 1.35
           }
         }
+      },
+      "activeExchange": "bybit",
+      "exchangeCapabilitiesSource": "matrix_step40a",
+      "enableExchangeCapabilityChecks": true,
+      "safeUnsupportedFeatureMode": "fallback",
+      "exchangeRestrictionPolicy": "enforce",
+      "exchangeLayer": {
+        "activeExchange": "bybit",
+        "exchangeCapabilitiesSource": "matrix_step40a",
+        "enableExchangeCapabilityChecks": true,
+        "safeUnsupportedFeatureMode": "fallback",
+        "exchangeRestrictionPolicy": "enforce",
+        "bingxBaselineReference": true
       }
     },
     "mexc": {
@@ -2959,6 +3037,19 @@
             "HALT_NEW_ENTRIES": 1.35
           }
         }
+      },
+      "activeExchange": "mexc",
+      "exchangeCapabilitiesSource": "matrix_step40a",
+      "enableExchangeCapabilityChecks": true,
+      "safeUnsupportedFeatureMode": "fallback",
+      "exchangeRestrictionPolicy": "enforce",
+      "exchangeLayer": {
+        "activeExchange": "mexc",
+        "exchangeCapabilitiesSource": "matrix_step40a",
+        "enableExchangeCapabilityChecks": true,
+        "safeUnsupportedFeatureMode": "fallback",
+        "exchangeRestrictionPolicy": "enforce",
+        "bingxBaselineReference": true
       }
     }
   },

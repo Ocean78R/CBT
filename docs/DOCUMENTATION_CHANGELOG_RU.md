@@ -1,3 +1,11 @@
+## 2026-04-06 (safe runtime/config integration для exchange capability matrix, шаг 40 / подэтап 2)
+- Изменение: добавлен runtime/config integration слой `exchangeRuntimeIntegration` для безопасного связывания capability matrix с execution/protective/lifecycle/reconciliation контекстами без смены ownership-path.
+- Изменение: введены и нормализуются config semantics `activeExchange`, `exchangeCapabilitiesSource`, `enableExchangeCapabilityChecks`, `safeUnsupportedFeatureMode`, `exchangeRestrictionPolicy` (включая backward-compatible alias через `exchangeLayer`).
+- Изменение: реализована явная safe-обработка unsupported/partial capabilities (`fallback | disable | block`) + structured events (`activeExchange`, `capabilityCheckPassed`, `capabilityCheckFailed`, `unsupportedFeatureFallbackUsed`, `exchangeRestrictionApplied`) без silent degradation.
+- Изменение: добавлены regression/contract тесты на BingX baseline unchanged, fallback-ветку unsupported feature, propagation ветку exchange restrictions, no-ownership-takeover и config/runtime consistency.
+- Изменение: обновлена пользовательская документация по новым exchangeLayer-полям и runtime wiring semantics подэтапа 2.
+- Связанные файлы кода: `dist/runtime/exchange/exchangeRuntimeIntegration.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/exchange-runtime-integration.test.js`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/EXCHANGE_CAPABILITY_MATRIX_CONTRACT_RU.md`.
+
 ## 2026-04-06 (multi-exchange capability matrix + unified abstraction contract, шаг 40 / подэтап 1)
 - Изменение: добавлен явный машиночитаемый `exchange capability matrix` с обязательными capability domains (`server TP/SL`, `reduce-only semantics`, `order lifecycle specifics`, `reconciliation`, `position/side mode`, `signal data availability`, `exchange restrictions`).
 - Изменение: введён unified exchange abstraction contract (`executionFacingCapabilities`, `protectiveOrderCapabilities`, `reconciliationCapabilities`, `marketDataAvailabilityMetadata`) с безопасными fallback semantics для unknown/partial/unavailable capability.
