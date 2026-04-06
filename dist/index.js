@@ -8216,6 +8216,9 @@ Utils.round2 = (x) => {
 Utils.roundTo = (x, precision) => {
     return x != null ? Number(x.toFixed(precision)) : 0;
 };
+Utils.round = (x, precision = 2) => {
+    return Utils.roundTo(x, precision);
+};
 Utils.roundNumbers2 = (obj) => {
     const res = Object.assign({}, obj);
     Object.keys(res).forEach(key => {
