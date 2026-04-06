@@ -1,3 +1,13 @@
+## 2026-04-06 (position lifecycle scaffold, step 38 / substep 1)
+- Изменение: добавлен отдельный lifecycle-модуль `positionLifecycleManager` с intent-only контрактом для управления уже открытой прибыльной позицией без execution/server TP-SL ownership.
+- Изменение: зафиксированы входной/выходной контракты (`positionState`, `lifecycleState`, `profitability`, `config`, `ownershipMetadata` -> `lifecycleActionIntent`, `lifecycleStateTransition`, `partialCloseIntent`, `breakevenIntent`, `trailingIntent`, `lifecycleReasonCodes`).
+- Изменение: реализованы базовые lifecycle states и переходы (`initial_position_state`, `partial_profit_state`, `moved_to_breakeven_state`, `trailing_active_state`, `fully_closed_terminal_state`).
+- Изменение: реализованы базовые правила partial close / breakeven / trailing и fallback на legacy close-поведение при `positionLifecycle.enabled=false`.
+- Изменение: добавлен минимальный wiring в `runtime/engines/index.js` через `positionEngine.evaluatePositionLifecycle(...)` без ломки текущего ownership-path и без пересчёта upstream сигналов.
+- Изменение: добавлены contract/regression тесты на partial close, breakeven, trailing, fallback и проверку отсутствия direct execution ownership.
+- Связанные файлы кода: `dist/runtime/lifecycle/positionLifecycleManager.js`, `dist/runtime/engines/index.js`, `tests/regression/position-lifecycle-manager.test.js`.
+- Связанные разделы docs: `docs/user/POSITION_LIFECYCLE_CONTRACT_RU.md`, `docs/user/README_RU.md`.
+
 ## 2026-04-05 (ML phase 1 integration, step 37C / substep 3)
 - Изменение: добавлен финальный интеграционный документ `docs/user/ML_PHASE1_INTEGRATION_CONTRACT_RU.md` с ролью ML phase 1, ограничениями ownership и описанием режимов `advisory_only/confirm_only/veto_mode/confidence_sizing`.
 - Изменение: зафиксирован future compatibility contract для шага 39 (разрешённые ML-поля для downstream/meta-controller, bounded read-only доступ, явный запрет передачи ownership).
