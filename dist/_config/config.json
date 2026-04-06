@@ -479,7 +479,7 @@
             "failSafeOnInsufficientData": false
           },
           "capitalRegimeAdjustments": {
-            "NORMAL": 1.0,
+            "NORMAL": 1,
             "CAUTION": 1.05,
             "DEFENSIVE": 1.15,
             "CAPITAL_PRESERVATION": 1.25,
@@ -834,7 +834,7 @@
             "failSafeOnInsufficientData": false
           },
           "capitalRegimeAdjustments": {
-            "NORMAL": 1.0,
+            "NORMAL": 1,
             "CAUTION": 1.05,
             "DEFENSIVE": 1.15,
             "CAPITAL_PRESERVATION": 1.25,
@@ -1524,7 +1524,7 @@
             "failSafeOnInsufficientData": false
           },
           "capitalRegimeAdjustments": {
-            "NORMAL": 1.0,
+            "NORMAL": 1,
             "CAUTION": 1.05,
             "DEFENSIVE": 1.15,
             "CAPITAL_PRESERVATION": 1.25,
@@ -1878,7 +1878,7 @@
             "failSafeOnInsufficientData": false
           },
           "capitalRegimeAdjustments": {
-            "NORMAL": 1.0,
+            "NORMAL": 1,
             "CAUTION": 1.05,
             "DEFENSIVE": 1.15,
             "CAPITAL_PRESERVATION": 1.25,
@@ -2233,7 +2233,7 @@
             "failSafeOnInsufficientData": false
           },
           "capitalRegimeAdjustments": {
-            "NORMAL": 1.0,
+            "NORMAL": 1,
             "CAUTION": 1.05,
             "DEFENSIVE": 1.15,
             "CAPITAL_PRESERVATION": 1.25,
@@ -2587,7 +2587,7 @@
             "failSafeOnInsufficientData": false
           },
           "capitalRegimeAdjustments": {
-            "NORMAL": 1.0,
+            "NORMAL": 1,
             "CAUTION": 1.05,
             "DEFENSIVE": 1.15,
             "CAPITAL_PRESERVATION": 1.25,
@@ -2952,7 +2952,7 @@
             "failSafeOnInsufficientData": false
           },
           "capitalRegimeAdjustments": {
-            "NORMAL": 1.0,
+            "NORMAL": 1,
             "CAUTION": 1.05,
             "DEFENSIVE": 1.15,
             "CAPITAL_PRESERVATION": 1.25,
@@ -3575,5 +3575,61 @@
       "disableOnNegativeExpectation": true,
       "logTopTickers": 10
     }
+  },
+  "mlMetaController": {
+    "enableMlMetaController": true,
+    "metaControllerMode": "bounded_modifier",
+    "allowedMetaAdjustments": [
+      "entryThresholdModifier",
+      "weakEntryBoundaryModifier",
+      "fullEntryBoundaryModifier",
+      "shortlistRankingModifier",
+      "sizingAggressivenessModifier",
+      "regimePreferenceWeights"
+    ],
+    "boundsByAdjustmentType": {
+      "entryThresholdModifier": {
+        "min": -0.05,
+        "max": 0.05
+      },
+      "weakEntryBoundaryModifier": {
+        "min": -0.05,
+        "max": 0.05
+      },
+      "fullEntryBoundaryModifier": {
+        "min": -0.05,
+        "max": 0.05
+      },
+      "shortlistRankingModifier": {
+        "min": -0.15,
+        "max": 0.15
+      },
+      "sizingAggressivenessModifier": {
+        "min": -0.15,
+        "max": 0.15
+      },
+      "regimePreferenceWeights": {
+        "trend": {
+          "min": -0.2,
+          "max": 0.2
+        },
+        "meanReversion": {
+          "min": -0.2,
+          "max": 0.2
+        },
+        "breakoutRejection": {
+          "min": -0.2,
+          "max": 0.2
+        },
+        "noTradeFlat": {
+          "min": -0.2,
+          "max": 0.2
+        }
+      }
+    },
+    "allowMetaFallbackWithoutModel": true,
+    "metaControllerBudget": 8,
+    "exchangeAgnosticMode": true,
+    "capabilityMatrixHandling": "downstream_only"
   }
 }

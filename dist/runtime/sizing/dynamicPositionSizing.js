@@ -334,6 +334,9 @@ function evaluateDynamicPositionSizing(input = {}, rawConfig = {}, runtime = {})
         affectedLayer: 'dynamicPositionSizing',
         ownerLayer: 'dynamicPositionSizing',
         requestedValue: requestedSizingModifier,
+        metaFallbackState: metaOutput.metaControllerFallbackState || 'none',
+        capitalRegimeImpact: (capitalRegime === 'HALT_NEW_ENTRIES' || capitalRegime === 'PROHIBIT_NEW_ENTRIES') ? 'blocked' : 'none',
+        forecastImpact: forecastBlocked ? 'blocked' : 'none',
       });
       if (blockedReasons.length) {
         structuredDetails.metaRuntimeInfluence.reasonCodes.push('metaAdjustmentBlocked');
@@ -343,7 +346,11 @@ function evaluateDynamicPositionSizing(input = {}, rawConfig = {}, runtime = {})
           affectedLayer: 'dynamicPositionSizing',
           ownerLayer: 'dynamicPositionSizing',
           appliedBounds: metaBounds.sizingAggressivenessModifier || null,
+          blockedReason: blockedReasons[0],
           blockedReasons,
+          metaFallbackState: metaOutput.metaControllerFallbackState || 'none',
+          capitalRegimeImpact: (capitalRegime === 'HALT_NEW_ENTRIES' || capitalRegime === 'PROHIBIT_NEW_ENTRIES') ? 'blocked' : 'none',
+          forecastImpact: forecastBlocked ? 'blocked' : 'none',
         });
       } else {
         const deltaLimit = config.mlCompatibilityHooks.phase2BoundedAdjustmentLimits.multiplierDeltaAbsMax;
@@ -358,6 +365,10 @@ function evaluateDynamicPositionSizing(input = {}, rawConfig = {}, runtime = {})
           ownerLayer: 'dynamicPositionSizing',
           appliedValue: boundedDelta,
           appliedBounds: metaBounds.sizingAggressivenessModifier || null,
+          blockedReason: null,
+          metaFallbackState: metaOutput.metaControllerFallbackState || 'none',
+          capitalRegimeImpact: (capitalRegime === 'HALT_NEW_ENTRIES' || capitalRegime === 'PROHIBIT_NEW_ENTRIES') ? 'blocked' : 'none',
+          forecastImpact: forecastBlocked ? 'blocked' : 'none',
         });
       }
     }
@@ -454,6 +465,7 @@ function toDynamicPositionSizingEvent({ context = {}, decision = {} } = {}) {
     finalLeverageCap: Number.isFinite(decision.leverageCap) ? decision.leverageCap : 0,
     sizingReasonCodes: Array.isArray(decision.sizingReasonCodes) ? decision.sizingReasonCodes : [],
     contractVersion: decision.contractVersion || 'dynamic_position_sizing.v1',
+    metaRuntimeInfluence: (((decision.explanation || {}).structured || {}).metaRuntimeInfluence) || {},
   };
 }
 

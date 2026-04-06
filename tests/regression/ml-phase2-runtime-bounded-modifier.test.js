@@ -44,7 +44,12 @@ test('meta runtime: threshold modifier branch для finalEntryDecisionEngine', 
   }));
 
   assert.equal(output.thresholdsApplied.fullEntry, 0.64);
-  assert.ok(output.explanation.metaRuntimeInfluence.events.some((e) => e.reasonCode === 'metaAdjustmentApplied'));
+  const appliedEvent = output.explanation.metaRuntimeInfluence.events.find((e) => e.reasonCode === 'metaAdjustmentApplied');
+  assert.ok(appliedEvent);
+  assert.equal(appliedEvent.affectedLayer, 'finalEntryDecisionEngine.thresholds');
+  assert.equal(appliedEvent.metaFallbackState, 'none');
+  assert.equal(appliedEvent.capitalRegimeImpact, 'none');
+  assert.equal(appliedEvent.forecastImpact, 'none');
   assert.equal(output.decisionModeMetadata.decisionOwner, 'finalEntryDecisionEngine');
 });
 
@@ -194,7 +199,9 @@ test('meta runtime: adjustment blocked by capitalRegime', () => {
 
   const blocked = output.explanation.metaRuntimeInfluence.events.find((e) => e.reasonCode === 'metaAdjustmentBlocked');
   assert.ok(blocked);
+  assert.equal(blocked.blockedReason, 'blockedByCapitalRegime');
   assert.ok(blocked.blockedReasons.includes('blockedByCapitalRegime'));
+  assert.equal(blocked.capitalRegimeImpact, 'blocked');
 });
 
 test('meta runtime: adjustment blocked by forecast restrictions', () => {
@@ -215,7 +222,9 @@ test('meta runtime: adjustment blocked by forecast restrictions', () => {
 
   const blocked = output.explanation.metaRuntimeInfluence.events.find((e) => e.reasonCode === 'metaAdjustmentBlocked');
   assert.ok(blocked);
+  assert.equal(blocked.blockedReason, 'blockedByForecast');
   assert.ok(blocked.blockedReasons.includes('blockedByForecast'));
+  assert.equal(blocked.forecastImpact, 'blocked');
 });
 
 test('meta runtime: no ownership takeover by meta-controller', () => {
@@ -240,4 +249,26 @@ test('meta runtime: no ownership takeover by meta-controller', () => {
   assert.equal(finalOutput.explanation.ownership.isFinalVetoOwnerForNewEntries, true);
   assert.equal(sizingOutput.explanation.ownership.isFinalDecisionOwner, false);
   assert.equal(sizingOutput.explanation.ownership.isExecutionOwner, false);
+});
+
+test('meta runtime: audit/event completeness и exchange-agnostic контракт', () => {
+  const finalOutput = evaluateFinalEntryDecision(createFinalInput({
+    context: { cycleId: 'c-39-audit', ticker: 'BTC-USDT', exchange: 'kraken' },
+    mlMetaControllerOutput: {
+      metaControllerFallbackState: 'none',
+      metaAdjustmentSet: {
+        entryThresholdModifier: -0.01,
+      },
+      allowedAdjustmentBounds: {
+        entryThresholdModifier: { min: -0.05, max: 0.05 },
+      },
+    },
+  }));
+
+  const event = finalOutput.explanation.metaRuntimeInfluence.events.find((e) => e.reasonCode === 'metaAdjustmentApplied');
+  assert.ok(event);
+  assert.ok(Object.prototype.hasOwnProperty.call(event, 'appliedBounds'));
+  assert.ok(Object.prototype.hasOwnProperty.call(event, 'affectedLayer'));
+  assert.ok(Object.prototype.hasOwnProperty.call(event, 'metaFallbackState'));
+  assert.equal(finalOutput.explanation.downstreamHints.multiExchangeAdaptationReady, true);
 });

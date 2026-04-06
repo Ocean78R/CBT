@@ -663,6 +663,9 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
       affectedLayer: 'confluenceEntryEngine.shortlistRanking',
       ownerLayer: 'confluenceEntryEngine',
       requestedValue: shortlistModifier,
+      metaFallbackState: metaOutput.metaControllerFallbackState || 'none',
+      capitalRegimeImpact: blockedByCapitalRegime ? 'blocked' : 'none',
+      forecastImpact: blockedByForecast ? 'blocked' : 'none',
     });
     const blockedReasons = [];
     if (blockedByCapitalRegime) blockedReasons.push('blockedByCapitalRegime');
@@ -676,7 +679,11 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
         affectedLayer: 'confluenceEntryEngine.shortlistRanking',
         ownerLayer: 'confluenceEntryEngine',
         appliedBounds: metaBounds.shortlistRankingModifier || null,
+        blockedReason: blockedReasons[0],
         blockedReasons,
+        metaFallbackState: metaOutput.metaControllerFallbackState || 'none',
+        capitalRegimeImpact: blockedByCapitalRegime ? 'blocked' : 'none',
+        forecastImpact: blockedByForecast ? 'blocked' : 'none',
       });
     } else {
       metaShortlistDelta = shortlistModifier;
@@ -688,6 +695,10 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
         ownerLayer: 'confluenceEntryEngine',
         appliedValue: shortlistModifier,
         appliedBounds: metaBounds.shortlistRankingModifier || null,
+        blockedReason: null,
+        metaFallbackState: metaOutput.metaControllerFallbackState || 'none',
+        capitalRegimeImpact: blockedByCapitalRegime ? 'blocked' : 'none',
+        forecastImpact: blockedByForecast ? 'blocked' : 'none',
       });
     }
   }
@@ -711,6 +722,9 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
       ownerLayer: 'marketRegimeRouter',
       requestedValue: Number(regimeWeights[regimeKey]),
       regimeKey,
+      metaFallbackState: metaOutput.metaControllerFallbackState || 'none',
+      capitalRegimeImpact: blockedByCapitalRegime ? 'blocked' : 'none',
+      forecastImpact: blockedByForecast ? 'blocked' : 'none',
     });
     const blockedReasons = [];
     if (blockedByCapitalRegime) blockedReasons.push('blockedByCapitalRegime');
@@ -724,7 +738,11 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
         affectedLayer: 'confluenceEntryEngine.regimePreferenceWeights',
         ownerLayer: 'marketRegimeRouter',
         appliedBounds: (metaBounds.regimePreferenceWeights || {})[regimeKey] || null,
+        blockedReason: blockedReasons[0],
         blockedReasons,
+        metaFallbackState: metaOutput.metaControllerFallbackState || 'none',
+        capitalRegimeImpact: blockedByCapitalRegime ? 'blocked' : 'none',
+        forecastImpact: blockedByForecast ? 'blocked' : 'none',
       });
     } else {
       regimeDelta = Number(regimeWeights[regimeKey]);
@@ -737,6 +755,10 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
         regimeKey,
         appliedValue: regimeDelta,
         appliedBounds: (metaBounds.regimePreferenceWeights || {})[regimeKey] || null,
+        blockedReason: null,
+        metaFallbackState: metaOutput.metaControllerFallbackState || 'none',
+        capitalRegimeImpact: blockedByCapitalRegime ? 'blocked' : 'none',
+        forecastImpact: blockedByForecast ? 'blocked' : 'none',
       });
     }
   }
@@ -805,6 +827,7 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
       vetoOwner: 'finalEntryDecisionLayer',
       metaRuntimeInfluence: {
         reasonCodes: Array.from(new Set(metaReasonCodes)),
+        metaFallbackState: metaOutput.metaControllerFallbackState || 'none',
         events: metaEvents,
       },
     },
@@ -1104,6 +1127,7 @@ function toConfluenceEntryEvent(input = {}) {
             timeContextScore: resolveSessionTimeContextScore(layerScores.sessionFilterLayer || {}),
             sessionState: ((layerScores.sessionFilterLayer || {}).explanation || {}).sessionState || 'OFF_HOURS',
             timeBasedEntryRestriction: resolveTimeBasedEntryRestriction(layerScores.sessionFilterLayer || {}),
+            metaRuntimeInfluence: (((layerScores.finalEntryDecisionLayer || {}).explanation || {}).metaRuntimeInfluence) || {},
           },
         },
       },
