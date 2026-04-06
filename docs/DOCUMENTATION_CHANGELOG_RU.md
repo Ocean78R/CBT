@@ -1,3 +1,11 @@
+## 2026-04-06 (multi-exchange capability matrix + unified abstraction contract, шаг 40 / подэтап 1)
+- Изменение: добавлен явный машиночитаемый `exchange capability matrix` с обязательными capability domains (`server TP/SL`, `reduce-only semantics`, `order lifecycle specifics`, `reconciliation`, `position/side mode`, `signal data availability`, `exchange restrictions`).
+- Изменение: введён unified exchange abstraction contract (`executionFacingCapabilities`, `protectiveOrderCapabilities`, `reconciliationCapabilities`, `marketDataAvailabilityMetadata`) с безопасными fallback semantics для unknown/partial/unavailable capability.
+- Изменение: явно зафиксированы `forbidden assumptions` и инвариант, что decision layers 24–39 остаются exchange-agnostic, а exchange-specific различия идут только через capability/restriction layer.
+- Изменение: добавлены минимальные regression/contract тесты на completeness матрицы BingX baseline, fallback-поведение, сохранение ownership-path и консистентность unified contract.
+- Связанные файлы кода: `dist/runtime/exchange/exchangeCapabilityMatrix.js`, `tests/regression/exchange-capability-matrix-contract.test.js`.
+- Связанные разделы docs: `docs/user/EXCHANGE_CAPABILITY_MATRIX_CONTRACT_RU.md`, `docs/user/README_RU.md`.
+
 ## 2026-04-06 (ML phase 2: production-like integration package, шаг 39 подэтап 3 / 39C)
 - Изменение: расширен runtime config-контракт `mlMetaController` полями `enableMlMetaController`, `metaControllerMode`, `allowedMetaAdjustments`, `boundsByAdjustmentType`, `allowMetaFallbackWithoutModel`, `metaControllerBudget`, `exchangeAgnosticMode`, `capabilityMatrixHandling`.
 - Изменение: добавлены/уточнены structured meta events (`metaAdjustmentRequested/metaAdjustmentApplied/metaAdjustmentBlocked`) c обязательными полями `affectedLayer/appliedBounds/blockedReason/capitalRegimeImpact/forecastImpact/metaFallbackState` в final-entry, confluence и sizing runtime outputs.
