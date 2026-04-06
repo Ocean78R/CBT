@@ -93,6 +93,26 @@ function createRequestScheduler(inputConfig = {}, hooks = {}) {
     setImmediate(drain);
   }
 
+  function insertTaskByPriority(task) {
+    if (queue.length === 0) {
+      queue.push(task);
+      return;
+    }
+    let low = 0;
+    let high = queue.length;
+    while (low < high) {
+      const mid = Math.floor((low + high) / 2);
+      const probe = queue[mid];
+      const probePriority = Number(probe.priority || 0);
+      if (probePriority > task.priority || (probePriority === task.priority && probe.id < task.id)) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    queue.splice(low, 0, task);
+  }
+
   function applyOptionalBudget(meta, now) {
     if (!config.optionalBudget.enabled) return { allow: true };
     const queueClass = meta.queueClass || 'coreMarketData';
@@ -142,7 +162,7 @@ function createRequestScheduler(inputConfig = {}, hooks = {}) {
     }
 
     return new Promise((resolve, reject) => {
-      queue.push({
+      const queuedTask = {
         id: ++sequence,
         taskFn,
         priority,
@@ -151,11 +171,11 @@ function createRequestScheduler(inputConfig = {}, hooks = {}) {
         resolve,
         reject,
         enqueuedAt: safeNow(),
-      });
+      };
+      insertTaskByPriority(queuedTask);
       metrics.enqueued += 1;
       metrics.queueByClass[queueClass] = (metrics.queueByClass[queueClass] || 0) + 1;
       metrics.maxObservedQueue = Math.max(metrics.maxObservedQueue, queue.length);
-      queue.sort((a, b) => (b.priority - a.priority) || (a.id - b.id));
       emit({
         type: 'scheduler_enqueued',
         module: 'runtime.requestScheduler',
