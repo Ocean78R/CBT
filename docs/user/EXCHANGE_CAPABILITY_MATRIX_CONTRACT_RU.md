@@ -87,3 +87,39 @@ Runtime wiring capability layer:
 - `capabilityCheckFailed`;
 - `unsupportedFeatureFallbackUsed`;
 - `exchangeRestrictionApplied`.
+
+## 7) Подэтап 3: documentation/tests/onboarding integration package
+Цель подэтапа 3 — зафиксировать production-like операционный контур для будущих бирж **без пересборки capability matrix и runtime wiring**.
+
+### Роль capability matrix
+- единый источник exchange-specific ограничений и возможностей;
+- формальный stop-point для hidden assumptions (никаких «неявно поддерживается»);
+- основа для regression/sanity проверок completeness.
+
+### Роль exchange abstraction contract
+- нормализует matrix в единый runtime-контракт для execution/protective/lifecycle;
+- сохраняет exchange-agnostic интерфейс для decision stack;
+- несёт инварианты ownership safety и forbidden assumptions.
+
+### Что остаётся exchange-agnostic
+- decision layers 24–39;
+- dynamic sizing ownership path;
+- hard-risk / capital regime / forecast restriction ownership.
+
+### Что использует exchange-specific restrictions
+- execution/protective/lifecycle ветки, где требуется explicit reduce-only/position-side/order-lifecycle semantics;
+- restriction policy (`enforce | warn_only | off`) для безопасного применения конкретных ограничений биржи.
+
+### Почему BingX остаётся baseline
+- текущий production baseline профиля и контрактов в проекте;
+- эталонный reference для сравнения поведения candidate exchange;
+- защита от регрессий: любые onboarding-изменения проходят проверки «BingX baseline remains unchanged».
+
+### Как безопасно подключать новую биржу по шагам
+1. Заполнить capability matrix без пропусков доменов.
+2. Пройти contract validation и ownership-safety инварианты.
+3. Включить explicit unsupported-feature behavior (`fallback/disable/block`) и проверить события.
+4. Запускать candidate exchange только в restricted runtime mode.
+5. Включать production usage только после полного набора regression/docs/sanity тестов.
+
+Подробный операционный чек-лист вынесен в: `docs/user/EXCHANGE_ONBOARDING_FLOW_RU.md`.

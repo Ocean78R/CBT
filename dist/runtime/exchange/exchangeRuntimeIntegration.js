@@ -39,6 +39,16 @@ function createExchangeRuntimeIntegration(runtimeConfig = {}, options = {}) {
   const emitStructuredEvent = typeof options.emitStructuredEvent === 'function' ? options.emitStructuredEvent : () => {};
   const normalizedConfig = normalizeExchangeRuntimeConfig(runtimeConfig);
   const contract = createUnifiedExchangeContract(normalizedConfig.activeExchange, { logger });
+  const capabilityDecisionTrace = {
+    traceSchema: 'exchange_capability_decision_trace.v1',
+    activeExchange: normalizedConfig.activeExchange,
+    exchangeCapabilitiesSource: normalizedConfig.exchangeCapabilitiesSource,
+    profileFound: contract.profileFound === true,
+    profileCompleteness: contract.profileCompleteness || { isComplete: false, missingDomains: [] },
+    safeUnsupportedFeatureMode: normalizedConfig.safeUnsupportedFeatureMode,
+    exchangeRestrictionPolicy: normalizedConfig.exchangeRestrictionPolicy,
+    bingxBaselineReference: normalizedConfig.bingxBaselineReference === true,
+  };
 
   const emitEvent = (phase, details) => {
     emitStructuredEvent('exchange_capability', phase, normalizedConfig.activeExchange, details.status || 'info', details.reason || phase, {
@@ -47,6 +57,7 @@ function createExchangeRuntimeIntegration(runtimeConfig = {}, options = {}) {
       enableExchangeCapabilityChecks: normalizedConfig.enableExchangeCapabilityChecks,
       safeUnsupportedFeatureMode: normalizedConfig.safeUnsupportedFeatureMode,
       exchangeRestrictionPolicy: normalizedConfig.exchangeRestrictionPolicy,
+      capabilityDecisionTrace,
       ...details.payload,
     });
   };
@@ -184,6 +195,7 @@ function createExchangeRuntimeIntegration(runtimeConfig = {}, options = {}) {
   return {
     config: normalizedConfig,
     contract,
+    capabilityDecisionTrace,
     executionContext,
     protectiveContext,
     lifecycleContext,
