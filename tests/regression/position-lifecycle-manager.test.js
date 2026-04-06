@@ -109,4 +109,75 @@ test('contract: lifecycle layer не владеет execution и server TP/SL', 
   assert.equal(result.lifecycleActionIntent.ownership.sendsOrdersDirectly, false);
   assert.equal(result.contract.input.recalculatesMarketData, false);
   assert.equal(result.contract.input.recalculatesSignalStack, false);
+  assert.equal(result.contract.output.directExchangeActions, false);
+  assert.equal(result.managerRouting.executionLifecycleManager.owner, 'execution_lifecycle_manager');
+  assert.equal(result.managerRouting.serverTakeProfitManager.owner, 'server_take_profit_manager');
+  assert.equal(result.managerRouting.serverStopLossManager.owner, 'server_stop_loss_manager');
+  assert.equal(result.managerRouting.reconciliationCleanupPath.owner, 'execution_reconciliation_cleanup');
+});
+
+test('contract: mismatch position включает restricted lifecycle mode и блокирует leverage-sensitive actions', () => {
+  const result = evaluatePositionLifecycle(baseInput({
+    context: {
+      ...baseInput().context,
+      positionCapabilityState: 'LEVERAGE_MISMATCH_POSITION',
+    },
+  }), baseConfig({
+    partialClose: { enabled: true, triggerProfitPercent: 1.5, closeShare: 0.3 },
+    breakeven: { enabled: true, triggerProfitPercent: 2, offsetPercent: 0 },
+    trailing: { enabled: true, triggerProfitPercent: 3, distancePercent: 1 },
+  }));
+
+  assert.equal(result.positionCapabilityState, 'LEVERAGE_MISMATCH_POSITION');
+  assert.equal(result.restrictedLifecycleMode, true);
+  assert.ok(result.allowedActions.includes('reduce_only_profit_close'));
+  assert.ok(result.allowedActions.includes('protective_close'));
+  assert.ok(result.allowedActions.includes('partial_close'));
+  assert.ok(result.blockedActions.includes('averaging'));
+  assert.ok(result.blockedActions.includes('move_to_breakeven'));
+  assert.ok(result.blockedActions.includes('activate_trailing'));
+  assert.equal(result.partialCloseIntent.shouldClosePartially, true);
+  assert.equal(result.breakevenIntent.shouldMove, false);
+  assert.equal(result.trailingIntent.shouldTrail, false);
+  assert.equal(result.lifecycleActionBlocked, true);
+  assert.ok(result.lifecycleReasonCodes.includes('breakeven_blocked_by_capability_contract'));
+});
+
+test('contract: legacy restricted position не становится normal по инициативе lifecycle', () => {
+  const input = baseInput({
+    context: {
+      ...baseInput().context,
+      positionCapabilityState: 'LEGACY_RESTRICTED_POSITION',
+    },
+    positionState: {
+      ...baseInput().positionState,
+      positionCapabilityState: 'NORMAL_POSITION',
+      percentage: 2.5,
+      markPrice: 103,
+    },
+    profitability: { unrealizedPnl: 1.1, unrealizedPnlPercent: 2.5 },
+  });
+  const result = evaluatePositionLifecycle(input, baseConfig());
+
+  assert.equal(result.positionCapabilityState, 'LEGACY_RESTRICTED_POSITION');
+  assert.equal(result.restrictedLifecycleMode, true);
+  assert.notEqual(result.positionCapabilityState, 'NORMAL_POSITION');
+  assert.ok(result.lifecycleReasonCodes.includes('restricted_lifecycle_mode_enabled'));
+});
+
+test('contract: safe close path остаётся доступен для restricted позиции', () => {
+  const result = evaluatePositionLifecycle(baseInput({
+    context: {
+      ...baseInput().context,
+      positionCapabilityState: 'LEVERAGE_MISMATCH_POSITION',
+    },
+    profitability: { unrealizedPnl: 3.2, unrealizedPnlPercent: 3.2 },
+  }), baseConfig());
+
+  assert.ok(result.allowedActions.includes('reduce_only_profit_close'));
+  assert.ok(result.allowedActions.includes('protective_close'));
+  assert.ok(result.allowedActions.includes('cleanup_protective_orders'));
+  assert.equal(result.lifecycleActionIntent.ownership.isExecutionOwner, false);
+  assert.equal(result.lifecycleActionIntent.ownership.ownsServerTpSl, false);
+  assert.equal(result.contract.output.serverTpSlOwner, false);
 });
