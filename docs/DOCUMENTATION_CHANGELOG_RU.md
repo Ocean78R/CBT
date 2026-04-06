@@ -1,3 +1,12 @@
+## 2026-04-06 (pre-live deployment safety audit: safe canary + checklist)
+- Изменение: добавлен config-presет `safeStartupPresets.liveCanaryV1` для максимально ограниченного first-live запуска (1–2 тикера, минимум позиции, weak-entry off, averaging off, защитный capital regime, полный decision trace, авто-остановка по циклу/тайм-лимиту).
+- Изменение: добавлен структурированный `preLiveChecklist` (config sanity, model availability, exchange capability checks, protective managers ready, paper-mode pass, restart safety).
+- Изменение: расширен runtime config validator нормализацией новых блоков без ломки существующего flow.
+- Изменение: добавлен регрессионный тест `safe-canary-prelive-audit` на нормализацию safe-профиля и checklist.
+- Изменение: обновлены пользовательские документы по запуску и конфигу для безопасного первого live-старта.
+- Связанные файлы кода: `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/safe-canary-prelive-audit.test.js`.
+- Связанные разделы docs: `docs/user/RUN_AND_MODES_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`.
+
 ## 2026-04-06 (smoke/integrity baseline check без широкого рефакторинга)
 - Изменение: добавлен минимальный smoke-контур `tests/smoke/project.integrity.smoke.test.js` для проверки bootstrap (`CBT_SKIP_AUTOSTART=1`), загрузки runtime-конфига и wiring ключевых модулей шагов 35–40.
 - Изменение: добавлена проверка консистентности `exchangeLayer` по всем биржам в `dist/_config/config.json` для раннего детекта wiring-конфликтов onboarding/capability слоя (шаг 40).
