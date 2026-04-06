@@ -165,6 +165,27 @@ test('contract: legacy restricted position не становится normal по
   assert.ok(result.lifecycleReasonCodes.includes('restricted_lifecycle_mode_enabled'));
 });
 
+test('contract: legacy restricted mode оставляет safe-close и жёстко блокирует averaging/breakeven/trailing', () => {
+  const result = evaluatePositionLifecycle(baseInput({
+    context: {
+      ...baseInput().context,
+      positionCapabilityState: 'LEGACY_RESTRICTED_POSITION',
+    },
+    profitability: { unrealizedPnl: 3.4, unrealizedPnlPercent: 3.4 },
+    positionState: { ...baseInput().positionState, markPrice: 103.4, percentage: 3.4 },
+  }), baseConfig());
+
+  assert.equal(result.restrictedLifecycleMode, true);
+  assert.ok(result.allowedActions.includes('reduce_only_profit_close'));
+  assert.ok(result.allowedActions.includes('protective_close'));
+  assert.ok(result.blockedActions.includes('averaging'));
+  assert.ok(result.blockedActions.includes('move_to_breakeven'));
+  assert.ok(result.blockedActions.includes('activate_trailing'));
+  assert.equal(result.partialCloseIntent.shouldClosePartially, true);
+  assert.equal(result.breakevenIntent.shouldMove, false);
+  assert.equal(result.trailingIntent.shouldTrail, false);
+});
+
 test('contract: safe close path остаётся доступен для restricted позиции', () => {
   const result = evaluatePositionLifecycle(baseInput({
     context: {
@@ -180,6 +201,28 @@ test('contract: safe close path остаётся доступен для restric
   assert.equal(result.lifecycleActionIntent.ownership.isExecutionOwner, false);
   assert.equal(result.lifecycleActionIntent.ownership.ownsServerTpSl, false);
   assert.equal(result.contract.output.serverTpSlOwner, false);
+});
+
+test('contract: lifecycle сохраняет ownershipMetadata token и не bypass-ит owner routing', () => {
+  const input = baseInput({
+    context: {
+      ...baseInput().context,
+      positionCapabilityState: 'LEVERAGE_MISMATCH_POSITION',
+    },
+    ownershipMetadata: {
+      ownerPath: 'execution_lifecycle_manager',
+      ownershipToken: 'token-owner-path-77',
+      source: 'reconciliation_restart_snapshot',
+    },
+  });
+  const result = evaluatePositionLifecycle(input, baseConfig());
+
+  assert.deepEqual(result.contract.ownershipMetadata, input.ownershipMetadata);
+  assert.equal(result.lifecycleActionIntent.ownership.isExecutionOwner, false);
+  assert.equal(result.lifecycleActionIntent.ownership.ownsServerTpSl, false);
+  assert.equal(result.managerRouting.executionLifecycleManager.owner, 'execution_lifecycle_manager');
+  assert.equal(result.managerRouting.serverStopLossManager.owner, 'server_stop_loss_manager');
+  assert.equal(result.managerRouting.serverTakeProfitManager.owner, 'server_take_profit_manager');
 });
 
 test('contract: capitalRegime CAUTION включает более ранний breakeven через lifecycle modifiers', () => {
