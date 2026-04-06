@@ -711,3 +711,26 @@ Runtime-позиция слоя:
 - при `activeExchange=bingx` сохраняются текущие рабочие assumptions;
 - unsupported/partial capability не уходит в silent degradation (только explicit fallback/disable/block + events);
 - decision/sizing слои остаются exchange-agnostic, exchange-specific флаги попадают туда только в виде минимального набора input flags.
+
+### Safe onboarding mode для candidate exchange (шаг 40, подэтап 3)
+Для новой биржи до production rollout используйте только restricted-конфигурацию:
+- `enableExchangeCapabilityChecks: true`;
+- `safeUnsupportedFeatureMode: "block"` (допустимо `"disable"` как промежуточный режим);
+- `exchangeRestrictionPolicy: "enforce"`;
+- `bingxBaselineReference: true` (пока BingX остаётся эталоном сравнения).
+
+Рекомендуемый шаблон:
+```json
+{
+  "exchangeLayer": {
+    "activeExchange": "candidate_exchange",
+    "exchangeCapabilitiesSource": "matrix_step40a",
+    "enableExchangeCapabilityChecks": true,
+    "safeUnsupportedFeatureMode": "block",
+    "exchangeRestrictionPolicy": "enforce",
+    "bingxBaselineReference": true
+  }
+}
+```
+
+Перед снятием restricted-режима обязательно пройти onboarding checklist из `docs/user/EXCHANGE_ONBOARDING_FLOW_RU.md` и выполнить полный набор regression/docs/sanity проверок.

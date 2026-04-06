@@ -16,6 +16,21 @@
 - `protection/server_tp_skip`: TP пропущен (legacy mismatch, неподдерживаемый коннектор или недостаток данных).
 - `protection/server_tp_after_open_error`, `protection/server_tp_after_averaging_error`: fallback на локальный `closePositionPnl`.
 
+### Exchange capability onboarding trace (шаг 40 / подэтап 3)
+Для решений capability-layer используйте события типа `exchange_capability`:
+- `activeExchange`;
+- `capabilityCheckPassed` / `capabilityCheckFailed`;
+- `unsupportedFeatureFallbackUsed`;
+- `exchangeRestrictionApplied`.
+
+Минимальные поля для traceability:
+- `activeExchange`, `exchangeCapabilitiesSource`;
+- `safeUnsupportedFeatureMode`, `exchangeRestrictionPolicy`;
+- `capabilityDecisionTrace.traceSchema` (`exchange_capability_decision_trace.v1`);
+- `capabilityDecisionTrace.profileFound`, `capabilityDecisionTrace.profileCompleteness`.
+
+Это расширяет уже существующий audit trail и не вводит отдельную competing schema.
+
 ## Типовые сбои и действия оператора
 ### 1) Ошибки коннектора / неполные данные биржи
 - Признак: `undefined/null` в рыночных полях, пропуски в ответах.

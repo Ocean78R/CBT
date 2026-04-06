@@ -1,3 +1,12 @@
+## 2026-04-06 (exchange onboarding integration package, шаг 40 / подэтап 3)
+- Изменение: зафиксирован safe onboarding flow для будущих бирж (capability matrix -> contract validation -> explicit unsupported-feature behavior -> restricted runtime mode -> tests before production usage).
+- Изменение: расширена документация по роли capability matrix и unified exchange abstraction contract, с явным разделением exchange-agnostic/exchange-specific зон и обоснованием BingX baseline как эталона.
+- Изменение: добавлен отдельный onboarding-документ `docs/user/EXCHANGE_ONBOARDING_FLOW_RU.md` и обновлены пользовательские разделы `README_RU`, `CONFIG_GUIDE_RU`, `LOGS_AND_TROUBLESHOOTING_RU`.
+- Изменение: добавлены regression/docs/architecture проверки для onboarding-пакета: docs/config/runtime consistency, exchange capability coverage sanity checks, onboarding contract validation, BingX baseline unchanged, explicit safe unsupported path.
+- Изменение: добавлен sanity-check скрипт `scripts/sanity/check-exchange-onboarding.js` и минимальная runtime traceability `capabilityDecisionTrace` в `exchangeRuntimeIntegration` без отдельной competing schema.
+- Связанные файлы кода: `dist/runtime/exchange/exchangeRuntimeIntegration.js`, `scripts/sanity/check-exchange-onboarding.js`, `tests/regression/exchange-onboarding-flow.test.js`, `tests/docs/exchange-onboarding-docs-consistency.test.js`, `tests/architecture/exchange-onboarding-sanity.smoke.test.js`.
+- Связанные разделы docs: `docs/user/EXCHANGE_CAPABILITY_MATRIX_CONTRACT_RU.md`, `docs/user/EXCHANGE_ONBOARDING_FLOW_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`, `docs/user/README_RU.md`.
+
 ## 2026-04-06 (safe runtime/config integration для exchange capability matrix, шаг 40 / подэтап 2)
 - Изменение: добавлен runtime/config integration слой `exchangeRuntimeIntegration` для безопасного связывания capability matrix с execution/protective/lifecycle/reconciliation контекстами без смены ownership-path.
 - Изменение: введены и нормализуются config semantics `activeExchange`, `exchangeCapabilitiesSource`, `enableExchangeCapabilityChecks`, `safeUnsupportedFeatureMode`, `exchangeRestrictionPolicy` (включая backward-compatible alias через `exchangeLayer`).

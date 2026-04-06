@@ -26,6 +26,7 @@ CBT — торговый бот для автоматизированной ра
 - [ML phase 2: production-like интеграция meta-controller (шаг 39 / подэтапы 39A-39C)](./ML_PHASE2_META_CONTROLLER_CONTRACT_RU.md)
 - [Position lifecycle: контракт шага 38 (подэтап 1)](./POSITION_LIFECYCLE_CONTRACT_RU.md)
 - [Exchange capability matrix + unified abstraction contract (шаг 40 / подэтап 1)](./EXCHANGE_CAPABILITY_MATRIX_CONTRACT_RU.md)
+- [Safe onboarding flow для новой биржи (шаг 40 / подэтап 3)](./EXCHANGE_ONBOARDING_FLOW_RU.md)
 - [Логи и диагностика](./LOGS_AND_TROUBLESHOOTING_RU.md)
 - [Политика обновления документации](../DOCUMENTATION_UPDATE_POLICY_RU.md)
 - [Журнал изменений документации](../DOCUMENTATION_CHANGELOG_RU.md)
