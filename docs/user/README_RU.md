@@ -23,6 +23,7 @@ CBT — торговый бот для автоматизированной ра
 - [Защитные механизмы и управление риском](./RISK_AND_PROTECTION_RU.md)
 - [Конфиг и параметры оператора](./CONFIG_GUIDE_RU.md)
 - [ML phase 1: интеграционный контракт (37C)](./ML_PHASE1_INTEGRATION_CONTRACT_RU.md)
+- [Position lifecycle: контракт шага 38 (подэтап 1)](./POSITION_LIFECYCLE_CONTRACT_RU.md)
 - [Логи и диагностика](./LOGS_AND_TROUBLESHOOTING_RU.md)
 - [Политика обновления документации](../DOCUMENTATION_UPDATE_POLICY_RU.md)
 - [Журнал изменений документации](../DOCUMENTATION_CHANGELOG_RU.md)

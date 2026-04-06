@@ -6,6 +6,7 @@ const { toCapitalStressForecastEvent } = require('../risk/capitalStressForecastE
 const { createObservabilityLayer } = require('../observability/reportingLayer');
 const { createPaperTradingExecutor } = require('../execution/paperTrading');
 const { createMlDatasetBuilder } = require('../analytics/mlDatasetBuilder');
+const { evaluatePositionLifecycle, normalizeLifecycleRules } = require('../lifecycle/positionLifecycleManager');
 const { createMlInferenceLayer, normalizeMlInferenceConfig } = require('../ml/mlInferenceLayer');
 const {
   createMlPhase1DecisionModifier,
@@ -445,6 +446,17 @@ function createEngines(strategy) {
     positionEngine: {
       getActiveTickers: () => strategy.getActiveTickersLegacy(),
       processExistingPosition: (ticker, freeBalance, activePosition, checkLeverage) => strategy.processExistingPositionLegacy(ticker, freeBalance, activePosition, checkLeverage),
+      // Русский комментарий: lifecycle-слой использует уже готовый runtime context/position state и возвращает только intents без execution ownership.
+      evaluatePositionLifecycle: (input, runtimeConfig) => {
+        const lifecycleConfig = runtimeConfig && runtimeConfig.positionLifecycle
+          ? runtimeConfig.positionLifecycle
+          : {};
+        return evaluatePositionLifecycle(input, normalizeLifecycleRules(lifecycleConfig), {
+          log: (message) => {
+            if (strategy.log && typeof strategy.log === 'function') strategy.log(message);
+          },
+        });
+      },
 
       // Русский комментарий: риск-контур портфеля является primary current-state control layer выше entry/signal слоёв.
       evaluatePortfolioRiskContour: (input, runtimeConfig) => {
