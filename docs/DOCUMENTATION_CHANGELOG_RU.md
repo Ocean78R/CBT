@@ -1,3 +1,11 @@
+## 2026-04-06 (ML phase 2: каркас meta-controller, шаг 39 подэтап 1)
+- Изменение: добавлен отдельный модуль `mlMetaController` как bounded modifier layer без takeover ownership-path; слой принимает общий runtime-контекст и уже готовые outputs rule-based/ML phase 1, не пересчитывая market data/heavy features.
+- Изменение: зафиксированы входной/выходной контракты `ml_phase2_meta_controller_input.v1` и `ml_phase2_meta_controller_output.v1`, включая `metaAdjustmentSet`, bounds, reasons, data quality и fallback states.
+- Изменение: формально разделены allowed/forbidden параметры meta-controller с жёсткими bounds и блокировкой прямых override для hard-risk/capitalRegime/forecast/execution/lifecycle/server TP/SL.
+- Изменение: добавлены минимальные регрессионные тесты на контракт, bounds enforcement, safe fallback и запрет ownership takeover.
+- Связанные файлы кода: `dist/runtime/ml/mlMetaController.js`, `tests/regression/ml-meta-controller-contract.test.js`.
+- Связанные разделы docs: `docs/user/ML_PHASE2_META_CONTROLLER_CONTRACT_RU.md`, `docs/user/README_RU.md`.
+
 ## 2026-04-06 (position lifecycle integration, step 38 / substep 3)
 - Изменение: расширен config lifecycle-подсистемы полями `enableAdvancedLifecycle`, `partialTakeProfitRules`, `breakevenRules`, `trailingRules`, `capitalRegimeLifecycleModifiers`, `restrictedLifecycleRules`, `forecastLifecycleModifiers`.
 - Изменение: реализованы lifecycle modifiers от `capitalRegime` (`CAUTION/DEFENSIVE/CAPITAL_PRESERVATION/HALT_NEW_ENTRIES`) без изменения execution/lifecycle owner-path.
