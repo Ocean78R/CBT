@@ -1,3 +1,9 @@
+## 2026-04-06 (smoke/integrity baseline check без широкого рефакторинга)
+- Изменение: добавлен минимальный smoke-контур `tests/smoke/project.integrity.smoke.test.js` для проверки bootstrap (`CBT_SKIP_AUTOSTART=1`), загрузки runtime-конфига и wiring ключевых модулей шагов 35–40.
+- Изменение: добавлена проверка консистентности `exchangeLayer` по всем биржам в `dist/_config/config.json` для раннего детекта wiring-конфликтов onboarding/capability слоя (шаг 40).
+- Изменение: в `package.json` добавлен скрипт `test:smoke`, а общий `test`-пайплайн расширен последовательностью `smoke -> architecture -> docs -> regression`.
+- Связанные файлы кода: `tests/smoke/project.integrity.smoke.test.js`, `package.json`.
+
 ## 2026-04-06 (exchange onboarding integration package, шаг 40 / подэтап 3)
 - Изменение: зафиксирован safe onboarding flow для будущих бирж (capability matrix -> contract validation -> explicit unsupported-feature behavior -> restricted runtime mode -> tests before production usage).
 - Изменение: расширена документация по роли capability matrix и unified exchange abstraction contract, с явным разделением exchange-agnostic/exchange-specific зон и обоснованием BingX baseline как эталона.
