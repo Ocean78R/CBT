@@ -227,6 +227,44 @@ test('meta runtime: adjustment blocked by forecast restrictions', () => {
   assert.equal(blocked.forecastImpact, 'blocked');
 });
 
+test('meta runtime: adjustment blocked by hard-risk veto', () => {
+  const output = evaluateFinalEntryDecision(createFinalInput({
+    balanceState: { capitalRegime: 'NORMAL', unloadMode: true },
+    mlMetaControllerOutput: {
+      metaAdjustmentSet: {
+        entryThresholdModifier: -0.03,
+      },
+      allowedAdjustmentBounds: {
+        entryThresholdModifier: { min: -0.05, max: 0.05 },
+      },
+    },
+  }));
+
+  const blocked = output.explanation.metaRuntimeInfluence.events.find((e) => e.reasonCode === 'metaAdjustmentBlocked');
+  assert.ok(blocked);
+  assert.equal(blocked.blockedReason, 'blockedByHardRisk');
+  assert.ok(blocked.blockedReasons.includes('blockedByHardRisk'));
+  assert.equal(output.decisionMode, 'no_entry');
+  assert.equal(output.vetoSummary.finalVeto.type, 'unload_mode');
+});
+
+test('meta runtime (sizing): adjustment blocked by hard-risk', () => {
+  const output = evaluateDynamicPositionSizing(createSizingInput({
+    runtimeGuards: { hardRiskBlocked: true, allowNewEntries: false, unloadMode: true },
+    mlMetaControllerOutput: {
+      metaAdjustmentSet: { sizingAggressivenessModifier: 0.1 },
+      allowedAdjustmentBounds: { sizingAggressivenessModifier: { min: -0.15, max: 0.15 } },
+    },
+  }), {});
+
+  const blocked = output.explanation.structured.metaRuntimeInfluence.events.find((e) => e.reasonCode === 'metaAdjustmentBlocked');
+  assert.ok(blocked);
+  assert.equal(blocked.blockedReason, 'blockedByHardRisk');
+  assert.ok(blocked.blockedReasons.includes('blockedByHardRisk'));
+  assert.equal(output.sizeMultiplier, 0);
+  assert.equal(output.leverageCap, 0);
+});
+
 test('meta runtime: no ownership takeover by meta-controller', () => {
   const finalOutput = evaluateFinalEntryDecision(createFinalInput({
     mlMetaControllerOutput: {
@@ -271,4 +309,38 @@ test('meta runtime: audit/event completeness и exchange-agnostic контрак
   assert.ok(Object.prototype.hasOwnProperty.call(event, 'affectedLayer'));
   assert.ok(Object.prototype.hasOwnProperty.call(event, 'metaFallbackState'));
   assert.equal(finalOutput.explanation.downstreamHints.multiExchangeAdaptationReady, true);
+});
+
+test('meta runtime: paper/live consistency for bounded adjustments', () => {
+  const liveOutput = evaluateFinalEntryDecision(createFinalInput({
+    context: { cycleId: 'c-39-paper-live-live', ticker: 'BTC-USDT', mode: 'live' },
+    mlMetaControllerOutput: {
+      metaAdjustmentSet: {
+        entryThresholdModifier: -0.02,
+        weakEntryBoundaryModifier: 0.01,
+      },
+      allowedAdjustmentBounds: {
+        entryThresholdModifier: { min: -0.05, max: 0.05 },
+        weakEntryBoundaryModifier: { min: -0.05, max: 0.05 },
+      },
+    },
+  }));
+
+  const paperOutput = evaluateFinalEntryDecision(createFinalInput({
+    context: { cycleId: 'c-39-paper-live-paper', ticker: 'BTC-USDT', mode: 'paper' },
+    mlMetaControllerOutput: {
+      metaAdjustmentSet: {
+        entryThresholdModifier: -0.02,
+        weakEntryBoundaryModifier: 0.01,
+      },
+      allowedAdjustmentBounds: {
+        entryThresholdModifier: { min: -0.05, max: 0.05 },
+        weakEntryBoundaryModifier: { min: -0.05, max: 0.05 },
+      },
+    },
+  }));
+
+  assert.equal(liveOutput.decisionMode, paperOutput.decisionMode);
+  assert.equal(liveOutput.thresholdsApplied.fullEntry, paperOutput.thresholdsApplied.fullEntry);
+  assert.equal(liveOutput.thresholdsApplied.weakEntry, paperOutput.thresholdsApplied.weakEntry);
 });
