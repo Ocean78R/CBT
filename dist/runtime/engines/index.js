@@ -119,11 +119,25 @@ function resolveMlPhase1IntegrationConfig(runtimeConfig = {}) {
 // Русский комментарий: движки пока выступают как адаптеры к существующим методам стратегии (fallback без изменения поведения).
 function createEngines(strategy) {
   const paperExecutor = createPaperTradingExecutor(strategy, strategy && strategy.config ? strategy.config : {});
-  const mlInferenceLayer = createMlInferenceLayer({}, {
-    log: (message) => {
-      if (strategy && typeof strategy.log === 'function') strategy.log(message);
-    },
-  });
+  const mlInferenceLayersByConfig = new Map();
+
+  function resolveMlLayer(config = {}) {
+    const key = JSON.stringify(config || {});
+    if (mlInferenceLayersByConfig.has(key)) {
+      return mlInferenceLayersByConfig.get(key);
+    }
+    const layer = createMlInferenceLayer(config, {
+      log: (message) => {
+        if (strategy && typeof strategy.log === 'function') strategy.log(message);
+      },
+    });
+    if (mlInferenceLayersByConfig.size > 12) {
+      const firstKey = mlInferenceLayersByConfig.keys().next().value;
+      mlInferenceLayersByConfig.delete(firstKey);
+    }
+    mlInferenceLayersByConfig.set(key, layer);
+    return layer;
+  }
 
   return {
     signalEngine: {
@@ -246,11 +260,7 @@ function createEngines(strategy) {
               || (((mlConfig || {}).budgets || {}).inferenceMs),
           },
         });
-        const localLayer = createMlInferenceLayer(normalizedMlConfig, {
-          log: (message) => {
-            if (strategy && typeof strategy.log === 'function') strategy.log(message);
-          },
-        });
+        const localLayer = resolveMlLayer(normalizedMlConfig);
 
         const governor = runtime && runtime.performanceGovernor && typeof runtime.performanceGovernor.registerLayerExecution === 'function'
           ? runtime.performanceGovernor
