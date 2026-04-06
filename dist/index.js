@@ -441,11 +441,19 @@ class BingxConnector {
     }
     getMarginMode(ticker) {
         return __awaiter(this, void 0, void 0, function* () {
-            const marginModeBingx = yield this.apiClient.getMarginMode(ticker);
-            if (!marginModeBingx || !marginModeBingx.marginType) {
-                throw new Error(`Margin mode is not available for ticker=[${ticker}]`);
+            try {
+                const marginModeBingx = yield this.apiClient.getMarginMode(ticker);
+                if (!marginModeBingx || !marginModeBingx.marginType) {
+                    state_1.loggerTab2.warn(`Margin mode is not available for ticker=[${ticker}], fallback to CROSS.`);
+                    return types_1.MarginType.cross;
+                }
+                return marginModeBingx.marginType === 'ISOLATED' ? types_1.MarginType.isolated : types_1.MarginType.cross;
             }
-            return marginModeBingx.marginType === 'ISOLATED' ? types_1.MarginType.isolated : types_1.MarginType.cross;
+            catch (error) {
+                state_1.loggerTab2.warn(`Failed to get margin mode for ticker=[${ticker}], fallback to CROSS.`);
+                state_1.loggerTab2.warnObj(error);
+                return types_1.MarginType.cross;
+            }
         });
     }
     getLeverage(ticker) {
