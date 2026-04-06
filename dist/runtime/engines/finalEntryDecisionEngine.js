@@ -233,6 +233,33 @@ function evaluateForecastVeto(forecastHook, config) {
   };
 }
 
+function resolveMetaRuntimeState(input = {}, bounds = {}) {
+  const output = input.mlMetaControllerOutput && typeof input.mlMetaControllerOutput === 'object'
+    ? input.mlMetaControllerOutput
+    : {};
+  const adjustmentSet = output.metaAdjustmentSet && typeof output.metaAdjustmentSet === 'object'
+    ? output.metaAdjustmentSet
+    : {};
+  const rawSuggestions = input.metaSuggestions && typeof input.metaSuggestions === 'object'
+    ? input.metaSuggestions
+    : {};
+  return {
+    output,
+    adjustmentSet,
+    rawSuggestions,
+    bounds: output.allowedAdjustmentBounds && typeof output.allowedAdjustmentBounds === 'object'
+      ? output.allowedAdjustmentBounds
+      : bounds,
+  };
+}
+
+function isOutOfBounds(rawSuggestions, key, bounds) {
+  if (!Object.prototype.hasOwnProperty.call(rawSuggestions, key)) return false;
+  const raw = Number(rawSuggestions[key]);
+  if (!Number.isFinite(raw)) return true;
+  return raw < bounds.min || raw > bounds.max;
+}
+
 function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
   const config = normalizeConfig(rawConfig);
   const componentScoresInput = input && typeof input.componentScores === 'object' && input.componentScores
@@ -262,6 +289,65 @@ function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
   const noTradeRegimeVeto = evaluateNoTradeRegimeVeto(input);
   const hardVeto = noTradeRegimeVeto || forecastHintVeto || pickHardRiskVeto(input, mergedVetoCandidates, config);
   const tightening = resolveTightening(config, input);
+  const metaRuntime = resolveMetaRuntimeState(input);
+  const metaReasonCodes = [];
+  const metaEvents = [];
+  const capitalRegime = input.capitalRegime || (input.balanceState || {}).capitalRegime || 'NORMAL';
+  const blockedByCapitalRegime = capitalRegime === 'HALT_NEW_ENTRIES' || capitalRegime === 'PROHIBIT_NEW_ENTRIES';
+  const blockedByForecast = !!forecastHintVeto;
+  const blockedByHardRisk = hardVeto && hardVeto.blocking === true;
+
+  let metaEntryThresholdDelta = 0;
+  let metaWeakBoundaryDelta = 0;
+  let metaFullBoundaryDelta = 0;
+  const requestGroups = [
+    { key: 'entryThresholdModifier', affectedLayer: 'finalEntryDecisionEngine.thresholds', ownerLayer: 'finalEntryDecisionEngine' },
+    { key: 'weakEntryBoundaryModifier', affectedLayer: 'finalEntryDecisionEngine.weakEntryBoundary', ownerLayer: 'finalEntryDecisionEngine' },
+    { key: 'fullEntryBoundaryModifier', affectedLayer: 'finalEntryDecisionEngine.fullEntryBoundary', ownerLayer: 'finalEntryDecisionEngine' },
+  ];
+  requestGroups.forEach((request) => {
+    const requestedValue = Number(metaRuntime.adjustmentSet[request.key] || 0);
+    if (!Number.isFinite(requestedValue) || requestedValue === 0) return;
+    metaEvents.push({
+      reasonCode: 'metaAdjustmentRequested',
+      adjustmentKey: request.key,
+      affectedLayer: request.affectedLayer,
+      ownerLayer: request.ownerLayer,
+      requestedValue,
+    });
+    const bounds = metaRuntime.bounds[request.key] || { min: 0, max: 0 };
+    const outOfBounds = isOutOfBounds(metaRuntime.rawSuggestions, request.key, bounds);
+    const blockedReasons = [];
+    if (outOfBounds) blockedReasons.push('metaAdjustmentOutOfBounds');
+    if (blockedByCapitalRegime) blockedReasons.push('blockedByCapitalRegime');
+    if (blockedByForecast) blockedReasons.push('blockedByForecast');
+    if (blockedByHardRisk) blockedReasons.push('blockedByHardRisk');
+    if (blockedReasons.length) {
+      metaReasonCodes.push('metaAdjustmentBlocked');
+      metaEvents.push({
+        reasonCode: 'metaAdjustmentBlocked',
+        adjustmentKey: request.key,
+        affectedLayer: request.affectedLayer,
+        ownerLayer: request.ownerLayer,
+        requestedValue,
+        appliedBounds: bounds,
+        blockedReasons,
+      });
+      return;
+    }
+    if (request.key === 'entryThresholdModifier') metaEntryThresholdDelta = requestedValue;
+    if (request.key === 'weakEntryBoundaryModifier') metaWeakBoundaryDelta = requestedValue;
+    if (request.key === 'fullEntryBoundaryModifier') metaFullBoundaryDelta = requestedValue;
+    metaReasonCodes.push('metaAdjustmentApplied');
+    metaEvents.push({
+      reasonCode: 'metaAdjustmentApplied',
+      adjustmentKey: request.key,
+      affectedLayer: request.affectedLayer,
+      ownerLayer: request.ownerLayer,
+      appliedValue: requestedValue,
+      appliedBounds: bounds,
+    });
+  });
   const unmetMinimumBlocks = config.minimumRequiredBlocks.filter((name) => !componentScores[name]);
   const minimumRequiredScorePerBlock = config.minimumRequiredBlocks.reduce((acc, name) => {
     const baseMinScore = config.minimumRequiredScorePerBlock[name] ?? 0;
@@ -313,8 +399,12 @@ function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
   const mlScoreDelta = mlApplied ? mlHook.scoreDelta : 0;
   const totalPenalty = appliedPenalties.reduce((sum, item) => sum + clamp01(item.value), 0);
   const entryScore = clamp01(weightedScore + mlScoreDelta - totalPenalty);
-  const fullEntryScoreThreshold = clamp01(config.entryScoreThreshold + tightening.fullEntryDelta);
-  const weakEntryScoreThreshold = clamp01(config.weakEntryThreshold + tightening.weakEntryDelta);
+  const fullEntryScoreThreshold = clamp01(config.entryScoreThreshold + tightening.fullEntryDelta + metaEntryThresholdDelta + metaFullBoundaryDelta);
+  const weakEntryScoreThreshold = clamp01(config.weakEntryThreshold + tightening.weakEntryDelta + metaWeakBoundaryDelta);
+  const weakEntryRange = {
+    min: clamp01(config.weakEntryRange.min + metaWeakBoundaryDelta),
+    max: clamp01(config.weakEntryRange.max + metaFullBoundaryDelta),
+  };
   const weakEntryAllowed = config.allowWeakEntryMode && !tightening.weakEntryForcedDisabled;
 
   let decisionMode = 'no_entry';
@@ -323,8 +413,8 @@ function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
     else if (
       weakEntryAllowed
       && entryScore >= weakEntryScoreThreshold
-      && entryScore >= config.weakEntryRange.min
-      && entryScore <= config.weakEntryRange.max
+      && entryScore >= weakEntryRange.min
+      && entryScore <= weakEntryRange.max
     ) {
       decisionMode = 'weak_entry';
     }
@@ -358,10 +448,7 @@ function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
       fullEntry: fullEntryScoreThreshold,
       weakEntry: weakEntryScoreThreshold,
       weakEntryAllowed,
-      weakEntryRange: {
-        min: config.weakEntryRange.min,
-        max: config.weakEntryRange.max,
-      },
+      weakEntryRange,
     },
     vetoSummary: {
       blocked: !!hardVeto,
@@ -398,7 +485,7 @@ function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
     },
     dataQualityState,
     explanation: {
-      reasonCodes,
+      reasonCodes: reasonCodes.concat(Array.from(new Set(metaReasonCodes))),
       hardVetoType: hardVeto ? hardVeto.type : 'none',
       softPenaltyTypes: appliedPenalties.map((item) => item.type),
       noTradeRegime: noTradeRegimeVeto ? 'active' : 'inactive',
@@ -415,6 +502,11 @@ function evaluateFinalEntryDecision(input = {}, rawConfig = {}, runtime = {}) {
         mlPhase1Ready: true,
         mlPhase2Ready: true,
         multiExchangeAdaptationReady: true,
+      },
+      metaRuntimeInfluence: {
+        enabled: metaEvents.length > 0,
+        reasonCodes: Array.from(new Set(metaReasonCodes)),
+        events: metaEvents,
       },
     },
   };
