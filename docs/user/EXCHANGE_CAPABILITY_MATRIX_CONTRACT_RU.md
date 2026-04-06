@@ -58,3 +58,32 @@
 - изменение decision логики шагов 24–39.
 
 Этот подэтап только готовит контрактный слой для следующих итераций.
+
+## 6) Подэтап 2: safe runtime/config integration (rollout-ready)
+Источник: `dist/runtime/exchange/exchangeRuntimeIntegration.js`, `dist/runtime/config/runtimeConfigValidator.js`.
+
+Добавлены обязательные config semantics:
+- `activeExchange`;
+- `exchangeCapabilitiesSource`;
+- `enableExchangeCapabilityChecks`;
+- `safeUnsupportedFeatureMode`;
+- `exchangeRestrictionPolicy`.
+
+Runtime wiring capability layer:
+- execution layers получают `executionContext` (feature gates + restriction context);
+- protective managers получают `protectiveContext` (TP/SL gates + lifecycle restrictions);
+- lifecycle/reconciliation получают `lifecycleContext/reconciliationContext`;
+- decision layers получают только минимальные входные flags (`requiresExplicitPositionSide`, `hasServerTakeProfitSupport`, `hasServerStopLossSupport`).
+
+Безопасность unsupported/partial features:
+- explicit fallback (`fallback`);
+- explicit disable (`disable`);
+- explicit block (`block`);
+- обязательные structured events без silent degradation.
+
+События для наблюдаемости:
+- `activeExchange`;
+- `capabilityCheckPassed`;
+- `capabilityCheckFailed`;
+- `unsupportedFeatureFallbackUsed`;
+- `exchangeRestrictionApplied`.

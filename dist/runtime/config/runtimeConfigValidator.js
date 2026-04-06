@@ -1,5 +1,7 @@
 'use strict';
 
+const { normalizeExchangeRuntimeConfig } = require('../exchange/exchangeRuntimeIntegration');
+
 // Русский комментарий: валидатор/нормализатор конфигурации с fallback на прежний merge-процесс.
 function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const coreConfig = utilsConfig.getCoreConfig(globalConfig);
@@ -19,6 +21,7 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const tradeAnalytics = merged.tradeAnalytics || {};
   const paperTrading = merged.paperTrading || {};
   const mlPhase1Integration = merged.mlPhase1Integration || {};
+  const exchangeLayer = merged.exchangeLayer || {};
   const mlDatasetBuilder = merged.mlDatasetBuilder || {};
   const higherTimeframeBiasEngine = merged.higherTimeframeBiasEngine || {};
   const confluenceEntryEngine = merged.confluenceEntryEngine || {};
@@ -134,6 +137,10 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const lifecycleRestrictedRules = positionLifecycle.restrictedLifecycleRules || {};
   const lifecycleForecastModifiers = positionLifecycle.forecastLifecycleModifiers || {};
   const lifecycleForecastHints = lifecycleForecastModifiers.hints || {};
+  const normalizedExchangeLayer = normalizeExchangeRuntimeConfig({
+    ...merged,
+    exchangeLayer,
+  });
 
   const normalized = {
     ...merged,
@@ -142,6 +149,12 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
     warningThresholdAboveMinBalance: Number(merged.warningThresholdAboveMinBalance || 0),
     loopsLength: Number(globalConfig.loopsLength || 0),
     intervalSeconds: Number(globalConfig.intervalSeconds || 1),
+    activeExchange: normalizedExchangeLayer.activeExchange,
+    exchangeCapabilitiesSource: normalizedExchangeLayer.exchangeCapabilitiesSource,
+    enableExchangeCapabilityChecks: normalizedExchangeLayer.enableExchangeCapabilityChecks,
+    safeUnsupportedFeatureMode: normalizedExchangeLayer.safeUnsupportedFeatureMode,
+    exchangeRestrictionPolicy: normalizedExchangeLayer.exchangeRestrictionPolicy,
+    exchangeLayer: normalizedExchangeLayer,
     executionContour: {
       enabled: executionContour.enabled !== false,
       queueLimit: Number(executionContour.queueLimit || 200),

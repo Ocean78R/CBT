@@ -682,3 +682,32 @@ Runtime-позиция слоя:
 - интерпретация `portfolioForecastEngine.restrictionHints` делается только внутри `finalEntryDecisionEngine`;
 - ML hooks подключаются как advisory (`scoreDelta/advisoryPenalty`) и не становятся final decision owner;
 - одинаковая decision-логика для `live` и `paper/shadow`, отличие только на execution-слое.
+
+## Новый блок `exchangeLayer` (шаг 40, подэтап 2)
+Назначение: безопасная runtime/config-интеграция capability matrix без смены ownership-path.
+
+Минимальные поля:
+- `activeExchange`: активная биржа рантайма (`bingx` остаётся baseline reference).
+- `exchangeCapabilitiesSource`: источник capability matrix (`matrix_step40a` по умолчанию).
+- `enableExchangeCapabilityChecks`: включает явные capability-checks в runtime.
+- `safeUnsupportedFeatureMode`: стратегия для unsupported features (`fallback | disable | block`).
+- `exchangeRestrictionPolicy`: политика применения ограничений (`enforce | warn_only | off`).
+
+Пример:
+```json
+{
+  "exchangeLayer": {
+    "activeExchange": "bingx",
+    "exchangeCapabilitiesSource": "matrix_step40a",
+    "enableExchangeCapabilityChecks": true,
+    "safeUnsupportedFeatureMode": "fallback",
+    "exchangeRestrictionPolicy": "enforce",
+    "bingxBaselineReference": true
+  }
+}
+```
+
+Гарантии подэтапа:
+- при `activeExchange=bingx` сохраняются текущие рабочие assumptions;
+- unsupported/partial capability не уходит в silent degradation (только explicit fallback/disable/block + events);
+- decision/sizing слои остаются exchange-agnostic, exchange-specific флаги попадают туда только в виде минимального набора input flags.
