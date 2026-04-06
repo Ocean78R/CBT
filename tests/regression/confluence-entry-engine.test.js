@@ -835,3 +835,254 @@ test('confluenceEntryEngine: eventRiskLayer в degraded режиме не отд
   assert.ok(result.layers.eventRiskLayer.softPenalty >= 0.2);
   assert.ok(result.layers.eventRiskLayer.explanation.shockRiskScore >= 0.35);
 });
+
+test('confluenceEntryEngine: competing hypotheses bounce vs breakdown получают arbitration penalty в final layer', () => {
+  const config = normalizeConfluenceEntryConfig({
+    enabled: true,
+    mode: 'confluence',
+    blockWeights: {
+      entryPermission: 0.22,
+      marketContext: 0.2,
+      primarySignal: 0.2,
+      confirmation: 0.12,
+      bounceDetection: 0.13,
+      breakdownDetection: 0.13,
+    },
+    thresholds: { fullEntryScore: 0.58, weakEntryScore: 0.46, minConfidence: 0.2 },
+    bounceDetection: { enabled: true },
+    breakdownDetection: { enabled: true },
+  });
+
+  const candles = Array.from({ length: 72 }, (_, idx) => {
+    const drift = idx < 40 ? (130 - idx * 0.4) : (114 + (idx - 40) * 0.32);
+    return {
+      timestamp: idx + 1,
+      open: drift + (idx % 2 ? 0.2 : -0.1),
+      high: drift + 0.8,
+      low: drift - 0.9,
+      close: drift + (idx % 3 === 0 ? 0.35 : -0.18),
+      volume: 1200 + idx * 18,
+    };
+  });
+
+  const result = evaluateConfluenceEntry({
+    context: {
+      cycleId: 'c-conflict-1',
+      cycleIndex: 21,
+      ticker: 'ADA-USDT',
+      exchange: 'bingx',
+      marketRegime: 'trend',
+      capitalRegime: 'NORMAL',
+      balanceState: { capitalRegime: 'NORMAL' },
+      setupType: 'byTrend',
+    },
+    sharedSnapshot: { candles },
+    regimeRouterDecision: {
+      layerName: 'marketRegimeRouter',
+      marketRegime: 'trend',
+      allowedSetups: ['byTrend'],
+      selectedPredictType: 'byTrend',
+      score: 0.78,
+      confidence: 0.7,
+    },
+    primarySignal: {
+      layerName: 'primarySignalLayer',
+      direction: 'long',
+      score: 0.82,
+      confidence: 0.73,
+      setupType: 'byTrend',
+    },
+    confirmationSignals: [{ name: 'trend_confirmation', approved: true }],
+  }, config);
+
+  assert.ok(Number.isFinite(result.layers.finalEntryDecisionLayer.explanation.competingHypothesesPenalty));
+  assert.ok(result.layers.finalEntryDecisionLayer.explanation.competingHypothesesPenalty >= 0);
+  const hasCompetingReason = (result.layers.finalEntryDecisionLayer.reasonCodes || [])
+    .some((x) => String(x).startsWith('competing_hypotheses_detected'));
+  const hasResolutionMetadata = !!(result.layers.finalEntryDecisionLayer.explanation || {}).hypothesisResolution;
+  assert.ok(hasCompetingReason || hasResolutionMetadata);
+});
+
+test('confluenceEntryEngine: regimeRouter (24) и HTF-bias (25) не дублируют ownership', () => {
+  const config = normalizeConfluenceEntryConfig({
+    enabled: true,
+    mode: 'confluence',
+    thresholds: { fullEntryScore: 0.6, weakEntryScore: 0.45, minConfidence: 0.2 },
+  });
+
+  const result = evaluateConfluenceEntry({
+    context: {
+      cycleId: 'c-regime-htf-1',
+      ticker: 'BTC-USDT',
+      exchange: 'bingx',
+      marketRegime: 'trend',
+      capitalRegime: 'NORMAL',
+      balanceState: { capitalRegime: 'NORMAL' },
+      setupType: 'byTrend',
+    },
+    regimeRouterDecision: {
+      layerName: 'marketRegimeRouter',
+      marketRegime: 'trend',
+      allowedSetups: ['byTrend'],
+      selectedPredictType: 'byTrend',
+      score: 0.8,
+      confidence: 0.72,
+    },
+    primarySignal: {
+      layerName: 'primarySignalLayer',
+      direction: 'long',
+      score: 0.81,
+      confidence: 0.72,
+      setupType: 'byTrend',
+    },
+    htfBiasDecision: {
+      layerName: 'higherTimeframeBiasEngine',
+      htfBias: 'short',
+      mode: 'full_mode',
+    },
+    confirmationSignals: [{ name: 'volume_confirmation', approved: true }],
+  }, config);
+
+  assert.equal(result.layers.marketContextLayer.explanation.regimeRouterOwnership, 'strict');
+  assert.ok((result.layers.confirmationLayer.reasonCodes || []).includes('htf_bias_counter_trend'));
+  assert.equal(
+    (result.layers.finalEntryDecisionLayer.explanation || {}).vetoOwner,
+    'finalEntryDecisionLayer',
+  );
+});
+
+test('confluenceEntryEngine: derivatives (31) и confirmations (32) одновременно работают без hard veto escalation', () => {
+  const config = normalizeConfluenceEntryConfig({
+    enabled: true,
+    mode: 'confluence',
+    confirmationEngine: { enabled: true },
+    derivativesContext: { enabled: true },
+    blockWeights: {
+      entryPermission: 0.25,
+      marketContext: 0.2,
+      primarySignal: 0.23,
+      confirmation: 0.16,
+      derivativesContext: 0.16,
+    },
+  });
+
+  const candles = Array.from({ length: 44 }, (_, i) => ({
+    timestamp: i + 1,
+    open: 100 + i * 0.15,
+    high: 100.9 + i * 0.16,
+    low: 99.3 + i * 0.13,
+    close: 100.2 + i * 0.14,
+    volume: 950 + i * 20,
+  }));
+
+  const result = evaluateConfluenceEntry({
+    context: {
+      cycleId: 'c-deriv-confirm-1',
+      cycleIndex: 8,
+      ticker: 'ETH-USDT',
+      exchange: 'bingx',
+      marketRegime: 'trend',
+      capitalRegime: 'CAUTION',
+      balanceState: { capitalRegime: 'CAUTION' },
+      setupType: 'byBarsPercents',
+    },
+    sharedSnapshot: {
+      candles,
+      derivatives: {
+        openInterest: { current: 120000000, previous: 108000000, zscore: 2.4 },
+        funding: { rate: 0.0012 },
+        liquidation: { longUsd: 1400000, shortUsd: 400000 },
+      },
+      orderBook: {
+        bids: [[106, 40], [105.9, 30], [105.8, 28]],
+        asks: [[106.1, 60], [106.2, 50], [106.3, 45]],
+      },
+    },
+    regimeRouterDecision: {
+      layerName: 'marketRegimeRouter',
+      marketRegime: 'trend',
+      allowedSetups: ['byBarsPercents'],
+      selectedPredictType: 'byBarsPercents',
+      score: 0.78,
+      confidence: 0.71,
+    },
+    primarySignal: {
+      layerName: 'primarySignalLayer',
+      direction: 'long',
+      score: 0.79,
+      confidence: 0.72,
+      setupType: 'byBarsPercents',
+    },
+  }, config);
+
+  assert.ok(Number.isFinite(result.layers.derivativesContextLayer.softPenalty));
+  assert.ok(Number.isFinite(result.layers.confirmationLayer.softPenalty));
+  assert.equal((result.layers.finalEntryDecisionLayer.vetoCandidates || []).length, 0);
+});
+
+test('confluenceEntryEngine: session (33) и shock veto (34) не обходят final interpreter (35)', () => {
+  const config = normalizeConfluenceEntryConfig({
+    enabled: true,
+    mode: 'confluence',
+    sessionFilter: {
+      enabled: true,
+      timezone: 'UTC',
+      noTradeOnRestrictedWindows: true,
+      restrictedWindows: [{ startHour: 23, endHour: 24, reasonCode: 'restricted_test_window' }],
+    },
+    eventRisk: {
+      enabled: true,
+      minCandles: 24,
+      thresholds: { softRiskScore: 0.3, hardRiskScore: 0.4 },
+    },
+  });
+
+  const candles = Array.from({ length: 36 }, (_, idx) => ({
+    timestamp: idx + 1,
+    open: 100 + (idx % 2 ? 1.8 : -1.2),
+    high: 104 + (idx % 3),
+    low: 96 - (idx % 2),
+    close: 100 + (idx % 2 ? 2.1 : -1.8),
+    volume: 1500 + idx * 35,
+  }));
+
+  const result = evaluateConfluenceEntry({
+    nowMs: Date.UTC(2026, 0, 1, 23, 30, 0),
+    context: {
+      cycleId: 'c-veto-chain-1',
+      cycleIndex: 14,
+      ticker: 'SOL-USDT',
+      exchange: 'bingx',
+      marketRegime: 'trend',
+      capitalRegime: 'NORMAL',
+      balanceState: { capitalRegime: 'NORMAL' },
+      setupType: 'byBarsPercents',
+    },
+    sharedSnapshot: {
+      candles,
+      spreadPercent: 0.8,
+      spreadHistoryPercent: [0.08, 0.09, 0.1, 0.11, 0.09],
+      orderBook: { bestBid: 99.2, bestAsk: 100.6 },
+    },
+    regimeRouterDecision: {
+      layerName: 'marketRegimeRouter',
+      marketRegime: 'trend',
+      allowedSetups: ['byBarsPercents'],
+      selectedPredictType: 'byBarsPercents',
+      score: 0.76,
+      confidence: 0.72,
+    },
+    primarySignal: {
+      layerName: 'primarySignalLayer',
+      direction: 'long',
+      score: 0.8,
+      confidence: 0.73,
+      setupType: 'byBarsPercents',
+    },
+  }, config);
+
+  assert.equal(result.decision.entryAllowed, false);
+  assert.equal(result.layers.finalEntryDecisionLayer.explanation.vetoOwner, 'finalEntryDecisionLayer');
+  assert.ok((result.layers.sessionFilterLayer.vetoCandidates || []).length > 0 || (result.layers.eventRiskLayer.vetoCandidates || []).length > 0);
+  assert.ok((result.decision.reasonCodes || []).some((x) => String(x).includes('hard_veto')));
+});

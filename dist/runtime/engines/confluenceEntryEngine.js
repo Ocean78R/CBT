@@ -632,8 +632,62 @@ function combineLayerScores(layers, config) {
   };
 }
 
+function resolveCompetingHypotheses(layers = {}) {
+  const primaryDirection = normalizeDirection((layers.primarySignalLayer || {}).direction);
+  const bounce = layers.bounceDetectionLayer || {};
+  const breakdown = layers.breakdownDetectionLayer || {};
+  const bounceDirection = normalizeDirection(bounce.direction);
+  const breakdownDirection = normalizeDirection(breakdown.direction);
+  const bounceScore = clamp01(Number(bounce.score || 0));
+  const breakdownScore = clamp01(Number(breakdown.score || 0));
+  const conflictThreshold = 0.55;
+
+  let penalty = 0;
+  const reasonCodes = [];
+  const arbitration = {
+    primaryDirection,
+    conflictDetected: false,
+    winner: 'none',
+    loser: 'none',
+  };
+
+  if (bounceDirection !== 'none' && breakdownDirection !== 'none'
+    && bounceDirection !== breakdownDirection
+    && bounceScore >= conflictThreshold
+    && breakdownScore >= conflictThreshold) {
+    arbitration.conflictDetected = true;
+    if (bounceScore >= breakdownScore) {
+      arbitration.winner = 'bounceDetectionLayer';
+      arbitration.loser = 'breakdownDetectionLayer';
+    } else {
+      arbitration.winner = 'breakdownDetectionLayer';
+      arbitration.loser = 'bounceDetectionLayer';
+    }
+    penalty = clamp01(penalty + 0.12);
+    reasonCodes.push('competing_hypotheses_detected:bounce_vs_breakdown');
+  }
+
+  if (primaryDirection === 'long' && breakdownDirection === 'short' && breakdownScore >= conflictThreshold) {
+    arbitration.conflictDetected = true;
+    penalty = clamp01(penalty + Math.min(0.12, breakdownScore * 0.16));
+    reasonCodes.push('competing_hypotheses_detected:breakdown_vs_long_primary');
+  }
+  if (primaryDirection === 'short' && bounceDirection === 'long' && bounceScore >= conflictThreshold) {
+    arbitration.conflictDetected = true;
+    penalty = clamp01(penalty + Math.min(0.12, bounceScore * 0.16));
+    reasonCodes.push('competing_hypotheses_detected:bounce_vs_short_primary');
+  }
+
+  return {
+    penalty: clamp01(penalty),
+    reasonCodes,
+    arbitration,
+  };
+}
+
 function evaluateFinalEntryDecisionLayer(input, config, layers) {
   const combined = combineLayerScores(layers, config);
+  const hypothesisResolution = resolveCompetingHypotheses(layers);
   const metaOutput = input.mlMetaControllerOutput && typeof input.mlMetaControllerOutput === 'object'
     ? input.mlMetaControllerOutput
     : {};
@@ -767,7 +821,7 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
   if (hardVeto) reasonCodes.push(`hard_veto:${hardVeto.reason || hardVeto.type}`);
   if (combined.confidence < config.thresholds.minConfidence) reasonCodes.push('confidence_below_threshold');
 
-  const finalScore = clamp01(combined.score - combined.softPenalty + metaShortlistDelta + regimeDelta);
+  const finalScore = clamp01(combined.score - combined.softPenalty - hypothesisResolution.penalty + metaShortlistDelta + regimeDelta);
   let finalDecision = 'NO_ENTRY';
 
   if (!hardVeto && combined.confidence >= config.thresholds.minConfidence) {
@@ -795,7 +849,7 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
     ],
     metadata: {
       layerScores: layers,
-      reasonCodes: reasonCodes.concat(Array.from(new Set(metaReasonCodes))),
+      reasonCodes: reasonCodes.concat(Array.from(new Set(metaReasonCodes))).concat(hypothesisResolution.reasonCodes),
       finalDecision,
       fallbackAction: finalDecision === 'NO_ENTRY' ? 'legacy_entry_flow' : 'none',
       setupType: (layers.marketContextLayer && layers.marketContextLayer.explanation.selectedSetup) || 'unknown',
@@ -806,6 +860,7 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
       confirmationContext: (layers.confirmationLayer || {}).explanation || {},
       sessionContext: (layers.sessionFilterLayer || {}).explanation || {},
       eventRisk: (layers.eventRiskLayer || {}).explanation || {},
+      hypothesisResolution: hypothesisResolution.arbitration,
     },
   });
 
@@ -816,10 +871,11 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
     softPenalty: combined.softPenalty,
     vetoCandidates: hardVeto ? [hardVeto] : [],
     dataQualityState: Object.values(layers).some((layer) => layer.dataQualityState === 'degraded') ? 'degraded' : 'full',
-    reasonCodes,
+    reasonCodes: reasonCodes.concat(hypothesisResolution.reasonCodes),
     explanation: {
       aggregateScoreRaw: combined.score,
       aggregatePenalty: combined.softPenalty,
+      competingHypothesesPenalty: hypothesisResolution.penalty,
       finalScore,
       finalDecision,
       decisionClassifiedByContract: classifyDecision(decisionContext),
@@ -830,6 +886,7 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
         metaFallbackState: metaOutput.metaControllerFallbackState || 'none',
         events: metaEvents,
       },
+      hypothesisResolution: hypothesisResolution.arbitration,
     },
   });
 }
