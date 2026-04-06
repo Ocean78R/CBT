@@ -153,6 +153,22 @@ test('mlPhase1DecisionModifier: ML не может override forecast prohibition
   assert.equal(output.ownership.baselineDecisionOwner, 'finalEntryDecisionEngine');
 });
 
+test('mlPhase1DecisionModifier: ML не может обходить hard-risk guards', () => {
+  const modifier = createMlPhase1DecisionModifier({ mode: 'confirm_only' });
+  const output = modifier.evaluate({
+    baseRuleDecision: createBaseRuleDecision({ decisionMode: 'full_entry' }),
+    mlInferenceOutput: createMlOutput({ mlScore: 0.99, mlConfidence: 0.99 }),
+    capitalRegime: 'NORMAL',
+    balanceState: { capitalRegime: 'NORMAL', unloadMode: false },
+    runtimeGuards: { hardRiskBlocked: true },
+  });
+
+  assert.equal(output.effectiveDecisionMode, 'no_entry');
+  assert.equal(output.effectiveApproved, false);
+  assert.equal(output.mlBlockedByHardRisk, true);
+  assert.equal(output.ownership.isFinalVetoOwnerForNewEntries, false);
+});
+
 test('mlPhase1DecisionModifier: structured logging содержит обязательные ML поля', () => {
   const logs = [];
   const modifier = createMlPhase1DecisionModifier({
