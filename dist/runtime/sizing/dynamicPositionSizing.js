@@ -173,6 +173,10 @@ function evaluateDynamicPositionSizing(input = {}, rawConfig = {}, runtime = {})
     finalLeverageCap: 0,
     sizingReasonCodes: reasonCodes,
     runtimeMode,
+    metaRuntimeInfluence: {
+      reasonCodes: [],
+      events: [],
+    },
   };
 
   if (hardBlocked) {
@@ -306,6 +310,58 @@ function evaluateDynamicPositionSizing(input = {}, rawConfig = {}, runtime = {})
         owner: 'ml_phase1_hint_only',
       };
     }
+
+    const metaOutput = input.mlMetaControllerOutput && typeof input.mlMetaControllerOutput === 'object'
+      ? input.mlMetaControllerOutput
+      : {};
+    const metaSet = metaOutput.metaAdjustmentSet && typeof metaOutput.metaAdjustmentSet === 'object'
+      ? metaOutput.metaAdjustmentSet
+      : {};
+    const metaBounds = metaOutput.allowedAdjustmentBounds && typeof metaOutput.allowedAdjustmentBounds === 'object'
+      ? metaOutput.allowedAdjustmentBounds
+      : {};
+    const requestedSizingModifier = Number(metaSet.sizingAggressivenessModifier || 0);
+    if (config.mlCompatibilityHooks.phase2BoundedAdjustmentHookEnabled && Number.isFinite(requestedSizingModifier) && requestedSizingModifier !== 0) {
+      const blockedReasons = [];
+      const forecastBlocked = String((forecastPayload.reductionHint || '')).toLowerCase() === 'strong'
+        || String((forecastPayload.aggressionCap || '')).toLowerCase() === 'defensive';
+      if (hardBlocked) blockedReasons.push('blockedByHardRisk');
+      if (capitalRegime === 'HALT_NEW_ENTRIES' || capitalRegime === 'PROHIBIT_NEW_ENTRIES') blockedReasons.push('blockedByCapitalRegime');
+      if (forecastBlocked) blockedReasons.push('blockedByForecast');
+      structuredDetails.metaRuntimeInfluence.events.push({
+        reasonCode: 'metaAdjustmentRequested',
+        adjustmentKey: 'sizingAggressivenessModifier',
+        affectedLayer: 'dynamicPositionSizing',
+        ownerLayer: 'dynamicPositionSizing',
+        requestedValue: requestedSizingModifier,
+      });
+      if (blockedReasons.length) {
+        structuredDetails.metaRuntimeInfluence.reasonCodes.push('metaAdjustmentBlocked');
+        structuredDetails.metaRuntimeInfluence.events.push({
+          reasonCode: 'metaAdjustmentBlocked',
+          adjustmentKey: 'sizingAggressivenessModifier',
+          affectedLayer: 'dynamicPositionSizing',
+          ownerLayer: 'dynamicPositionSizing',
+          appliedBounds: metaBounds.sizingAggressivenessModifier || null,
+          blockedReasons,
+        });
+      } else {
+        const deltaLimit = config.mlCompatibilityHooks.phase2BoundedAdjustmentLimits.multiplierDeltaAbsMax;
+        const boundedDelta = clamp(requestedSizingModifier, -deltaLimit, deltaLimit);
+        sizeMultiplier = clamp(sizeMultiplier + boundedDelta, 0, 1);
+        reasonCodes.push('ml_phase2_sizing_aggressiveness_modifier');
+        structuredDetails.metaRuntimeInfluence.reasonCodes.push('metaAdjustmentApplied');
+        structuredDetails.metaRuntimeInfluence.events.push({
+          reasonCode: 'metaAdjustmentApplied',
+          adjustmentKey: 'sizingAggressivenessModifier',
+          affectedLayer: 'dynamicPositionSizing',
+          ownerLayer: 'dynamicPositionSizing',
+          appliedValue: boundedDelta,
+          appliedBounds: metaBounds.sizingAggressivenessModifier || null,
+        });
+      }
+    }
+
     structuredDetails.forecastSizingAdjustment = {
       hookEnabled: config.forecastSizingHooks.enabled,
       multiplierFromForecast: Number(clamp(forecastPayload.multiplier, 0, 1).toFixed(8)),

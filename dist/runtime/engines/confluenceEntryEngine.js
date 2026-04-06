@@ -634,14 +634,118 @@ function combineLayerScores(layers, config) {
 
 function evaluateFinalEntryDecisionLayer(input, config, layers) {
   const combined = combineLayerScores(layers, config);
+  const metaOutput = input.mlMetaControllerOutput && typeof input.mlMetaControllerOutput === 'object'
+    ? input.mlMetaControllerOutput
+    : {};
+  const metaSet = metaOutput.metaAdjustmentSet && typeof metaOutput.metaAdjustmentSet === 'object'
+    ? metaOutput.metaAdjustmentSet
+    : {};
+  const metaBounds = metaOutput.allowedAdjustmentBounds && typeof metaOutput.allowedAdjustmentBounds === 'object'
+    ? metaOutput.allowedAdjustmentBounds
+    : {};
+  const metaEvents = [];
+  const metaReasonCodes = [];
   const allVetoes = Object.values(layers).flatMap((layer) => (Array.isArray(layer.vetoCandidates) ? layer.vetoCandidates : []));
   const hardVeto = allVetoes.find((v) => v && (v.type === 'hard_veto' || v.type === 'capital_prohibition' || v.type === 'no_trade_regime')) || null;
+  const capitalRegime = (input.context || {}).capitalRegime || ((input.balanceState || {}).capitalRegime) || 'NORMAL';
+  const blockedByCapitalRegime = capitalRegime === 'HALT_NEW_ENTRIES' || capitalRegime === 'PROHIBIT_NEW_ENTRIES';
+  const forecastHints = (((input.portfolioForecast || {}).restrictionHints) || []);
+  const blockedByForecast = forecastHints.includes('restrict_new_entries_hard_candidate') || forecastHints.includes('restrict_new_entries_hard');
+  const blockedByHardRisk = !!hardVeto;
+  const marketRegime = ((layers.marketContextLayer || {}).explanation || {}).marketRegime || ((input.context || {}).marketRegime) || 'unknown';
+
+  let metaShortlistDelta = 0;
+  const shortlistModifier = Number(metaSet.shortlistRankingModifier || 0);
+  if (Number.isFinite(shortlistModifier) && shortlistModifier !== 0) {
+    metaEvents.push({
+      reasonCode: 'metaAdjustmentRequested',
+      adjustmentKey: 'shortlistRankingModifier',
+      affectedLayer: 'confluenceEntryEngine.shortlistRanking',
+      ownerLayer: 'confluenceEntryEngine',
+      requestedValue: shortlistModifier,
+    });
+    const blockedReasons = [];
+    if (blockedByCapitalRegime) blockedReasons.push('blockedByCapitalRegime');
+    if (blockedByForecast) blockedReasons.push('blockedByForecast');
+    if (blockedByHardRisk) blockedReasons.push('blockedByHardRisk');
+    if (blockedReasons.length) {
+      metaReasonCodes.push('metaAdjustmentBlocked');
+      metaEvents.push({
+        reasonCode: 'metaAdjustmentBlocked',
+        adjustmentKey: 'shortlistRankingModifier',
+        affectedLayer: 'confluenceEntryEngine.shortlistRanking',
+        ownerLayer: 'confluenceEntryEngine',
+        appliedBounds: metaBounds.shortlistRankingModifier || null,
+        blockedReasons,
+      });
+    } else {
+      metaShortlistDelta = shortlistModifier;
+      metaReasonCodes.push('metaAdjustmentApplied');
+      metaEvents.push({
+        reasonCode: 'metaAdjustmentApplied',
+        adjustmentKey: 'shortlistRankingModifier',
+        affectedLayer: 'confluenceEntryEngine.shortlistRanking',
+        ownerLayer: 'confluenceEntryEngine',
+        appliedValue: shortlistModifier,
+        appliedBounds: metaBounds.shortlistRankingModifier || null,
+      });
+    }
+  }
+
+  let regimeDelta = 0;
+  const regimeWeights = metaSet.regimePreferenceWeights && typeof metaSet.regimePreferenceWeights === 'object'
+    ? metaSet.regimePreferenceWeights
+    : null;
+  const regimeKeyMap = {
+    trend: 'trend',
+    range: 'meanReversion',
+    pullback: 'breakoutRejection',
+    no_trade_flat: 'noTradeFlat',
+  };
+  const regimeKey = regimeKeyMap[marketRegime] || null;
+  if (regimeWeights && regimeKey && Number.isFinite(Number(regimeWeights[regimeKey])) && Number(regimeWeights[regimeKey]) !== 0) {
+    metaEvents.push({
+      reasonCode: 'metaAdjustmentRequested',
+      adjustmentKey: 'regimePreferenceWeights',
+      affectedLayer: 'confluenceEntryEngine.regimePreferenceWeights',
+      ownerLayer: 'marketRegimeRouter',
+      requestedValue: Number(regimeWeights[regimeKey]),
+      regimeKey,
+    });
+    const blockedReasons = [];
+    if (blockedByCapitalRegime) blockedReasons.push('blockedByCapitalRegime');
+    if (blockedByForecast) blockedReasons.push('blockedByForecast');
+    if (blockedByHardRisk) blockedReasons.push('blockedByHardRisk');
+    if (blockedReasons.length) {
+      metaReasonCodes.push('metaAdjustmentBlocked');
+      metaEvents.push({
+        reasonCode: 'metaAdjustmentBlocked',
+        adjustmentKey: 'regimePreferenceWeights',
+        affectedLayer: 'confluenceEntryEngine.regimePreferenceWeights',
+        ownerLayer: 'marketRegimeRouter',
+        appliedBounds: (metaBounds.regimePreferenceWeights || {})[regimeKey] || null,
+        blockedReasons,
+      });
+    } else {
+      regimeDelta = Number(regimeWeights[regimeKey]);
+      metaReasonCodes.push('metaAdjustmentApplied');
+      metaEvents.push({
+        reasonCode: 'metaAdjustmentApplied',
+        adjustmentKey: 'regimePreferenceWeights',
+        affectedLayer: 'confluenceEntryEngine.regimePreferenceWeights',
+        ownerLayer: 'marketRegimeRouter',
+        regimeKey,
+        appliedValue: regimeDelta,
+        appliedBounds: (metaBounds.regimePreferenceWeights || {})[regimeKey] || null,
+      });
+    }
+  }
 
   const reasonCodes = [];
   if (hardVeto) reasonCodes.push(`hard_veto:${hardVeto.reason || hardVeto.type}`);
   if (combined.confidence < config.thresholds.minConfidence) reasonCodes.push('confidence_below_threshold');
 
-  const finalScore = clamp01(combined.score - combined.softPenalty);
+  const finalScore = clamp01(combined.score - combined.softPenalty + metaShortlistDelta + regimeDelta);
   let finalDecision = 'NO_ENTRY';
 
   if (!hardVeto && combined.confidence >= config.thresholds.minConfidence) {
@@ -669,7 +773,7 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
     ],
     metadata: {
       layerScores: layers,
-      reasonCodes,
+      reasonCodes: reasonCodes.concat(Array.from(new Set(metaReasonCodes))),
       finalDecision,
       fallbackAction: finalDecision === 'NO_ENTRY' ? 'legacy_entry_flow' : 'none',
       setupType: (layers.marketContextLayer && layers.marketContextLayer.explanation.selectedSetup) || 'unknown',
@@ -699,6 +803,10 @@ function evaluateFinalEntryDecisionLayer(input, config, layers) {
       decisionClassifiedByContract: classifyDecision(decisionContext),
       // Русский комментарий: final layer — единственная точка интерпретации veto-контракта.
       vetoOwner: 'finalEntryDecisionLayer',
+      metaRuntimeInfluence: {
+        reasonCodes: Array.from(new Set(metaReasonCodes)),
+        events: metaEvents,
+      },
     },
   });
 }
