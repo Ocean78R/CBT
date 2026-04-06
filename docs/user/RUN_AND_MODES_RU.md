@@ -35,3 +35,27 @@
 - Отличие от live только на execution-слое: сигналы, risk-контуры, capitalRegime/balanceState и forecast-слои остаются теми же.
 - Реальные ордера не отправляются: вместо этого выполняется виртуальный lifecycle (open/average/close).
 - Для сравнимости с live поддерживается тот же DecisionContext и общий runtime-пайплайн до execution ownership path.
+
+### 5) Safe Canary Live (первый запуск с реальными деньгами)
+Используйте preset `safeStartupPresets.liveCanaryV1` из `dist/_config/config.json` как стартовую точку.
+Для запуска с time-limit используйте `npm run run:safe-canary` (обёртка с `timeout`, по умолчанию 20 минут; override: `CBT_CANARY_MAX_RUNTIME_MINUTES`).
+
+Рекомендуемый профиль:
+1. Оставить только 1–2 тикера (`allowedTickers`, `maxTickers=2`).
+2. Выставить минимальный размер позиции (`minPositionMarginSize`, плюс минимальный `singleSetts.marginSize`).
+3. Отключить weak entry (`decision.disableWeakEntry=true`).
+4. Отключить averaging (`execution.disableAveraging=true` и `singleSetts.averagingProtection.enabled=true`).
+5. Зафиксировать максимально защитный capital regime (`risk.forceCapitalRegime=CAPITAL_PRESERVATION`).
+6. Включить полный decision trace (`observability.fullDecisionTrace=true`, `logger.runtime.enabled=true`, sampling=100%).
+7. Включить авто-остановку:
+   - после первого завершённого цикла (`stopAfterCompletedCycles=1`, плюс `loopsLength=1`),
+   - либо по времени (`maxRuntimeMinutes`, запуск через `timeout`).
+
+### Предзапусковый checklist для live
+Перед первым live-стартом все пункты должны быть `true` в `preLiveChecklist`:
+- `configSanity`,
+- `modelAvailability`,
+- `exchangeCapabilityChecks`,
+- `protectiveManagersReady`,
+- `paperModeLastPassCompleted`,
+- `restartSafetyConfirmed`.

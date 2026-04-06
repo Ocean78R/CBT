@@ -3071,6 +3071,44 @@
   "loopsLength": 12000,
   "minBalance": 100,
   "warningThresholdAboveMinBalance": 25,
+  "safeStartupPresets": {
+    "liveCanaryV1": {
+      "enabled": true,
+      "description": "Максимально ограниченный first-live canary с авто-остановкой",
+      "execution": {
+        "allowedTickers": [
+          "BTC",
+          "ETH"
+        ],
+        "maxTickers": 2,
+        "minPositionMarginSize": 2,
+        "disableAveraging": true
+      },
+      "decision": {
+        "disableWeakEntry": true
+      },
+      "risk": {
+        "forceCapitalRegime": "CAPITAL_PRESERVATION",
+        "maxNewEntriesPerCycle": 1,
+        "maxNewEntriesPerDay": 1
+      },
+      "observability": {
+        "fullDecisionTrace": true
+      },
+      "stopConditions": {
+        "stopAfterCompletedCycles": 1,
+        "maxRuntimeMinutes": 20
+      }
+    }
+  },
+  "preLiveChecklist": {
+    "configSanity": true,
+    "modelAvailability": true,
+    "exchangeCapabilityChecks": true,
+    "protectiveManagersReady": true,
+    "paperModeLastPassCompleted": true,
+    "restartSafetyConfirmed": true
+  },
   "paperTrading": {
     "enabled": false,
     "mode": "paper",

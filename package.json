@@ -8,6 +8,7 @@
     "test:architecture": "node --test tests/architecture/*.test.js",
     "test": "npm run test:smoke && npm run test:architecture && npm run test:docs && npm run test:regression",
     "test:docs": "node --test tests/docs/*.test.js",
+    "run:safe-canary": "bash scripts/safety/run-safe-canary.sh",
     "ml:train:entry-quality": "node scripts/ml/train-entry-quality.js",
     "test:smoke": "node --test tests/smoke/*.test.js"
   }

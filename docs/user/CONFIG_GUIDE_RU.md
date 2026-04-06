@@ -15,6 +15,32 @@
 - риск-лимиты в согласованных границах,
 - флаги наблюдаемости/отчётности.
 
+## Safe startup preset для first-live
+В конфиге добавлены отдельные блоки:
+
+- `safeStartupPresets.liveCanaryV1` — готовый безопасный профиль первого live-запуска.
+- `preLiveChecklist` — обязательный предзапусковый контроль.
+
+Ключи `safeStartupPresets.liveCanaryV1`:
+- `execution.allowedTickers`: разрешённый whitelist (рекомендуется 1–2 тикера).
+- `execution.maxTickers`: верхний лимит количества тикеров.
+- `execution.minPositionMarginSize`: минимальный размер позиции для canary-режима.
+- `execution.disableAveraging`: запрет усреднений в canary.
+- `decision.disableWeakEntry`: запрет weak-entry режима.
+- `risk.forceCapitalRegime`: целевой защитный режим (`CAPITAL_PRESERVATION`).
+- `risk.maxNewEntriesPerCycle / maxNewEntriesPerDay`: жёсткие лимиты новых входов.
+- `observability.fullDecisionTrace`: полный trace decision-path.
+- `stopConditions.stopAfterCompletedCycles`: остановка после N завершённых циклов (для first-live: `1`).
+- `stopConditions.maxRuntimeMinutes`: time-limit на запуск canary.
+
+Ключи `preLiveChecklist`:
+- `configSanity`,
+- `modelAvailability`,
+- `exchangeCapabilityChecks`,
+- `protectiveManagersReady`,
+- `paperModeLastPassCompleted`,
+- `restartSafetyConfirmed`.
+
 ## Новый блок антикризисного режима разгрузки
 Пример в `dist/_config/config.json`:
 

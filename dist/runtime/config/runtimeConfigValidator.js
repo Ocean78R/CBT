@@ -28,6 +28,14 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
   const finalEntryDecisionEngine = merged.finalEntryDecisionEngine || {};
   const dynamicPositionSizing = merged.dynamicPositionSizing || {};
   const mlMetaController = merged.mlMetaController || merged.mlPhase2MetaController || {};
+  const safeStartupPresets = merged.safeStartupPresets || {};
+  const liveCanaryPreset = safeStartupPresets.liveCanaryV1 || {};
+  const liveCanaryExecution = liveCanaryPreset.execution || {};
+  const liveCanaryDecision = liveCanaryPreset.decision || {};
+  const liveCanaryRisk = liveCanaryPreset.risk || {};
+  const liveCanaryObservability = liveCanaryPreset.observability || {};
+  const liveCanaryStopConditions = liveCanaryPreset.stopConditions || {};
+  const preLiveChecklist = merged.preLiveChecklist || {};
 
   const observabilityReporting = merged.observabilityReporting || {};
   const observabilitySampling = observabilityReporting.sampling || {};
@@ -149,6 +157,41 @@ function buildRuntimeConfig(utilsConfig, globalConfig, exchangeConfig) {
     warningThresholdAboveMinBalance: Number(merged.warningThresholdAboveMinBalance || 0),
     loopsLength: Number(globalConfig.loopsLength || 0),
     intervalSeconds: Number(globalConfig.intervalSeconds || 1),
+    safeStartupPresets: {
+      liveCanaryV1: {
+        enabled: !!liveCanaryPreset.enabled,
+        description: liveCanaryPreset.description || 'safe_live_canary_v1',
+        execution: {
+          allowedTickers: Array.isArray(liveCanaryExecution.allowedTickers) ? liveCanaryExecution.allowedTickers : [],
+          maxTickers: Number(liveCanaryExecution.maxTickers || 2),
+          minPositionMarginSize: Number(liveCanaryExecution.minPositionMarginSize || 0),
+          disableAveraging: liveCanaryExecution.disableAveraging !== false,
+        },
+        decision: {
+          disableWeakEntry: liveCanaryDecision.disableWeakEntry !== false,
+        },
+        risk: {
+          forceCapitalRegime: liveCanaryRisk.forceCapitalRegime || 'CAPITAL_PRESERVATION',
+          maxNewEntriesPerCycle: Number(liveCanaryRisk.maxNewEntriesPerCycle || 1),
+          maxNewEntriesPerDay: Number(liveCanaryRisk.maxNewEntriesPerDay || 1),
+        },
+        observability: {
+          fullDecisionTrace: liveCanaryObservability.fullDecisionTrace !== false,
+        },
+        stopConditions: {
+          stopAfterCompletedCycles: Number(liveCanaryStopConditions.stopAfterCompletedCycles || 1),
+          maxRuntimeMinutes: Number(liveCanaryStopConditions.maxRuntimeMinutes || 20),
+        },
+      },
+    },
+    preLiveChecklist: {
+      configSanity: preLiveChecklist.configSanity !== false,
+      modelAvailability: preLiveChecklist.modelAvailability !== false,
+      exchangeCapabilityChecks: preLiveChecklist.exchangeCapabilityChecks !== false,
+      protectiveManagersReady: preLiveChecklist.protectiveManagersReady !== false,
+      paperModeLastPassCompleted: preLiveChecklist.paperModeLastPassCompleted !== false,
+      restartSafetyConfirmed: preLiveChecklist.restartSafetyConfirmed !== false,
+    },
     activeExchange: normalizedExchangeLayer.activeExchange,
     exchangeCapabilitiesSource: normalizedExchangeLayer.exchangeCapabilitiesSource,
     enableExchangeCapabilityChecks: normalizedExchangeLayer.enableExchangeCapabilityChecks,
