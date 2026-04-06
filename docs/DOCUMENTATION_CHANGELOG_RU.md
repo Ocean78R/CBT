@@ -378,3 +378,10 @@
 - Изменение: расширены runtime-логи `[confluenceEntry]` и structured payload `confluence_entry_decision` полями event-risk для observability/audit trail/trade journal.
 - Связанные файлы кода: `dist/runtime/engines/eventRiskVetoEngine.js`, `dist/runtime/engines/confluenceEntryEngine.js`, `dist/runtime/engines/index.js`, `dist/runtime/config/runtimeConfigValidator.js`, `dist/_config/config.json`, `tests/regression/confluence-entry-engine.test.js`.
 - Связанные разделы docs: `docs/user/TRADING_PIPELINE_RU.md`, `docs/user/CONFIG_GUIDE_RU.md`, `docs/user/LOGS_AND_TROUBLESHOOTING_RU.md`.
+
+## 2026-04-06 (final readiness regression suite + итоговый audit)
+- Изменение: добавлен финальный минимально достаточный сквозной regression suite `tests/regression/final-readiness-regression-suite.test.js` с приоритетными E2E/contract цепочками: startup smoke, risk->decision->ML->sizing, protective/lifecycle restricted path, exchange capability fallback, performance-governor pressure branch.
+- Изменение: подготовлен итоговый readiness audit и карта покрытия после реализации 40 шагов в `docs/audits/final-readiness-regression-audit-step40-2026-04-06.md`.
+- Изменение: зафиксирован рекомендуемый pre-release набор команд для controlled production usage.
+- Связанные файлы кода: `tests/regression/final-readiness-regression-suite.test.js`.
+- Связанные документы: `docs/audits/final-readiness-regression-audit-step40-2026-04-06.md`.
