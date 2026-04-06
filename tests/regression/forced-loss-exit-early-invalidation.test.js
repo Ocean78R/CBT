@@ -195,6 +195,40 @@ test('local forced close начинает закрытие, затем server-si
   assert.equal(decision.ownershipAction, null);
 });
 
+test('local close request до server confirmation дедуплицируется и сохраняет lifecycle owner-path', () => {
+  const decision = evaluateForcedLossExit({
+    context: {
+      cycleId: 'c-201b',
+      ticker: 'AVAX-USDT',
+      capitalRegime: 'NORMAL',
+      protectiveActionState: {
+        owner: 'execution_lifecycle_manager',
+        token: 'local-only-token-1',
+        closeInitiated: true,
+        status: 'initiated',
+      },
+    },
+    position: {
+      side: 'LONG',
+      minutesSinceEntry: 18,
+      entryDeviationPercent: -1.6,
+      timeUnderEntryWithoutRecoveryMinutes: 13,
+      adverseTrendBars: 4,
+      adverseTrendSlope: 0.09,
+      adverseMarketConfirmed: true,
+      holdMinutesInLoss: 20,
+      pnlPercent: -1.6,
+    },
+  }, buildConfig());
+
+  assert.equal(decision.duplicateClosePrevented, true);
+  assert.equal(decision.protectiveActionOwner, 'execution_lifecycle_manager');
+  assert.equal(decision.protectiveActionToken, 'local-only-token-1');
+  assert.equal(decision.runtimeOwnership.serverStopLoss.closeInitiated, false);
+  assert.equal(decision.closeSource, 'early_invalidation');
+  assert.equal(decision.ownershipAction, null);
+});
+
 test('mismatch/reconciliation после protective close остаётся в lifecycle owner-path', () => {
   const decision = evaluateForcedLossExit({
     context: {
