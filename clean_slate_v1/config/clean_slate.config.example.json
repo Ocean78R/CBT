@@ -1,0 +1,43 @@
+{
+  "runtimeMode": "paper",
+  "safeCanary": {
+    "enabled": true,
+    "maxRiskPerTrade": 0.0025,
+    "maxDailyLoss": 0.01,
+    "disableAveraging": true,
+    "disableAutoReverse": true
+  },
+  "flatStart": {
+    "requireNoOpenPositions": true,
+    "requireNoOrphanOrders": true,
+    "requireNoLegacyProtectiveState": true,
+    "requireNoLegacyRestrictedState": true,
+    "onViolation": "safe_mode"
+  },
+  "allowedUniverse": [
+    "BTC-USDT",
+    "ETH-USDT",
+    "SOL-USDT"
+  ],
+  "shortlist": {
+    "maxAssetsPerCycle": 2,
+    "expandOutsideAllowedUniverse": false
+  },
+  "entry": {
+    "finalEntryDecisionEngine": {
+      "enabled": true
+    },
+    "dynamicPositionSizing": {
+      "enabled": true
+    }
+  },
+  "position": {
+    "enableAveraging": false,
+    "enableAutoReverse": false,
+    "protectivePriority": [
+      "short_observation",
+      "early_invalidation",
+      "forced_loss_or_stuck"
+    ]
+  }
+}
