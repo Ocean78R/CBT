@@ -10,6 +10,7 @@
     "test:docs": "node --test tests/docs/*.test.js",
     "run:safe-canary": "bash scripts/safety/run-safe-canary.sh",
     "ml:train:entry-quality": "node scripts/ml/train-entry-quality.js",
-    "test:smoke": "node --test tests/smoke/*.test.js"
+    "test:smoke": "node --test tests/smoke/*.test.js",
+    "test:clean-slate": "node --test tests/clean-slate/*.test.js"
   }
 }
