@@ -88,6 +88,14 @@
   - `no-trade regime` — режим рынка, где входы по сетапам отключаются;
   - `capital prohibition` — запрет по состоянию капитала (`balanceState/capitalRegime`), который может блокировать вход даже при валидном рыночном режиме.
 
+
+## Clean-slate v2 foundation (новый изолированный data-plane этап)
+- Новый этап вынесен в отдельный каталог `clean_slate_v2/` и не меняет текущий рабочий legacy runtime.
+- На этапе foundation фиксируется единый `DecisionContext` контракт и общие immutable snapshots (`MarketSnapshot`/`FeatureSnapshot`).
+- Shared outputs (`regime/forecast/risk`) передаются через общий data-plane и переиспользуются по cache key `cycleId:blockKey` без повторного heavy-пересчёта.
+- Добавлен `structured runtime context` с явной проверкой целостности и с защитой от ad-hoc fork контекстов внутри одного `cycle+ticker`.
+- Граница этапа: scheduler/governor/logging и execution/lifecycle owner-path пока не переносятся.
+
 ## Runtime-позиция execution contour
 - Место в пайплайне: **после approved entry/sizing и до прямого вызова connector**.
 - Зависимости: готовое решение от risk/entry/sizing слоёв; сам execution contour не принимает торговых решений.

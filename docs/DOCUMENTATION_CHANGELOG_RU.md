@@ -1,3 +1,13 @@
+## 2026-04-07 (clean-slate v2 foundation: DecisionContext + shared snapshots)
+- Изменение: создан отдельный каталог `clean_slate_v2/` для нового чистого foundation-этапа без изменений текущего рабочего runtime.
+- Изменение: зафиксирован единый контракт `DecisionContext` (`contractVersion`, cycle/asset, shared snapshots, shared outputs, integrity-assertion, immutable структура).
+- Изменение: реализован shared data-plane (`MarketSnapshot`/`FeatureSnapshot`, cache already-computed outputs, reuse heavy-computation по ключу `cycleId:blockKey`).
+- Изменение: добавлен `structured runtime context` и проверка `no ad-hoc context forks`.
+- Изменение: добавлены contract-тесты на integrity, snapshot reuse, shared output propagation и запрет ad-hoc fork.
+- Изменение: добавлена документация foundation-контракта для следующей интеграции finalEntryDecisionEngine/dynamicPositionSizing/lifecycle owners.
+- Связанные файлы кода: `clean_slate_v2/src/foundation/decisionContext.js`, `clean_slate_v2/src/foundation/sharedDataPlane.js`, `clean_slate_v2/src/foundation/runtimeContext.js`, `tests/clean-slate/runtime-foundation.clean-slate.contract.test.js`.
+- Связанные разделы docs: `clean_slate_v2/README_RU.md`, `clean_slate_v2/docs/FOUNDATION_RUNTIME_CONTRACT_RU.md`, `docs/user/TRADING_PIPELINE_RU.md`.
+
 ## 2026-04-06 (pre-live deployment safety audit: safe canary + checklist)
 - Изменение: добавлен config-presет `safeStartupPresets.liveCanaryV1` для максимально ограниченного first-live запуска (1–2 тикера, минимум позиции, weak-entry off, averaging off, защитный capital regime, полный decision trace, авто-остановка по циклу/тайм-лимиту).
 - Изменение: добавлен структурированный `preLiveChecklist` (config sanity, model availability, exchange capability checks, protective managers ready, paper-mode pass, restart safety).
