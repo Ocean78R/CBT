@@ -22,35 +22,72 @@ test('clean-slate contract: в новом owner-path запрещены прям
   }
 });
 
-test('clean-slate contract: flat-start violation переключает runtime в safe_mode', async () => {
+test('flat-start: clean start разрешает запуск и возвращает passed report', async () => {
   const orchestrator = new CleanRuntimeOrchestrator({
     entryOwner: { openNewPosition: async () => ({ opened: true }) },
     positionOwner: { processExistingPosition: async () => ({ action: 'hold' }) },
     stateGateway: {
       readFlatStartState: async () => ({
-        hasOpenPositions: true,
-        hasOrphanOrders: false,
-        hasLegacyProtectiveState: false,
-        hasLegacyRestrictedState: false,
+        openPositions: [],
+        activeOrders: [],
+        protectiveStateMarkers: [],
+        legacyMismatchRestrictedState: [],
       }),
     },
+    startupMode: 'paper',
+  });
+
+  const boot = await orchestrator.boot();
+  assert.equal(boot.ready, true);
+  assert.equal(boot.runtimeMode, 'trading_enabled');
+  assert.equal(boot.startupReport.flatStartStatus, 'passed');
+  assert.deepEqual(boot.startupReport.reasonCodes, []);
+});
+
+test('flat-start: start blocked by open positions', () => {
+  const decision = evaluateFlatStartContract({
+    openPositions: [{ ticker: 'BTCUSDT' }],
+    activeOrders: [],
+    protectiveStateMarkers: [],
+    legacyMismatchRestrictedState: [],
+  });
+
+  assert.equal(decision.passed, false);
+  assert.equal(decision.runtimeMode, 'safe_mode');
+  assert.deepEqual(decision.blockers.map((b) => b.code), ['open_positions_detected']);
+});
+
+test('flat-start: start blocked by open orders', () => {
+  const decision = evaluateFlatStartContract({
+    openPositions: [],
+    activeOrders: [{ orderId: 'A-1' }],
+    protectiveStateMarkers: [],
+    legacyMismatchRestrictedState: [],
+  });
+
+  assert.equal(decision.passed, false);
+  assert.equal(decision.runtimeMode, 'safe_mode');
+  assert.deepEqual(decision.blockers.map((b) => b.code), ['orphan_orders_detected']);
+});
+
+test('flat-start: start blocked by protective residue', async () => {
+  const orchestrator = new CleanRuntimeOrchestrator({
+    entryOwner: { openNewPosition: async () => ({ opened: true }) },
+    positionOwner: { processExistingPosition: async () => ({ action: 'hold' }) },
+    stateGateway: {
+      readFlatStartState: async () => ({
+        openPositions: [],
+        activeOrders: [],
+        protectiveStateMarkers: ['forced_loss_guard_active'],
+        legacyMismatchRestrictedState: [],
+      }),
+    },
+    startupMode: 'shadow',
   });
 
   const boot = await orchestrator.boot();
   assert.equal(boot.ready, false);
   assert.equal(boot.runtimeMode, 'safe_mode');
-  assert.deepEqual(boot.diagnostics, ['open_positions_detected']);
-});
-
-test('clean-slate contract: flat-start pass разрешает trading_enabled', () => {
-  const decision = evaluateFlatStartContract({
-    hasOpenPositions: false,
-    hasOrphanOrders: false,
-    hasLegacyProtectiveState: false,
-    hasLegacyRestrictedState: false,
-  });
-
-  assert.equal(decision.passed, true);
-  assert.equal(decision.runtimeMode, 'trading_enabled');
-  assert.deepEqual(decision.diagnostics, []);
+  assert.equal(boot.startupReport.flatStartStatus, 'failed');
+  assert.deepEqual(boot.startupReport.reasonCodes, ['legacy_protective_state_detected']);
 });
