@@ -1,6 +1,6 @@
-# Контракт foundation runtime (clean-slate v2)
+# Контракт foundation/runtime-base (clean-slate v2)
 
-## 1) Технические контракты
+## 1) Foundation-контракты
 
 ### DecisionContext
 
@@ -29,25 +29,68 @@
 `assertNoAdHocContextFork(...)` блокирует сценарий, когда внутри одного `cycleId` + `ticker`
 создаётся альтернативный ad-hoc контекст вместо повторного использования базового.
 
-## 2) Shared data-plane
+## 2) Runtime-base контракты
 
-`createSharedDataPlane()` включает:
+### Cache tiers
 
-- `setCycleSnapshots(cycleId, { marketSnapshot, featureSnapshot })`,
-- `getCycleSnapshots(cycleId)`,
-- `getOrComputeOutput({ cycleId, blockKey, compute })`,
-- `clearCycle(cycleId)`.
+`createCacheTiers()` реализует три уровня cache:
 
-`getOrComputeOutput` реализует reuse already-computed outputs через cache key `cycleId:blockKey`.
-Это фиксирует правило: heavy computation выполняется один раз на цикл/блок и далее переиспользуется.
+- `cycle` — быстрый cache в рамках текущего цикла;
+- `warm` — reuse между циклами;
+- `degradedFallback` — безопасный fallback при деградации.
+
+`getOrCompute(...)` поддерживает режимы:
+
+- `full` — разрешён heavy compute;
+- `cached` — heavy compute не обязателен, приоритет reuse cache;
+- `degraded` — heavy compute запрещён, используются warm/fallback данные.
+
+### Request scheduler
+
+`createRequestScheduler()` даёт safety-гарантии:
+
+- лимит запросов на цикл,
+- лимит запросов в rolling window,
+- cooldown по активу,
+- dedup `requestKey` в рамках цикла.
+
+### Performance guardrails
+
+`createPerformanceGuardrails()` вводит budget-контроль:
+
+- ограничение heavy операций на цикл,
+- ограничение суммарного времени цикла,
+- ограничение времени single heavy операции,
+- forced mode escalation: `full -> cached -> degraded`.
+
+### Structured logging
+
+`createStructuredLogger()` пишет единый JSON-формат:
+
+- `ts`, `level`, `event`, `cycleId`, `mode`, `asset`, `reasonCodes`, `details`.
+
+`validateLogRecord(...)` проверяет консистентность схемы.
+
+### Runtime services orchestration
+
+`createRuntimeServices()` связывает cache/scheduler/performance/logging и даёт единый метод:
+
+- `computeWithGuardrails(...)` — предотвращает повтор heavy computation и включает performance-safe fallback.
 
 ## 3) Границы этапа
 
 В этап **не входят**:
 
-- scheduler/governor/logging пакеты,
-- execution/open/position ownership path,
-- legacy runtime flow.
+- signal stack и стратегия сигналов;
+- execution/open/position ownership runtime chain;
+- legacy runtime branches для historical tail сопровождения.
 
-Foundation создаёт только data-contract и data-plane, на которые затем сядут
-`finalEntryDecisionEngine`, `dynamicPositionSizing`, lifecycle owners и capitalRegime-слои.
+## 4) Проверки/гарантии этапа
+
+Тесты подтверждают:
+
+- cache reuse;
+- scheduler behavior;
+- degraded fallback;
+- logging consistency;
+- no repeated heavy computation.
