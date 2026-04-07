@@ -150,3 +150,14 @@ clean_slate_v1/
 - runtime-path **не имеет права** вызывать `openNewPositionLegacy` для новых входов;
 - runtime-path **не имеет права** вызывать `processExistingPositionLegacy` для сопровождения позиций;
 - thin-wrapper методы над legacy ownership chain запрещены контрактом и тестами.
+
+
+## 11) Реализация этапа 1 (flat-start + startup report)
+
+Добавлено в clean-slate runtime:
+- строгая проверка flat-start по 4 классам блокеров: позиции, ордера, protective residue, legacy mismatch/restricted markers;
+- `startupReport` с полями `flatStartStatus`, `reasonCodes`, `cleanupChecklist` и итоговой сводкой;
+- baseline startup-режимы `paper` и `shadow` без изменения owner-path;
+- при любом нарушении flat-start runtime всегда уходит в `safe_mode`.
+
+Важно: startup path новой версии не использует и не может использовать `openNewPositionLegacy` / `processExistingPositionLegacy`.
