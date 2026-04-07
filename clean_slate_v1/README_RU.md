@@ -1,31 +1,20 @@
-# Clean-slate v1 (этап 1: каркас + flat-start contract)
+# Clean-slate v1 (архивный reference-only слой)
 
-Этот каталог содержит стартовую архитектуру новой версии робота.
+> Статус: **ARCHIVED / REFERENCE-ONLY**.
+> Эта папка больше не считается активной веткой реализации.
+> Каноническая новая версия runtime: `clean_slate_v2/`.
 
-- Текущий рабочий legacy-runtime не изменяется.
-- Новый runtime проектируется отдельно.
-- На текущем этапе реализован **обязательный flat-start contract** и базовый startup-поток для `paper`/`shadow`.
+Этот каталог сохранён только как исторический reference этапа 1 (каркас + flat-start contract).
+Новая разработка и интеграция модулей должны вестись только в `clean_slate_v2`.
 
-## Содержимое
+## Что осталось в v1
 
-- `docs/ARCHITECTURE_ZERO_STAGE_RU.md` — архитектурный документ, карта миграции и разрыв legacy ownership chain.
-- `config/clean_slate.config.example.json` — пример clean-slate конфигурации.
-- `src/bootstrap/flatStartGuard.js` — проверка flat-start contract.
-- `src/bootstrap/startupReport.js` — startup report с причинами блокировки и чек-листом очистки.
-- `src/owners/*` — новые owner-path каркасы entry/position flow.
-- `src/runtime/cleanRuntimeOrchestrator.js` — оркестратор v1 и baseline-старт в `paper`/`shadow`.
-- `src/contracts/ownerPathContracts.js` — контракт owner-path и запрет legacy owner вызовов.
+- Исторический архитектурный документ (`docs/ARCHITECTURE_ZERO_STAGE_RU.md`).
+- Пример legacy clean-slate конфигурации (`config/clean_slate.config.example.json`).
+- Ранняя реализация flat-start/startup/owner-path каркаса.
 
-## Flat-start contract
+## Политика использования
 
-Перед запуском торговли новый runtime проверяет:
-- отсутствуют открытые позиции;
-- отсутствуют активные/сиротские ордера;
-- отсутствуют legacy protective-state markers;
-- отсутствует legacy mismatch/restricted state.
-
-Если найдено нарушение, робот **не начинает торговлю**, переключается в `safe_mode` и возвращает startup report с причинами и инструкциями очистки.
-
-## Статус
-
-Этап 1 выполнен: чистый каркас и safe startup-контракт реализованы.
+- Не добавлять новый runtime-код в `clean_slate_v1/src`.
+- Не подключать `clean_slate_v1` в новые тесты и owner-path цепочки.
+- Использовать только для сверки и аудита эволюции clean-slate.

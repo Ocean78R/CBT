@@ -1,5 +1,10 @@
 # Clean-slate v2 (этапы foundation + runtime-base)
 
+> Статус: **CANONICAL CLEAN-SLATE VERSION** (после консолидации 2026-04-07).
+> Все новые clean-slate изменения должны вноситься только в `clean_slate_v2`.
+
+
+
 Этот каталог содержит **новую чистую версию runtime-основы**, полностью изолированную от legacy ownership-chain.
 
 ## Что входит
@@ -29,6 +34,14 @@
 - `src/execution_core/closeExecutionOwner.js` — owner-path закрытия позиции.
 - `src/execution_core/executionJournal.js` — execution audit trace.
 - `src/execution_core/executionOwnerPath.js` — единая execution owner orchestration.
+
+
+### Bootstrap + owner-path contract (после консолидации)
+
+- `src/contracts/ownerPathContracts.js` — единый owner-path contract и запрет legacy owner вызовов.
+- `src/bootstrap/flatStartGuard.js` — flat-start gate перед включением торговли.
+- `src/bootstrap/startupReport.js` — структурированный startup report.
+- `src/runtime/cleanRuntimeOrchestrator.js` — оркестрация старта и циклов entry/position owner-path.
 
 ## Принципы clean-slate v2
 
